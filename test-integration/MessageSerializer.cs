@@ -1,4 +1,3 @@
-using System.Text;
 using El.ServiceBus;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -12,12 +11,7 @@ namespace EL.ServiceBus.IntegrationTests
             return JsonConvert.DeserializeObject<T>(serializedMessage);
         }
 
-        public byte[] Serialize<T>(T message)
-        {
-            return Encoding.UTF8.GetBytes(SerializeObject(message));
-        }
-
-        private static string SerializeObject<T>(T message)
+        public string Serialize<T>(T message)
         {
             return JsonConvert.SerializeObject(message, new JsonSerializerSettings
             {

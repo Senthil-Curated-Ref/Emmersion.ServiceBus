@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Azure.ServiceBus;
 
@@ -32,7 +33,8 @@ namespace El.ServiceBus
                 EventVersion = version,
                 Payload = message
             };
-            Task.WaitAll(client.SendAsync(new Message(serializer.Serialize(envelope))));
+            var bytes = Encoding.UTF8.GetBytes(serializer.Serialize(envelope));
+            Task.WaitAll(client.SendAsync(new Message(bytes)));
         }
     }
 }
