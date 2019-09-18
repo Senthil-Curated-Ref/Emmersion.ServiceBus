@@ -32,11 +32,16 @@ namespace EL.ServiceBus.IntegrationTests
 
                 var hostedTask = host.RunAsync();
 
+                var messageRoundTripDurations = new List<double>();
                 var receivedMessageCount = 0;
                 var receivedA1Messages = new List<IntegrationTestMessage>();
                 var receivedA2Messages = new List<IntegrationTestMessage>();
                 var receivedB1Messages = new List<IntegrationTestMessage>();
-                
+
+                subscriber.OnMessageReceived += (object sender, MessageReceivedArgs args) => {
+                    var duration = (args.ReceivedAt - args.PublishedAt).TotalMilliseconds;
+                    messageRoundTripDurations.Add(duration);
+                };
                 subscriber.Subscribe("event-a", 1, (IntegrationTestMessage message) => {
                     receivedA1Messages.Add(message);
                     receivedMessageCount++;
@@ -50,11 +55,15 @@ namespace EL.ServiceBus.IntegrationTests
                     receivedMessageCount++;
                 });
 
+                var messagePublishDurations = new List<long>();
                 var a11Message = new IntegrationTestMessage { StringData = "A1-1", IntData = 13 };
                 var a12Message = new IntegrationTestMessage { StringData = "A1-2", IntData = 99 };
                 var a21Message = new IntegrationTestMessage { StringData = "A2-1", IntData = 7 };
                 var b11Message = new IntegrationTestMessage { StringData = "B1-1", IntData = -123 };
 
+                publisher.OnMessagePublished += (object sender, MessagePublishedArgs args) => {
+                    messagePublishDurations.Add(args.ElapsedMilliseconds);
+                };
                 publisher.Publish("event-a", 1, a11Message);
                 publisher.Publish("event-a", 2, a21Message);
                 publisher.Publish("event-b", 1, b11Message);
@@ -74,6 +83,10 @@ namespace EL.ServiceBus.IntegrationTests
                 AssertMessageReceived(receivedA2Messages, a21Message);
                 AssertMessageReceived(receivedB1Messages, b11Message);
                 Assert.That(receivedMessageCount, Is.GreaterThanOrEqualTo(expectedMessageCount), $"Did not get the expected number of messages");
+                Assert.That(messageRoundTripDurations.Count, Is.GreaterThanOrEqualTo(receivedMessageCount), "Did not get the expected number of round trip durations");
+                Assert.That(messageRoundTripDurations.Max(), Is.LessThanOrEqualTo(1000), $"Expected round trip durations to be < 1000ms");
+                Assert.That(messagePublishDurations.Count, Is.EqualTo(expectedMessageCount), "Did not get the expected number of publish durations");
+                Assert.That(messagePublishDurations.Average(), Is.LessThanOrEqualTo(500), $"Expected publish durations to be < 500ms");
             }
         }
 

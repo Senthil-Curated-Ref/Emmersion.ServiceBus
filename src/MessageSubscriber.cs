@@ -8,12 +8,14 @@ namespace El.ServiceBus
     {
         void Subscribe<T>(string eventName, uint version, Action<T> action);
         void RouteMessage(string serializedMessage);
+        event OnMessageReceived OnMessageReceived;
     }
 
     internal class MessageSubscriber : IMessageSubscriber
     {
         private readonly List<Subscription> subscriptions = new List<Subscription>();
         private readonly IMessageSerializer messageSerializer;
+        public event OnMessageReceived OnMessageReceived;
 
         public MessageSubscriber(IMessageSerializer messageSerializer)
         {
@@ -34,10 +36,11 @@ namespace El.ServiceBus
 
         public void RouteMessage(string serializedMessage)
         {
+            var receivedAt = DateTimeOffset.UtcNow;
             var envelope = messageSerializer.Deserialize<MessageEnvelope<Stub>>(serializedMessage);
             var recipients = subscriptions.Where(x => x.EventName == envelope.EventName && x.Version == envelope.EventVersion).ToList();
-            System.Console.WriteLine($"Routing message to {recipients.Count} recipients: {serializedMessage}");
             recipients.ForEach(x => x.Action(serializedMessage));
+            OnMessageReceived?.Invoke(this, new MessageReceivedArgs(envelope.EventName, envelope.EventVersion, envelope.PublishedAt, receivedAt));
         }
     }
 
