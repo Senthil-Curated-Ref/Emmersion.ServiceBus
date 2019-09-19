@@ -14,14 +14,14 @@ namespace El.ServiceBus
 
     internal class MessagePublisher : IMessagePublisher
     {
-        private readonly TopicClient client;
+        private readonly ITopicClientWrapper client;
         private readonly IMessageSerializer serializer;
         public event OnMessagePublished OnMessagePublished;
 
-        public MessagePublisher(ITopicConfig config, IMessageSerializer serializer)
+        public MessagePublisher(ITopicClientWrapper topicClientWrapper, IMessageSerializer serializer)
         {
+            this.client = topicClientWrapper;
             this.serializer = serializer;
-            client = new TopicClient(config.ConnectionString, config.TopicName);
         }
 
         public void Dispose()

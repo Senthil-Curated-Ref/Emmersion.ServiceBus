@@ -12,6 +12,7 @@ namespace El.ServiceBus
         {
             services.AddSingleton<IMessagePublisher, MessagePublisher>();
             services.AddSingleton<IMessageSubscriber, MessageSubscriber>();
+            services.AddTransient<ITopicClientWrapper, TopicClientWrapper>();
         }
     }
 }
