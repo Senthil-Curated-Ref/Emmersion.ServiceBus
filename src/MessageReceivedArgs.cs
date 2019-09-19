@@ -6,16 +6,14 @@ namespace El.ServiceBus
 
     public class MessageReceivedArgs : EventArgs
     {
-        public MessageReceivedArgs(string eventName, uint eventVersion, DateTimeOffset publishedAt, DateTimeOffset receivedAt)
+        public MessageReceivedArgs(string messageEvent, DateTimeOffset publishedAt, DateTimeOffset receivedAt)
         {
-            EventName = eventName;
-            EventVersion = eventVersion;
+            MessageEvent = messageEvent;
             PublishedAt = publishedAt;
             ReceivedAt = receivedAt;
         }
 
-        public string EventName { get; }
-        public uint EventVersion { get; }
+        public string MessageEvent { get; }
         public DateTimeOffset PublishedAt { get; }
         public DateTimeOffset ReceivedAt { get; }
     }

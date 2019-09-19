@@ -14,6 +14,7 @@ namespace EL.ServiceBus.UnitTests
         [Test]
         public void When_publishing_a_message()
         {
+            var messageEvent = new MessageEvent("test-event", 5);
             var message = new TestMessage { Data = "I am the very model of a modern major test message." };
             MessageEnvelope<TestMessage> envelope = null;
             var serializedString = "pretend this is json";
@@ -27,10 +28,9 @@ namespace EL.ServiceBus.UnitTests
                 .Callback<Message>(x => sentMessage = x)
                 .Returns(Task.CompletedTask);
 
-            ClassUnderTest.Publish("test-event", 5, message);
+            ClassUnderTest.Publish(messageEvent, message);
 
-            Assert.That(envelope.EventName, Is.EqualTo("test-event"));
-            Assert.That(envelope.EventVersion, Is.EqualTo(5));
+            Assert.That(envelope.MessageEvent, Is.EqualTo(messageEvent.ToString()));
             Assert.That(envelope.PublishedAt, Is.EqualTo(DateTimeOffset.UtcNow).Within(TimeSpan.FromSeconds(1)));
             Assert.That(envelope.Payload, Is.SameAs(message));
 
@@ -40,6 +40,7 @@ namespace EL.ServiceBus.UnitTests
         [Test]
         public void When_publishing_a_message_timing_data_is_returned()
         {
+            var messageEvent = new MessageEvent("test-event", 13);
             var message = new TestMessage { Data = "I am the very model of a modern major test message." };
             var serializedString = "pretend this is json";
             var receivedTimings = new List<MessagePublishedArgs>();
@@ -51,7 +52,7 @@ namespace EL.ServiceBus.UnitTests
                 .Returns(Task.Run(() => Thread.Sleep(150)));
 
             ClassUnderTest.OnMessagePublished += (object sender, MessagePublishedArgs args) => receivedTimings.Add(args); 
-            ClassUnderTest.Publish("test-event", 5, message);
+            ClassUnderTest.Publish(messageEvent, message);
 
             Assert.That(receivedTimings.Count, Is.EqualTo(1));
             Assert.That(receivedTimings[0].ElapsedMilliseconds, Is.EqualTo(150).Within(10));

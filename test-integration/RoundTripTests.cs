@@ -32,6 +32,10 @@ namespace EL.ServiceBus.IntegrationTests
 
                 var hostedTask = host.RunAsync();
 
+                var eventA1 = new MessageEvent("event-a", 1);
+                var eventA2 = new MessageEvent("event-a", 2);
+                var eventB1 = new MessageEvent("event-b", 1);
+
                 var messageRoundTripDurations = new List<double>();
                 var receivedMessageCount = 0;
                 var receivedA1Messages = new List<IntegrationTestMessage>();
@@ -42,15 +46,15 @@ namespace EL.ServiceBus.IntegrationTests
                     var duration = (args.ReceivedAt - args.PublishedAt).TotalMilliseconds;
                     messageRoundTripDurations.Add(duration);
                 };
-                subscriber.Subscribe("event-a", 1, (IntegrationTestMessage message) => {
+                subscriber.Subscribe(eventA1, (IntegrationTestMessage message) => {
                     receivedA1Messages.Add(message);
                     receivedMessageCount++;
                 });
-                subscriber.Subscribe("event-a", 2, (IntegrationTestMessage message) => {
+                subscriber.Subscribe(eventA2, (IntegrationTestMessage message) => {
                     receivedA2Messages.Add(message);
                     receivedMessageCount++;
                 });
-                subscriber.Subscribe("event-b", 1, (IntegrationTestMessage message) => {
+                subscriber.Subscribe(eventB1, (IntegrationTestMessage message) => {
                     receivedB1Messages.Add(message);
                     receivedMessageCount++;
                 });
@@ -64,10 +68,10 @@ namespace EL.ServiceBus.IntegrationTests
                 publisher.OnMessagePublished += (object sender, MessagePublishedArgs args) => {
                     messagePublishDurations.Add(args.ElapsedMilliseconds);
                 };
-                publisher.Publish("event-a", 1, a11Message);
-                publisher.Publish("event-a", 2, a21Message);
-                publisher.Publish("event-b", 1, b11Message);
-                publisher.Publish("event-a", 1, a12Message);
+                publisher.Publish(eventA1, a11Message);
+                publisher.Publish(eventA2, a21Message);
+                publisher.Publish(eventB1, b11Message);
+                publisher.Publish(eventA1, a12Message);
 
                 var waited = 0;
                 var expectedMessageCount = 4;

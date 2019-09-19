@@ -6,7 +6,7 @@ namespace El.ServiceBus
 {
     public interface IMessageSubscriber
     {
-        void Subscribe<T>(string eventName, uint version, Action<T> action);
+        void Subscribe<T>(MessageEvent messageEvent, Action<T> action);
         void RouteMessage(string serializedMessage);
         event OnMessageReceived OnMessageReceived;
     }
@@ -22,11 +22,10 @@ namespace El.ServiceBus
             this.messageSerializer = messageSerializer;
         }
 
-        public void Subscribe<T>(string eventName, uint version, Action<T> action)
+        public void Subscribe<T>(MessageEvent messageEvent, Action<T> action)
         {
             subscriptions.Add(new Subscription{
-                EventName = eventName,
-                Version = version,
+                MessageEvent = messageEvent.ToString(),
                 Action = (serializedMessage) => {
                     var envelope = messageSerializer.Deserialize<MessageEnvelope<T>>(serializedMessage);
                     action(envelope.Payload);
@@ -38,16 +37,15 @@ namespace El.ServiceBus
         {
             var receivedAt = DateTimeOffset.UtcNow;
             var envelope = messageSerializer.Deserialize<MessageEnvelope<Stub>>(serializedMessage);
-            var recipients = subscriptions.Where(x => x.EventName == envelope.EventName && x.Version == envelope.EventVersion).ToList();
+            var recipients = subscriptions.Where(x => x.MessageEvent == envelope.MessageEvent).ToList();
             recipients.ForEach(x => x.Action(serializedMessage));
-            OnMessageReceived?.Invoke(this, new MessageReceivedArgs(envelope.EventName, envelope.EventVersion, envelope.PublishedAt, receivedAt));
+            OnMessageReceived?.Invoke(this, new MessageReceivedArgs(envelope.MessageEvent, envelope.PublishedAt, receivedAt));
         }
     }
 
     internal class Subscription
     {
-        public string EventName { get; set; }
-        public uint Version { get; set; }
+        public string MessageEvent { get; set; }
         public Action<string> Action { get; set; }
     }
 

@@ -11,7 +11,7 @@ namespace EL.ServiceBus.UnitTests
         public void When_routing_a_message_it_should_only_reach_the_matching_subscriber()
         {
             var serializedMessage = "serialized";
-            var deserializedStub = new MessageEnvelope<Stub> { EventName = "test-event", EventVersion = 1 };
+            var deserializedStub = new MessageEnvelope<Stub> { MessageEvent = "test-event.v1", };
             var deserializedMessage = new MessageEnvelope<TestMessage>() { Payload = new TestMessage { Data = "hello world" } };
             var testEventV1Messages = new List<TestMessage>();
             var testEventV2Messages = new List<TestMessage>();
@@ -19,9 +19,9 @@ namespace EL.ServiceBus.UnitTests
             GetMock<IMessageSerializer>().Setup(x => x.Deserialize<MessageEnvelope<Stub>>(serializedMessage)).Returns(deserializedStub);
             GetMock<IMessageSerializer>().Setup(x => x.Deserialize<MessageEnvelope<TestMessage>>(serializedMessage)).Returns(deserializedMessage);
 
-            ClassUnderTest.Subscribe("test-event", 1, (TestMessage message) => testEventV1Messages.Add(message));
-            ClassUnderTest.Subscribe("test-event", 2, (TestMessage message) => testEventV1Messages.Add(message));
-            ClassUnderTest.Subscribe("other-event", 1, (TestMessage message) => testEventV1Messages.Add(message));
+            ClassUnderTest.Subscribe(new MessageEvent("test-event", 1), (TestMessage message) => testEventV1Messages.Add(message));
+            ClassUnderTest.Subscribe(new MessageEvent("test-event", 2), (TestMessage message) => testEventV1Messages.Add(message));
+            ClassUnderTest.Subscribe(new MessageEvent("other-event", 1), (TestMessage message) => testEventV1Messages.Add(message));
             
             ClassUnderTest.RouteMessage(serializedMessage);
 
@@ -35,15 +35,15 @@ namespace EL.ServiceBus.UnitTests
         public void When_routing_a_message_and_there_are_multiple_subscribers()
         {
             var serializedMessage = "serialized";
-            var deserializedStub = new MessageEnvelope<Stub> { EventName = "test-event", EventVersion = 3 };
+            var deserializedStub = new MessageEnvelope<Stub> { MessageEvent = "test-event.v3" };
             var deserializedMessage = new MessageEnvelope<TestMessage>() { Payload = new TestMessage { Data = "hello world" } };
             var subscriber1Messages = new List<TestMessage>();
             var subscriber2Messages = new List<TestMessage>();
             GetMock<IMessageSerializer>().Setup(x => x.Deserialize<MessageEnvelope<Stub>>(serializedMessage)).Returns(deserializedStub);
             GetMock<IMessageSerializer>().Setup(x => x.Deserialize<MessageEnvelope<TestMessage>>(serializedMessage)).Returns(deserializedMessage);
 
-            ClassUnderTest.Subscribe("test-event", 3, (TestMessage message) => subscriber1Messages.Add(message));
-            ClassUnderTest.Subscribe("test-event", 3, (TestMessage message) => subscriber2Messages.Add(message));
+            ClassUnderTest.Subscribe(new MessageEvent("test-event", 3), (TestMessage message) => subscriber1Messages.Add(message));
+            ClassUnderTest.Subscribe(new MessageEvent("test-event", 3), (TestMessage message) => subscriber2Messages.Add(message));
 
             ClassUnderTest.RouteMessage(serializedMessage);
 
@@ -57,7 +57,7 @@ namespace EL.ServiceBus.UnitTests
         public void When_routing_a_message_you_get_timing_data()
         {
             var serializedMessage = "serialized";
-            var deserializedStub = new MessageEnvelope<Stub> { EventName = "test-event", EventVersion = 3 };
+            var deserializedStub = new MessageEnvelope<Stub> { MessageEvent = "test-event.v3" };
             var eventArgs = new List<MessageReceivedArgs>();
             GetMock<IMessageSerializer>().Setup(x => x.Deserialize<MessageEnvelope<Stub>>(serializedMessage)).Returns(deserializedStub);
 
@@ -65,8 +65,7 @@ namespace EL.ServiceBus.UnitTests
             ClassUnderTest.RouteMessage(serializedMessage);
 
             Assert.That(eventArgs.Count, Is.EqualTo(1));
-            Assert.That(eventArgs[0].EventName, Is.EqualTo(deserializedStub.EventName));
-            Assert.That(eventArgs[0].EventVersion, Is.EqualTo(deserializedStub.EventVersion));
+            Assert.That(eventArgs[0].MessageEvent, Is.EqualTo(deserializedStub.MessageEvent));
             Assert.That(eventArgs[0].PublishedAt, Is.EqualTo(deserializedStub.PublishedAt));
             Assert.That(eventArgs[0].ReceivedAt, Is.EqualTo(DateTimeOffset.UtcNow).Within(TimeSpan.FromSeconds(1)));
             Assert.That(eventArgs[0].ReceivedAt, Is.GreaterThan(deserializedStub.PublishedAt));

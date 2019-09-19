@@ -8,7 +8,7 @@ namespace El.ServiceBus
 {
     public interface IMessagePublisher : IDisposable
     {
-        void Publish<T>(string eventName, uint version, T message);
+        void Publish<T>(MessageEvent messageEvent, T message);
         event OnMessagePublished OnMessagePublished;
     }
 
@@ -29,12 +29,11 @@ namespace El.ServiceBus
             client.CloseAsync();
         }
 
-        public void Publish<T>(string eventName, uint version, T message)
+        public void Publish<T>(MessageEvent messageEvent, T message)
         {
             var stopwatch = Stopwatch.StartNew();
             var envelope = new MessageEnvelope<T> {
-                EventName = eventName,
-                EventVersion = version,
+                MessageEvent = messageEvent.ToString(),
                 Payload = message
             };
             var bytes = Encoding.UTF8.GetBytes(serializer.Serialize(envelope));
