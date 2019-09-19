@@ -55,7 +55,8 @@ namespace EL.ServiceBus.UnitTests
             ClassUnderTest.Publish(messageEvent, message);
 
             Assert.That(receivedTimings.Count, Is.EqualTo(1));
-            Assert.That(receivedTimings[0].ElapsedMilliseconds, Is.EqualTo(150).Within(10));
+            Assert.That(receivedTimings[0].ElapsedMilliseconds, Is.GreaterThanOrEqualTo(150));
+            Assert.That(receivedTimings[0].ElapsedMilliseconds, Is.LessThan(1000));
         }
 
         [Test]
