@@ -72,9 +72,4 @@ namespace EL.ServiceBus.UnitTests
             Assert.That(eventArgs[0].ReceivedAt, Is.GreaterThan(deserializedStub.PublishedAt));
         }
     }
-
-    internal class TestMessage
-    {
-        public string Data { get; set; }
-    }
 }
