@@ -1,6 +1,6 @@
 using Microsoft.Azure.WebJobs;
 
-namespace El.ServiceBus
+namespace EL.ServiceBus
 {
     public class MessageTrigger
     {

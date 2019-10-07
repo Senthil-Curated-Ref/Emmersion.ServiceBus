@@ -4,7 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Azure.ServiceBus;
 
-namespace El.ServiceBus
+namespace EL.ServiceBus
 {
     public interface IMessagePublisher : IDisposable
     {

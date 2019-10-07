@@ -1,6 +1,6 @@
 using System;
 
-namespace El.ServiceBus
+namespace EL.ServiceBus
 {
     public delegate void OnMessageReceived(object source, MessageReceivedArgs e);
 

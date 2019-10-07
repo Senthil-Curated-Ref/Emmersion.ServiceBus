@@ -1,4 +1,4 @@
-namespace El.ServiceBus
+namespace EL.ServiceBus
 {
     public interface IMessageSerializer
     {

@@ -1,7 +1,7 @@
 using System;
 using System.Text.RegularExpressions;
 
-namespace El.ServiceBus
+namespace EL.ServiceBus
 {
     public class MessageEvent
     {

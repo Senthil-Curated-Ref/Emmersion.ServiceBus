@@ -1,4 +1,3 @@
-using El.ServiceBus;
 using NUnit.Framework;
 
 namespace EL.ServiceBus.UnitTests

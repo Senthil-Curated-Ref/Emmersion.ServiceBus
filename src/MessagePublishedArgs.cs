@@ -1,6 +1,6 @@
 using System;
 
-namespace El.ServiceBus
+namespace EL.ServiceBus
 {
     public delegate void OnMessagePublished(object source, MessagePublishedArgs e);
 

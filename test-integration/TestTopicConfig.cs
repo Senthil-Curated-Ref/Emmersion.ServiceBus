@@ -1,5 +1,3 @@
-using El.ServiceBus;
-
 namespace EL.ServiceBus.IntegrationTests
 {
     public class TestTopicConfig : ITopicConfig

@@ -1,6 +1,6 @@
 using System;
 
-namespace El.ServiceBus
+namespace EL.ServiceBus
 {
     internal class MessageEnvelope<T>
     {

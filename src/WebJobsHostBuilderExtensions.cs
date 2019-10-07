@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Hosting;
 
-namespace El.ServiceBus
+namespace EL.ServiceBus
 {
     public static class WebJobsHostBuilderExtensions
     {

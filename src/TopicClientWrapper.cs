@@ -2,7 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.Azure.ServiceBus;
 
-namespace El.ServiceBus
+namespace EL.ServiceBus
 {
     
     internal interface ITopicClientWrapper
