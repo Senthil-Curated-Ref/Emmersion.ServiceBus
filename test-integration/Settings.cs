@@ -28,7 +28,7 @@ namespace EL.ServiceBus.IntegrationTests
             return configuration.GetValue<string>($"resolvers:{name}");
         }
 
-        public string ConnectionString => configuration.GetValue<string>("ConnectionStrings:ServiceBus");
-        public string TopicName => configuration.GetValue<string>("resolvers:topic-name");
+        public string ConnectionString => configuration.GetValue<string>("ConnectionStrings:el-service-bus");
+        public string TopicName => configuration.GetValue<string>("resolvers:el-service-bus-topic-name");
     }
 }
