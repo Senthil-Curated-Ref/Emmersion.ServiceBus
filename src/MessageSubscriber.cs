@@ -38,8 +38,15 @@ namespace EL.ServiceBus
             var receivedAt = DateTimeOffset.UtcNow;
             var envelope = messageSerializer.Deserialize<MessageEnvelope<Stub>>(serializedMessage);
             var recipients = subscriptions.Where(x => x.MessageEvent == envelope.MessageEvent).ToList();
-            recipients.ForEach(x => x.Action(serializedMessage));
-            OnMessageReceived?.Invoke(this, new MessageReceivedArgs(envelope.MessageEvent, envelope.PublishedAt, receivedAt));
+            try
+            {
+                recipients.ForEach(x => x.Action(serializedMessage));
+            }
+            finally
+            {
+                var processingTime = DateTimeOffset.UtcNow - receivedAt;
+                OnMessageReceived?.Invoke(this, new MessageReceivedArgs(envelope.MessageEvent, envelope.PublishedAt, receivedAt, processingTime));
+            }
         }
     }
 

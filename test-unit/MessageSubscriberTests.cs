@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using NUnit.Framework;
 
 namespace EL.ServiceBus.UnitTests
@@ -61,13 +62,43 @@ namespace EL.ServiceBus.UnitTests
             GetMock<IMessageSerializer>().Setup(x => x.Deserialize<MessageEnvelope<Stub>>(serializedMessage)).Returns(deserializedStub);
 
             ClassUnderTest.OnMessageReceived += (object sender, MessageReceivedArgs args) => eventArgs.Add(args);
+            var before = DateTimeOffset.UtcNow;
             ClassUnderTest.RouteMessage(serializedMessage);
+            var duration = DateTimeOffset.UtcNow - before;
 
             Assert.That(eventArgs.Count, Is.EqualTo(1));
             Assert.That(eventArgs[0].MessageEvent, Is.EqualTo(deserializedStub.MessageEvent));
             Assert.That(eventArgs[0].PublishedAt, Is.EqualTo(deserializedStub.PublishedAt));
             Assert.That(eventArgs[0].ReceivedAt, Is.EqualTo(DateTimeOffset.UtcNow).Within(TimeSpan.FromSeconds(1)));
             Assert.That(eventArgs[0].ReceivedAt, Is.GreaterThan(deserializedStub.PublishedAt));
+            Assert.That(eventArgs[0].ProcessingTime, Is.EqualTo(duration).Within(TimeSpan.FromMilliseconds(25)));
+        }
+
+        [Test]
+        public void When_routing_a_message_you_get_timing_data_even_if_a_subscriber_blows_up()
+        {
+            var serializedMessage = "serialized";
+            var messageEvent = new MessageEvent("test-event", 3);
+            var deserializedStub = new MessageEnvelope<Stub> { MessageEvent = messageEvent.ToString() };
+            var eventArgs = new List<MessageReceivedArgs>();
+            GetMock<IMessageSerializer>().Setup(x => x.Deserialize<MessageEnvelope<Stub>>(serializedMessage)).Returns(deserializedStub);
+
+            ClassUnderTest.Subscribe(messageEvent, (Stub _) => {
+                Thread.Sleep(50);
+                throw new Exception("Test exception!");
+            });
+
+            ClassUnderTest.OnMessageReceived += (object sender, MessageReceivedArgs args) => eventArgs.Add(args);
+            var before = DateTimeOffset.UtcNow;
+            Assert.Catch<Exception>(() => ClassUnderTest.RouteMessage(serializedMessage));
+            var duration = DateTimeOffset.UtcNow - before;
+
+            Assert.That(eventArgs.Count, Is.EqualTo(1));
+            Assert.That(eventArgs[0].MessageEvent, Is.EqualTo(deserializedStub.MessageEvent));
+            Assert.That(eventArgs[0].PublishedAt, Is.EqualTo(deserializedStub.PublishedAt));
+            Assert.That(eventArgs[0].ReceivedAt, Is.EqualTo(DateTimeOffset.UtcNow).Within(TimeSpan.FromSeconds(1)));
+            Assert.That(eventArgs[0].ReceivedAt, Is.GreaterThan(deserializedStub.PublishedAt));
+            Assert.That(eventArgs[0].ProcessingTime, Is.EqualTo(duration).Within(TimeSpan.FromMilliseconds(25)));
         }
     }
 }
