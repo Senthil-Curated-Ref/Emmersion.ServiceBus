@@ -2,7 +2,7 @@ using System;
 
 namespace EL.ServiceBus
 {
-    public delegate void OnMessageReceived(object source, MessageReceivedArgs e);
+    public delegate void OnMessageReceived(object source, MessageReceivedArgs args);
 
     public class MessageReceivedArgs : EventArgs
     {

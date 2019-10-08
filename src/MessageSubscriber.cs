@@ -9,6 +9,7 @@ namespace EL.ServiceBus
         void Subscribe<T>(MessageEvent messageEvent, Action<T> action);
         void RouteMessage(string serializedMessage);
         event OnMessageReceived OnMessageReceived;
+        event OnUnhandledException OnUnhandledException;
     }
 
     internal class MessageSubscriber : IMessageSubscriber
@@ -16,6 +17,7 @@ namespace EL.ServiceBus
         private readonly List<Subscription> subscriptions = new List<Subscription>();
         private readonly IMessageSerializer messageSerializer;
         public event OnMessageReceived OnMessageReceived;
+        public event OnUnhandledException OnUnhandledException;
 
         public MessageSubscriber(IMessageSerializer messageSerializer)
         {
@@ -41,6 +43,11 @@ namespace EL.ServiceBus
             try
             {
                 recipients.ForEach(x => x.Action(serializedMessage));
+            }
+            catch (Exception e)
+            {
+                OnUnhandledException?.Invoke(this, new UnhandledExceptionArgs(envelope.MessageEvent, e));
+                throw;
             }
             finally
             {

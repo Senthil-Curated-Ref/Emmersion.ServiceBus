@@ -100,5 +100,25 @@ namespace EL.ServiceBus.UnitTests
             Assert.That(eventArgs[0].ReceivedAt, Is.GreaterThan(deserializedStub.PublishedAt));
             Assert.That(eventArgs[0].ProcessingTime, Is.EqualTo(duration).Within(TimeSpan.FromMilliseconds(25)));
         }
+
+        [Test]
+        public void When_routing_a_message_unhandled_exceptions_are_exposed()
+        {
+            var serializedMessage = "serialized";
+            var messageEvent = new MessageEvent("test-event", 3);
+            var deserializedStub = new MessageEnvelope<Stub> { MessageEvent = messageEvent.ToString() };
+            var exceptionArgs = new List<UnhandledExceptionArgs>();
+            var thrownException = new Exception("Test exception!");
+            GetMock<IMessageSerializer>().Setup(x => x.Deserialize<MessageEnvelope<Stub>>(serializedMessage)).Returns(deserializedStub);
+
+            ClassUnderTest.Subscribe(messageEvent, (Stub _) => throw thrownException);
+
+            ClassUnderTest.OnUnhandledException += (object sender, UnhandledExceptionArgs args) => exceptionArgs.Add(args);
+            Assert.Catch<Exception>(() => ClassUnderTest.RouteMessage(serializedMessage));
+
+            Assert.That(exceptionArgs.Count, Is.EqualTo(1));
+            Assert.That(exceptionArgs[0].MessageEvent, Is.EqualTo(deserializedStub.MessageEvent));
+            Assert.That(exceptionArgs[0].UnhandledException, Is.SameAs(thrownException));
+        }
     }
 }
