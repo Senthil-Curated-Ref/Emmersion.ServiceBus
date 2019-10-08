@@ -17,6 +17,14 @@ namespace EL.ServiceBus
 
         public TopicClientWrapper(ITopicConfig config)
         {
+            if (string.IsNullOrEmpty(config.ConnectionString))
+            {
+                throw new ArgumentException($"Invalid ConnectionString in ITopicConfig", nameof(config.ConnectionString));
+            }
+            if (string.IsNullOrEmpty(config.TopicName))
+            {
+                throw new ArgumentException($"Invalid TopicName in ITopicConfig", nameof(config.TopicName));
+            }
             client = new TopicClient(config.ConnectionString, config.TopicName);
         }
 
