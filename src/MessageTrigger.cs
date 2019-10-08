@@ -11,7 +11,7 @@ namespace EL.ServiceBus
             this.messageSubscriber = messageSubscriber;
         }
 
-        public void HandleMessage([ServiceBusTrigger("%el-service-bus-topic-name%", "%el-service-bus-subscriber-name%", Connection = "el-service-bus")] string serializedMessage)
+        public void HandleMessage([ServiceBusTrigger("%ELServiceBusTopicName%", "%ELServiceBusSubscriberName%", Connection = "ELServiceBus")] string serializedMessage)
         {
             messageSubscriber.RouteMessage(serializedMessage);
         }
