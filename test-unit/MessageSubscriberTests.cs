@@ -72,6 +72,15 @@ namespace EL.ServiceBus.UnitTests
             Assert.That(eventArgs[0].ReceivedAt, Is.EqualTo(DateTimeOffset.UtcNow).Within(TimeSpan.FromSeconds(1)));
             Assert.That(eventArgs[0].ReceivedAt, Is.GreaterThan(deserializedStub.PublishedAt));
             Assert.That(eventArgs[0].ProcessingTime, Is.EqualTo(duration).Within(TimeSpan.FromMilliseconds(25)));
+            Assert.That(eventArgs[0].SubscriberCount, Is.EqualTo(0));
+
+            ClassUnderTest.Subscribe(new MessageEvent("test-event", 3), (Stub _) => { Thread.Sleep(25); });
+            ClassUnderTest.Subscribe(new MessageEvent("test-event", 3), (Stub _) => { Thread.Sleep(25); });
+            ClassUnderTest.RouteMessage(serializedMessage);
+            
+            Assert.That(eventArgs.Count, Is.EqualTo(2));
+            Assert.That(eventArgs[1].SubscriberCount, Is.EqualTo(2));
+            Assert.That(eventArgs[1].ProcessingTime.TotalMilliseconds, Is.EqualTo(50).Within(20));
         }
 
         [Test]

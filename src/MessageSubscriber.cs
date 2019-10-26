@@ -52,7 +52,13 @@ namespace EL.ServiceBus
             finally
             {
                 var processingTime = DateTimeOffset.UtcNow - receivedAt;
-                OnMessageReceived?.Invoke(this, new MessageReceivedArgs(envelope.MessageEvent, envelope.PublishedAt, receivedAt, processingTime));
+                OnMessageReceived?.Invoke(this, new MessageReceivedArgs(
+                    envelope.MessageEvent,
+                    envelope.PublishedAt,
+                    receivedAt,
+                    processingTime,
+                    recipients.Count
+                ));
             }
         }
     }
