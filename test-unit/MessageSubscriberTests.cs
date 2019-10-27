@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using Microsoft.Azure.ServiceBus;
 using NUnit.Framework;
 
 namespace EL.ServiceBus.UnitTests
@@ -128,6 +129,23 @@ namespace EL.ServiceBus.UnitTests
             Assert.That(exceptionArgs.Count, Is.EqualTo(1));
             Assert.That(exceptionArgs[0].MessageEvent, Is.EqualTo(deserializedStub.MessageEvent));
             Assert.That(exceptionArgs[0].UnhandledException, Is.SameAs(thrownException));
+        }
+
+        [Test]
+        public void When_handling_service_bus_exceptions()
+        {
+            var serviceBusArgs = new ExceptionReceivedEventArgs(new Exception("test exception"), "action", "endpoint", "entity name", "client id");
+            var eventArgs = new List<ServiceBusExceptionArgs>();
+
+            ClassUnderTest.OnServiceBusException += (_, args) => eventArgs.Add(args);
+            ClassUnderTest.HandleException(serviceBusArgs);
+
+            Assert.That(eventArgs.Count, Is.EqualTo(1));
+            Assert.That(eventArgs[0].Exception, Is.SameAs(serviceBusArgs.Exception));
+            Assert.That(eventArgs[0].Action, Is.EqualTo("action"));
+            Assert.That(eventArgs[0].Endpoint, Is.EqualTo("endpoint"));
+            Assert.That(eventArgs[0].EntityPath, Is.EqualTo("entity name"));
+            Assert.That(eventArgs[0].ClientId, Is.EqualTo("client id"));
         }
     }
 }

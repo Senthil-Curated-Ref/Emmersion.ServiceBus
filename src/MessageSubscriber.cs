@@ -10,6 +10,7 @@ namespace EL.ServiceBus
         void Subscribe<T>(MessageEvent messageEvent, Action<T> action);
         event OnMessageReceived OnMessageReceived;
         event OnUnhandledException OnUnhandledException;
+        event OnServiceBusException OnServiceBusException;
     }
 
     internal class MessageSubscriber : IMessageSubscriber
@@ -19,6 +20,7 @@ namespace EL.ServiceBus
         private readonly IMessageSerializer messageSerializer;
         public event OnMessageReceived OnMessageReceived;
         public event OnUnhandledException OnUnhandledException;
+        public event OnServiceBusException OnServiceBusException;
 
         public MessageSubscriber(ISubscriptionClientWrapper subscriptionClientWrapper, IMessageSerializer messageSerializer)
         {
@@ -66,9 +68,9 @@ namespace EL.ServiceBus
             }
         }
 
-        private void HandleException(ExceptionReceivedEventArgs args)
+        internal void HandleException(ExceptionReceivedEventArgs args)
         {
-            OnUnhandledException?.Invoke(this, new UnhandledExceptionArgs("", args.Exception));
+            OnServiceBusException?.Invoke(this, new ServiceBusExceptionArgs(args));
         }
     }
 
