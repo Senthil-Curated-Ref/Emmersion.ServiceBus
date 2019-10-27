@@ -4,7 +4,6 @@ using Microsoft.Azure.ServiceBus;
 
 namespace EL.ServiceBus
 {
-    
     internal interface ITopicClientWrapper
     {
         Task SendAsync(Message message);
