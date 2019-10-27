@@ -9,7 +9,11 @@ namespace EL.ServiceBus.IntegrationTests
 {
     public class Tests
     {
-        private IServiceProvider ConfigureServices()
+        private IMessagePublisher publisher;
+        private IMessageSubscriber subscriber;
+
+        [SetUp]
+        public void Setup()
         {
             var services = new ServiceCollection();
             DependencyInjectionConfig.ConfigureServices(services);
@@ -17,16 +21,15 @@ namespace EL.ServiceBus.IntegrationTests
             services.AddTransient(ctx => ctx.GetRequiredService<ISettings>().TopicConfig);
             services.AddTransient(ctx => ctx.GetRequiredService<ISettings>().SubscriptionConfig);
             services.AddTransient<IMessageSerializer, MessageSerializer>();
-            return services.BuildServiceProvider();
+            var serviceProvider = services.BuildServiceProvider();
+
+            subscriber = serviceProvider.GetRequiredService<IMessageSubscriber>();
+            publisher = serviceProvider.GetRequiredService<IMessagePublisher>();
         }
 
         [Test]
         public void RoundTripTests()
         {
-            var serviceProvider = ConfigureServices();
-            var subscriber = serviceProvider.GetRequiredService<IMessageSubscriber>();
-            var publisher = serviceProvider.GetRequiredService<IMessagePublisher>();
-
             var eventA1 = new MessageEvent("event-a", 1);
             var eventA2 = new MessageEvent("event-a", 2);
             var eventB1 = new MessageEvent("event-b", 1);
