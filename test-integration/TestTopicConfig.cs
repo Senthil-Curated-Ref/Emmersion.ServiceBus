@@ -2,15 +2,8 @@ namespace EL.ServiceBus.IntegrationTests
 {
     public class TestTopicConfig : ITopicConfig
     {
-        private readonly ISettings settings;
+        public string ConnectionString { get; set; }
 
-        public TestTopicConfig(ISettings settings)
-        {
-            this.settings = settings;
-        }
-
-        public string ConnectionString => settings.ConnectionString;
-
-        public string TopicName => settings.TopicName;
+        public string TopicName { get; set; }
     }
 }
