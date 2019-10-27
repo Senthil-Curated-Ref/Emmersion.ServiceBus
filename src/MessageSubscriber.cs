@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Azure.ServiceBus;
 
 namespace EL.ServiceBus
 {
     public interface IMessageSubscriber
     {
         void Subscribe<T>(MessageEvent messageEvent, Action<T> action);
-        void RouteMessage(string serializedMessage);
         event OnMessageReceived OnMessageReceived;
         event OnUnhandledException OnUnhandledException;
     }
@@ -15,13 +15,17 @@ namespace EL.ServiceBus
     internal class MessageSubscriber : IMessageSubscriber
     {
         private readonly List<Subscription> subscriptions = new List<Subscription>();
+        private readonly ISubscriptionClientWrapper subscriptionClientWrapper;
         private readonly IMessageSerializer messageSerializer;
         public event OnMessageReceived OnMessageReceived;
         public event OnUnhandledException OnUnhandledException;
 
-        public MessageSubscriber(IMessageSerializer messageSerializer)
+        public MessageSubscriber(ISubscriptionClientWrapper subscriptionClientWrapper, IMessageSerializer messageSerializer)
         {
+            this.subscriptionClientWrapper = subscriptionClientWrapper;
             this.messageSerializer = messageSerializer;
+
+            subscriptionClientWrapper.Subscribe(RouteMessage, HandleException);
         }
 
         public void Subscribe<T>(MessageEvent messageEvent, Action<T> action)
@@ -35,7 +39,7 @@ namespace EL.ServiceBus
             });
         }
 
-        public void RouteMessage(string serializedMessage)
+        internal void RouteMessage(string serializedMessage)
         {
             var receivedAt = DateTimeOffset.UtcNow;
             var envelope = messageSerializer.Deserialize<MessageEnvelope<Stub>>(serializedMessage);
@@ -60,6 +64,11 @@ namespace EL.ServiceBus
                     recipients.Count
                 ));
             }
+        }
+
+        private void HandleException(ExceptionReceivedEventArgs args)
+        {
+            OnUnhandledException?.Invoke(this, new UnhandledExceptionArgs("", args.Exception));
         }
     }
 
