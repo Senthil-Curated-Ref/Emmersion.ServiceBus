@@ -1,27 +1,33 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Azure.ServiceBus;
 
 namespace EL.ServiceBus
 {
     public interface IMessageSubscriber
     {
         void Subscribe<T>(MessageEvent messageEvent, Action<T> action);
-        void RouteMessage(string serializedMessage);
         event OnMessageReceived OnMessageReceived;
         event OnUnhandledException OnUnhandledException;
+        event OnServiceBusException OnServiceBusException;
     }
 
     internal class MessageSubscriber : IMessageSubscriber
     {
         private readonly List<Subscription> subscriptions = new List<Subscription>();
+        private readonly ISubscriptionClientWrapper subscriptionClientWrapper;
         private readonly IMessageSerializer messageSerializer;
         public event OnMessageReceived OnMessageReceived;
         public event OnUnhandledException OnUnhandledException;
+        public event OnServiceBusException OnServiceBusException;
 
-        public MessageSubscriber(IMessageSerializer messageSerializer)
+        public MessageSubscriber(ISubscriptionClientWrapper subscriptionClientWrapper, IMessageSerializer messageSerializer)
         {
+            this.subscriptionClientWrapper = subscriptionClientWrapper;
             this.messageSerializer = messageSerializer;
+
+            subscriptionClientWrapper.Subscribe(RouteMessage, HandleException);
         }
 
         public void Subscribe<T>(MessageEvent messageEvent, Action<T> action)
@@ -35,7 +41,7 @@ namespace EL.ServiceBus
             });
         }
 
-        public void RouteMessage(string serializedMessage)
+        internal void RouteMessage(string serializedMessage)
         {
             var receivedAt = DateTimeOffset.UtcNow;
             var envelope = messageSerializer.Deserialize<MessageEnvelope<Stub>>(serializedMessage);
@@ -52,8 +58,19 @@ namespace EL.ServiceBus
             finally
             {
                 var processingTime = DateTimeOffset.UtcNow - receivedAt;
-                OnMessageReceived?.Invoke(this, new MessageReceivedArgs(envelope.MessageEvent, envelope.PublishedAt, receivedAt, processingTime));
+                OnMessageReceived?.Invoke(this, new MessageReceivedArgs(
+                    envelope.MessageEvent,
+                    envelope.PublishedAt,
+                    receivedAt,
+                    processingTime,
+                    recipients.Count
+                ));
             }
+        }
+
+        internal void HandleException(ExceptionReceivedEventArgs args)
+        {
+            OnServiceBusException?.Invoke(this, new ServiceBusExceptionArgs(args));
         }
     }
 

@@ -13,6 +13,7 @@ namespace EL.ServiceBus
             services.AddSingleton<IMessagePublisher, MessagePublisher>();
             services.AddSingleton<IMessageSubscriber, MessageSubscriber>();
             services.AddTransient<ITopicClientWrapper, TopicClientWrapper>();
+            services.AddTransient<ISubscriptionClientWrapper, SubscriptionClientWrapper>();
         }
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using Microsoft.Azure.ServiceBus;
 using NUnit.Framework;
 
 namespace EL.ServiceBus.UnitTests
@@ -72,6 +73,15 @@ namespace EL.ServiceBus.UnitTests
             Assert.That(eventArgs[0].ReceivedAt, Is.EqualTo(DateTimeOffset.UtcNow).Within(TimeSpan.FromSeconds(1)));
             Assert.That(eventArgs[0].ReceivedAt, Is.GreaterThan(deserializedStub.PublishedAt));
             Assert.That(eventArgs[0].ProcessingTime, Is.EqualTo(duration).Within(TimeSpan.FromMilliseconds(25)));
+            Assert.That(eventArgs[0].SubscriberCount, Is.EqualTo(0));
+
+            ClassUnderTest.Subscribe(new MessageEvent("test-event", 3), (Stub _) => { Thread.Sleep(25); });
+            ClassUnderTest.Subscribe(new MessageEvent("test-event", 3), (Stub _) => { Thread.Sleep(25); });
+            ClassUnderTest.RouteMessage(serializedMessage);
+            
+            Assert.That(eventArgs.Count, Is.EqualTo(2));
+            Assert.That(eventArgs[1].SubscriberCount, Is.EqualTo(2));
+            Assert.That(eventArgs[1].ProcessingTime.TotalMilliseconds, Is.EqualTo(50).Within(20));
         }
 
         [Test]
@@ -119,6 +129,23 @@ namespace EL.ServiceBus.UnitTests
             Assert.That(exceptionArgs.Count, Is.EqualTo(1));
             Assert.That(exceptionArgs[0].MessageEvent, Is.EqualTo(deserializedStub.MessageEvent));
             Assert.That(exceptionArgs[0].UnhandledException, Is.SameAs(thrownException));
+        }
+
+        [Test]
+        public void When_handling_service_bus_exceptions()
+        {
+            var serviceBusArgs = new ExceptionReceivedEventArgs(new Exception("test exception"), "action", "endpoint", "entity name", "client id");
+            var eventArgs = new List<ServiceBusExceptionArgs>();
+
+            ClassUnderTest.OnServiceBusException += (_, args) => eventArgs.Add(args);
+            ClassUnderTest.HandleException(serviceBusArgs);
+
+            Assert.That(eventArgs.Count, Is.EqualTo(1));
+            Assert.That(eventArgs[0].Exception, Is.SameAs(serviceBusArgs.Exception));
+            Assert.That(eventArgs[0].Action, Is.EqualTo("action"));
+            Assert.That(eventArgs[0].Endpoint, Is.EqualTo("endpoint"));
+            Assert.That(eventArgs[0].EntityPath, Is.EqualTo("entity name"));
+            Assert.That(eventArgs[0].ClientId, Is.EqualTo("client id"));
         }
     }
 }

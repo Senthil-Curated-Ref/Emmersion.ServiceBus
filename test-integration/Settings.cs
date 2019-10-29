@@ -1,17 +1,16 @@
 using System;
 using System.IO;
-using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Configuration;
 
 namespace EL.ServiceBus.IntegrationTests
 {
     public interface ISettings
     {
-        string ConnectionString { get; }
-        string TopicName { get; }
+        ITopicConfig TopicConfig { get; }
+        ISubscriptionConfig SubscriptionConfig { get; }
     }
 
-    public class Settings : ISettings, INameResolver
+    public class Settings : ISettings
     {
         static IConfiguration configuration;
 
@@ -23,12 +22,21 @@ namespace EL.ServiceBus.IntegrationTests
             configuration = configurationBuilder.Build();
         }
 
-        public string Resolve(string name)
-        {
-            return configuration.GetValue<string>($"NameResolvers:{name}");
-        }
-
         public string ConnectionString => configuration.GetValue<string>("ConnectionStrings:ELServiceBus");
         public string TopicName => configuration.GetValue<string>("NameResolvers:ELServiceBusTopicName");
+        public string SubscriptionName => configuration.GetValue<string>("NameResolvers:ELServiceBusSubscriberName");
+
+        public ITopicConfig TopicConfig => new TestTopicConfig
+        {
+            ConnectionString = configuration.GetValue<string>("ConnectionString"),
+            TopicName = configuration.GetValue<string>("TopicName")
+        };
+
+        public ISubscriptionConfig SubscriptionConfig => new TestSubscriptionConfig
+        {
+            ConnectionString = configuration.GetValue<string>("ConnectionString"),
+            TopicName = configuration.GetValue<string>("TopicName"),
+            SubscriptionName = configuration.GetValue<string>("SubscriptionName")
+        };
     }
 }
