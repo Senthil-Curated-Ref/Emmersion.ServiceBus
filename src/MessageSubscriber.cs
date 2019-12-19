@@ -32,9 +32,11 @@ namespace EL.ServiceBus
 
         public void Subscribe<T>(MessageEvent messageEvent, Action<T> action)
         {
-            subscriptions.Add(new Subscription{
+            subscriptions.Add(new Subscription
+            {
                 MessageEvent = messageEvent.ToString(),
-                Action = (serializedMessage) => {
+                Action = (serializedMessage) =>
+                {
                     var envelope = messageSerializer.Deserialize<MessageEnvelope<T>>(serializedMessage);
                     action(envelope.Payload);
                 }
@@ -44,7 +46,7 @@ namespace EL.ServiceBus
         internal void RouteMessage(string serializedMessage)
         {
             var receivedAt = DateTimeOffset.UtcNow;
-            var envelope = messageSerializer.Deserialize<MessageEnvelope<Stub>>(serializedMessage);
+            var envelope = messageSerializer.Deserialize<MessageEnvelope<object>>(serializedMessage);
             var recipients = subscriptions.Where(x => x.MessageEvent == envelope.MessageEvent).ToList();
             try
             {
@@ -78,10 +80,5 @@ namespace EL.ServiceBus
     {
         public string MessageEvent { get; set; }
         public Action<string> Action { get; set; }
-    }
-
-    internal class Stub
-    {
-
     }
 }
