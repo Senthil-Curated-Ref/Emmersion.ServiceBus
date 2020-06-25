@@ -10,10 +10,20 @@ namespace EL.ServiceBus
     {
         public static void ConfigureServices(IServiceCollection services)
         {
-            services.AddSingleton<IMessagePublisher, MessagePublisher>();
+            ConfigureSubscriberServices(services);
+            ConfigurePublisherServices(services);
+        }
+
+        public static void ConfigureSubscriberServices(IServiceCollection services)
+        {
             services.AddSingleton<IMessageSubscriber, MessageSubscriber>();
-            services.AddTransient<ITopicClientWrapper, TopicClientWrapper>();
             services.AddTransient<ISubscriptionClientWrapper, SubscriptionClientWrapper>();
+        }
+
+        public static void ConfigurePublisherServices(IServiceCollection services)
+        {
+            services.AddSingleton<IMessagePublisher, MessagePublisher>();
+            services.AddTransient<ITopicClientWrapper, TopicClientWrapper>();
         }
     }
 }
