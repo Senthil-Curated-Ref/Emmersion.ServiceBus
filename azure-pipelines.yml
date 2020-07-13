@@ -19,11 +19,6 @@ name: 2.1.$(Date:yyyyMMdd)$(Rev:.r)
 steps:
 - task: NuGetToolInstaller@1
 
-- task: UseDotNet@2
-  inputs:
-    packageType: 'sdk'
-    version: '2.2.x'
-
 - task: NuGetCommand@2
   displayName: 'Restore from Nuget.org and EmmersionLearning feeds'
   inputs:
