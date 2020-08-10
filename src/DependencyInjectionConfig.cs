@@ -23,7 +23,9 @@ namespace EL.ServiceBus
         public static void ConfigurePublisherServices(IServiceCollection services)
         {
             services.AddSingleton<IMessagePublisher, MessagePublisher>();
-            services.AddTransient<ITopicClientWrapper, TopicClientWrapper>();
+            services.AddTransient<ITopicClientWrapperPool, TopicClientWrapperPool>();
+            services.AddTransient<ITopicClientWrapperCreator, TopicClientWrapperCreator>();
+            services.AddTransient<IMessageMapper, MessageMapper>();
         }
     }
 }

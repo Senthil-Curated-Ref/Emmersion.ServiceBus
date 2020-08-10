@@ -6,7 +6,7 @@ namespace EL.ServiceBus.IntegrationTests
 {
     public interface ISettings
     {
-        ITopicConfig TopicConfig { get; }
+        IPublisherConfig PublisherConfig { get; }
         ISubscriptionConfig SubscriptionConfig { get; }
     }
 
@@ -26,10 +26,10 @@ namespace EL.ServiceBus.IntegrationTests
         public string TopicName => configuration.GetValue<string>("NameResolvers:ELServiceBusTopicName");
         public string SubscriptionName => configuration.GetValue<string>("NameResolvers:ELServiceBusSubscriberName");
 
-        public ITopicConfig TopicConfig => new TestTopicConfig
+        public IPublisherConfig PublisherConfig => new TestPublisherConfig
         {
-            ConnectionString = configuration.GetValue<string>("ConnectionString"),
-            TopicName = configuration.GetValue<string>("TopicName")
+            SingleTopicConnectionString = configuration.GetValue<string>("ConnectionString"),
+            SingleTopicName = configuration.GetValue<string>("TopicName")
         };
 
         public ISubscriptionConfig SubscriptionConfig => new TestSubscriptionConfig
