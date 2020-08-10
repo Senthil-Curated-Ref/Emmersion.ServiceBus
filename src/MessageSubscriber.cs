@@ -15,7 +15,7 @@ namespace EL.ServiceBus
 
     internal class MessageSubscriber : IMessageSubscriber
     {
-        private readonly List<Subscription> subscriptions = new List<Subscription>();
+        private readonly List<RoutingSubscription> subscriptions = new List<RoutingSubscription>();
         private readonly ISubscriptionClientWrapper subscriptionClientWrapper;
         private readonly IMessageSerializer messageSerializer;
         public event OnMessageReceived OnMessageReceived;
@@ -32,7 +32,7 @@ namespace EL.ServiceBus
 
         public void Subscribe<T>(MessageEvent messageEvent, Action<T> action)
         {
-            subscriptions.Add(new Subscription
+            subscriptions.Add(new RoutingSubscription
             {
                 MessageEvent = messageEvent.ToString(),
                 Action = (serializedMessage) =>
@@ -76,7 +76,7 @@ namespace EL.ServiceBus
         }
     }
 
-    internal class Subscription
+    internal class RoutingSubscription
     {
         public string MessageEvent { get; set; }
         public Action<string> Action { get; set; }
