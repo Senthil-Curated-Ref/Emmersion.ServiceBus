@@ -7,6 +7,7 @@ namespace EL.ServiceBus.UnitTests
         [TestCase("monolith", "test-event", 1)]
         [TestCase("assessments", "user-assessment-started", 2)]
         [TestCase("zero-wing", "for-great-justice", 700)]
+        [TestCase("insights", "user-event", 0)]
         public void When_creating_a_valid_topic(string productContext, string eventName, int version)
         {
             var topic = new Topic(productContext, eventName, version);
@@ -17,6 +18,8 @@ namespace EL.ServiceBus.UnitTests
         [TestCase("Monolith", "test-event", 1)]
         [TestCase("1assessments", "user-assessment-started", 2)]
         [TestCase("zero.wing", "for-great-justice", 700)]
+        [TestCase("", "user-event", 0)]
+        [TestCase(null, "user-event", 0)]
         public void When_attempting_to_create_a_topic_with_invalid_product_context(string productContext, string eventName, int version)
         {
             var exception = Assert.Catch(() => new Topic(productContext, eventName, version));
@@ -27,6 +30,8 @@ namespace EL.ServiceBus.UnitTests
         [TestCase("monolith", "test-Event", 1)]
         [TestCase("assessments", "user-assessment-started1", 2)]
         [TestCase("zero-wing", "for-great@justice", 700)]
+        [TestCase("insights", "", 0)]
+        [TestCase("insights", null, 0)]
         public void When_attempting_to_create_a_topic_with_invalid_event_name(string productContext, string eventName, int version)
         {
             var exception = Assert.Catch(() => new Topic(productContext, eventName, version));

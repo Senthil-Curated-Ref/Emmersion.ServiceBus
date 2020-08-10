@@ -12,11 +12,11 @@ namespace EL.ServiceBus
 
         public Topic(string productContext, string eventName, int version)
         {
-            if (!regex.IsMatch(productContext))
+            if (!regex.IsMatch(productContext ?? ""))
             {
                 throw new ArgumentException("Product Context name must match pattern: " + Pattern, nameof(productContext));
             }
-            if (!regex.IsMatch(eventName))
+            if (!regex.IsMatch(eventName ?? ""))
             {
                 throw new ArgumentException("Event name must match pattern: " + Pattern, nameof(eventName));
             }
