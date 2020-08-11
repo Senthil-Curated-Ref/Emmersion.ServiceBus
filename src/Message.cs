@@ -14,5 +14,12 @@ namespace EL.ServiceBus
             Topic = topic;
             Body = body;
         }
+
+        internal Message(string messageId, Topic topic, T body)
+        {
+            MessageId = messageId;
+            Topic = topic;
+            Body = body;
+        }
     }
 }
