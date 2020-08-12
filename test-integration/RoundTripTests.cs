@@ -121,7 +121,70 @@ namespace EL.ServiceBus.IntegrationTests
             Assert.That(messageRoundTripDurations.Max(), Is.LessThanOrEqualTo(2000), $"Expected round trip durations to be < 2000ms");
             Assert.That(messageRoundTripDurations.Min(), Is.GreaterThanOrEqualTo(0), $"Expected round trip durations to be >= 0ms");
             Assert.That(messagePublishDurations.Count, Is.EqualTo(expectedMessageCount), "Did not get the expected number of publish durations");
-            Assert.That(messagePublishDurations.Average(), Is.LessThanOrEqualTo(500), $"Expected publish durations to be < 500ms");
+            Assert.That(messagePublishDurations.Average(), Is.LessThanOrEqualTo(1000), $"Expected publish durations to be < 1000ms");
+        }
+
+        [Test]
+        public void ScheduledRoundTripTests()
+        {
+            var topic = new Topic("el-service-bus", "integration-test-scheduled", 1);
+            var subscription = new Subscription(topic, "el-service-bus", "integration-tests");
+            
+            var messageRoundTripDurations = new List<double>();
+            var messageQueueDurations = new List<double>();
+            var receivedMessageCount = 0;
+            var receivedA1Messages = new List<Message<string>>();
+            var receivedA2Messages = new List<Message<int>>();
+            var receivedB1Messages = new List<Message<IntegrationTestData>>();
+            var exceptions = new List<Exception>();
+
+            subscriber.OnServiceBusException += (_, args) => exceptions.Add(args.Exception);
+            subscriber.OnMessageReceived += (_, args) =>
+            {
+                var roundTripDuration = (args.ReceivedAt - args.PublishedAt.Value).TotalMilliseconds;
+                messageRoundTripDurations.Add(roundTripDuration);
+                var queueDuration = (args.ReceivedAt - args.EnqueuedAt.Value).TotalMilliseconds;
+                messageQueueDurations.Add(queueDuration);
+            };
+            
+            subscriber.Subscribe(subscription, (Message<string> message) =>
+            {
+                receivedA1Messages.Add(message);
+                receivedMessageCount++;
+            });
+
+            var messagePublishDurations = new List<long>();
+            var message = new Message<string>(topic, $"hello-{Guid.NewGuid()}");
+            
+            publisher.OnMessagePublished += (object sender, MessagePublishedArgs args) =>
+            {
+                messagePublishDurations.Add(args.ElapsedMilliseconds);
+            };
+
+            publisher.PublishScheduled(message, DateTimeOffset.UtcNow.AddSeconds(2));
+            
+            var waited = 0;
+            var expectedMessageCount = 1;
+            while (receivedMessageCount < expectedMessageCount && waited < 5000)
+            {
+                Thread.Sleep(100);
+                waited += 100;
+            }
+            Console.WriteLine($"Waited for {waited}ms");
+
+            Assert.That(exceptions.Count, Is.EqualTo(0), "Got unexpected exceptions!");
+            exceptions.ForEach(x => Console.WriteLine($"{x.Message}"));
+
+            AssertTestMessageReceived(receivedA1Messages, message);
+
+            Assert.That(receivedMessageCount, Is.GreaterThanOrEqualTo(expectedMessageCount), $"Did not get the expected number of messages");
+            Assert.That(messageRoundTripDurations.Count, Is.GreaterThanOrEqualTo(receivedMessageCount), "Did not get the expected number of round trip durations");
+            Assert.That(messageRoundTripDurations.Max(), Is.LessThanOrEqualTo(4000), $"Expected round trip durations to be < 4000ms");
+            Assert.That(messageRoundTripDurations.Min(), Is.GreaterThanOrEqualTo(2000), $"Expected round trip durations to be >= 2000ms");
+            Assert.That(messageQueueDurations.Max(), Is.LessThanOrEqualTo(2000), $"Expected queue durations to be < 2000ms");
+            Assert.That(messageQueueDurations.Min(), Is.GreaterThanOrEqualTo(0), $"Expected queue durations to be >= 0ms");
+            Assert.That(messagePublishDurations.Count, Is.EqualTo(expectedMessageCount), "Did not get the expected number of publish durations");
+            Assert.That(messagePublishDurations.Average(), Is.LessThanOrEqualTo(1000), $"Expected publish durations to be < 1000ms");
         }
 
         private void AssertTestMessageReceived<T>(List<Message<T>> receivedMessages, Message<T> expectedMessage)
