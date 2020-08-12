@@ -1,84 +1,72 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Azure.ServiceBus;
+using System.Threading.Tasks;
 
 namespace EL.ServiceBus
 {
-    public interface IMessageSubscriber
+    public interface IMessageSubscriber : IDisposable
     {
-        void Subscribe<T>(MessageEvent messageEvent, Action<T> action);
+        void Subscribe<T>(Subscription subscription, Action<Message<T>> action);
         event OnMessageReceived OnMessageReceived;
-        event OnUnhandledException OnUnhandledException;
         event OnServiceBusException OnServiceBusException;
     }
 
     internal class MessageSubscriber : IMessageSubscriber
     {
-        private readonly List<RoutingSubscription> subscriptions = new List<RoutingSubscription>();
-        private readonly ISubscriptionClientWrapper subscriptionClientWrapper;
-        private readonly IMessageSerializer messageSerializer;
+        private readonly ISubscriptionClientWrapperCreator subscriptionClientWrapperCreator;
+        private readonly IMessageMapper messageMapper;
+        private Dictionary<string, ISubscriptionClientWrapper> clients;
+
         public event OnMessageReceived OnMessageReceived;
-        public event OnUnhandledException OnUnhandledException;
         public event OnServiceBusException OnServiceBusException;
 
-        public MessageSubscriber(ISubscriptionClientWrapper subscriptionClientWrapper, IMessageSerializer messageSerializer)
+        public MessageSubscriber(ISubscriptionClientWrapperCreator subscriptionClientWrapperCreator,
+            IMessageMapper messageMapper)
         {
-            this.subscriptionClientWrapper = subscriptionClientWrapper;
-            this.messageSerializer = messageSerializer;
+            this.subscriptionClientWrapperCreator = subscriptionClientWrapperCreator;
+            this.messageMapper = messageMapper;
 
-            subscriptionClientWrapper.Subscribe(RouteMessage, HandleException);
+            clients = new Dictionary<string, ISubscriptionClientWrapper>();
         }
 
-        public void Subscribe<T>(MessageEvent messageEvent, Action<T> action)
+        public void Subscribe<T>(Subscription subscription, Action<Message<T>> action)
         {
-            subscriptions.Add(new RoutingSubscription
-            {
-                MessageEvent = messageEvent.ToString(),
-                Action = (serializedMessage) =>
-                {
-                    var envelope = messageSerializer.Deserialize<MessageEnvelope<T>>(serializedMessage);
-                    action(envelope.Payload);
+            var client = GetClient(subscription);
+            client.RegisterMessageHandler((serviceBusMessage) => {
+                var receivedAt = DateTimeOffset.UtcNow;
+                try {
+                    var message = messageMapper.FromServiceBusMessage<T>(subscription.Topic, serviceBusMessage);
+                    action(message);
                 }
-            });
+                finally
+                {
+                    var processingTime = DateTimeOffset.UtcNow - receivedAt;
+                    var enqueuedAt = new DateTimeOffset(serviceBusMessage.ScheduledEnqueueTimeUtc, TimeSpan.Zero);
+                    OnMessageReceived?.Invoke(this, new MessageReceivedArgs(
+                        subscription,
+                        enqueuedAt,
+                        receivedAt,
+                        processingTime
+                    ));
+                }
+            }, (args) => OnServiceBusException?.Invoke(this, new ServiceBusExceptionArgs(subscription, args)));
         }
 
-        internal void RouteMessage(string serializedMessage)
+        private ISubscriptionClientWrapper GetClient(Subscription subscription)
         {
-            var receivedAt = DateTimeOffset.UtcNow;
-            var envelope = messageSerializer.Deserialize<MessageEnvelope<object>>(serializedMessage);
-            var recipients = subscriptions.Where(x => x.MessageEvent == envelope.MessageEvent).ToList();
-            try
+            if (clients.ContainsKey(subscription.ToString()))
             {
-                recipients.ForEach(x => x.Action(serializedMessage));
+                throw new Exception("Connecting to the same subscription twice is not allowed.");
             }
-            catch (Exception e)
-            {
-                OnUnhandledException?.Invoke(this, new UnhandledExceptionArgs(envelope.MessageEvent, e));
-                throw;
-            }
-            finally
-            {
-                var processingTime = DateTimeOffset.UtcNow - receivedAt;
-                OnMessageReceived?.Invoke(this, new MessageReceivedArgs(
-                    envelope.MessageEvent,
-                    envelope.PublishedAt,
-                    receivedAt,
-                    processingTime,
-                    recipients.Count
-                ));
-            }
+            var client = subscriptionClientWrapperCreator.Create(subscription);
+            clients[subscription.ToString()] = client;
+            return client;
         }
 
-        internal void HandleException(ExceptionReceivedEventArgs args)
+        public void Dispose()
         {
-            OnServiceBusException?.Invoke(this, new ServiceBusExceptionArgs(args));
+            Task.WaitAll(clients.Select(x => x.Value.CloseAsync()).ToArray());
         }
-    }
-
-    internal class RoutingSubscription
-    {
-        public string MessageEvent { get; set; }
-        public Action<string> Action { get; set; }
     }
 }

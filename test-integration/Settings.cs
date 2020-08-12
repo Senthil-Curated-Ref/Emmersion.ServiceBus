@@ -28,15 +28,14 @@ namespace EL.ServiceBus.IntegrationTests
 
         public IPublisherConfig PublisherConfig => new TestPublisherConfig
         {
-            SingleTopicConnectionString = configuration.GetValue<string>("ConnectionString"),
-            SingleTopicName = configuration.GetValue<string>("TopicName")
+            ConnectionString = configuration.GetValue<string>("ConnectionString"),
+            SingleTopicConnectionString = configuration.GetValue<string>("SingleTopicConnectionString"),
+            SingleTopicName = configuration.GetValue<string>("SingleTopicName")
         };
 
         public ISubscriptionConfig SubscriptionConfig => new TestSubscriptionConfig
         {
-            ConnectionString = configuration.GetValue<string>("ConnectionString"),
-            TopicName = configuration.GetValue<string>("TopicName"),
-            SubscriptionName = configuration.GetValue<string>("SubscriptionName")
+            ConnectionString = configuration.GetValue<string>("ConnectionString")
         };
     }
 }

@@ -7,8 +7,9 @@ namespace EL.ServiceBus
 
     public class ServiceBusExceptionArgs
     {
-        public ServiceBusExceptionArgs(Exception exception, string action, string clientId, string endpoint, string entityPath)
+        public ServiceBusExceptionArgs(Subscription subscription, Exception exception, string action, string clientId, string endpoint, string entityPath)
         {
+            Subscription = subscription;
             Exception = exception;
             Action = action;
             ClientId = clientId;
@@ -16,8 +17,9 @@ namespace EL.ServiceBus
             EntityPath = entityPath;
         }
 
-        internal ServiceBusExceptionArgs(ExceptionReceivedEventArgs args)
+        internal ServiceBusExceptionArgs(Subscription subscription, ExceptionReceivedEventArgs args)
         {
+            Subscription = subscription;
             Exception = args.Exception;
             Action = args.ExceptionReceivedContext?.Action ?? "";
             ClientId = args.ExceptionReceivedContext?.ClientId ?? "";
@@ -25,6 +27,7 @@ namespace EL.ServiceBus
             EntityPath = args.ExceptionReceivedContext?.EntityPath ?? "";
         }
 
+        public Subscription Subscription { get; }
         public Exception Exception { get; }
         public string Action { get; }
         public string ClientId { get; }

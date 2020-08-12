@@ -18,6 +18,8 @@ namespace EL.ServiceBus
         {
             services.AddSingleton<IMessageSubscriber, MessageSubscriber>();
             services.AddTransient<ISubscriptionClientWrapper, SubscriptionClientWrapper>();
+            services.AddTransient<ISubscriptionClientWrapperCreator, SubscriptionClientWrapperCreator>();
+            services.AddTransient<IMessageMapper, MessageMapper>();
         }
 
         public static void ConfigurePublisherServices(IServiceCollection services)

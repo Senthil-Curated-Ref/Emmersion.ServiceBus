@@ -11,6 +11,7 @@ namespace EL.ServiceBus.IntegrationTests
     {
         private IMessagePublisher publisher;
         private IMessageSubscriber subscriber;
+        private IMessageSerializer serializer;
 
         [SetUp]
         public void Setup()
@@ -25,82 +26,74 @@ namespace EL.ServiceBus.IntegrationTests
 
             subscriber = serviceProvider.GetRequiredService<IMessageSubscriber>();
             publisher = serviceProvider.GetRequiredService<IMessagePublisher>();
+            serializer = serviceProvider.GetRequiredService<IMessageSerializer>();
         }
 
         [Test]
         public void RoundTripTests()
         {
-            var eventA1 = new MessageEvent("event-a", 1);
-            var eventA2 = new MessageEvent("event-a", 2);
-            var eventB1 = new MessageEvent("event-b", 1);
-            var stringEvent = new MessageEvent("string-event", 1);
-            var intEvent = new MessageEvent("int-event", 1);
+            var topicA1 = new Topic("el-service-bus", "integration-test-a", 1);
+            var topicA2 = new Topic("el-service-bus", "integration-test-a", 2);
+            var topicB1 = new Topic("el-service-bus", "integration-test-b", 1);
+
+            var subscriptionA1 = new Subscription(topicA1, "el-service-bus", "integration-tests");
+            var subscriptionA2 = new Subscription(topicA2, "el-service-bus", "integration-tests");
+            var subscriptionB1 = new Subscription(topicB1, "el-service-bus", "integration-tests");
 
             var messageRoundTripDurations = new List<double>();
             var receivedMessageCount = 0;
-            var receivedA1Messages = new List<IntegrationTestMessage>();
-            var receivedA2Messages = new List<IntegrationTestMessage>();
-            var receivedB1Messages = new List<IntegrationTestMessage>();
-            var receivedStringMessages = new List<string>();
-            var receivedIntMessages = new List<int>();
+            var receivedA1Messages = new List<Message<string>>();
+            var receivedA2Messages = new List<Message<int>>();
+            var receivedB1Messages = new List<Message<IntegrationTestData>>();
             var exceptions = new List<Exception>();
 
-            subscriber.OnUnhandledException += (_, args) => exceptions.Add(args.UnhandledException);
             subscriber.OnServiceBusException += (_, args) => exceptions.Add(args.Exception);
-
-            subscriber.OnMessageReceived += (object sender, MessageReceivedArgs args) =>
+            subscriber.OnMessageReceived += (_, args) =>
             {
-                var duration = (args.ReceivedAt - args.PublishedAt).TotalMilliseconds;
+                var duration = 0; //(args.ReceivedAt - args.EnqueuedAt).TotalMilliseconds;
                 messageRoundTripDurations.Add(duration);
             };
-            subscriber.Subscribe(eventA1, (IntegrationTestMessage message) =>
+            
+            subscriber.Subscribe(subscriptionA1, (Message<string> message) =>
             {
                 receivedA1Messages.Add(message);
                 receivedMessageCount++;
             });
-            subscriber.Subscribe(eventA2, (IntegrationTestMessage message) =>
+            subscriber.Subscribe<int>(subscriptionA2, (Message<int> message) =>
             {
                 receivedA2Messages.Add(message);
                 receivedMessageCount++;
             });
-            subscriber.Subscribe(eventB1, (IntegrationTestMessage message) =>
+            subscriber.Subscribe(subscriptionB1, (Message<IntegrationTestData> message) =>
             {
                 receivedB1Messages.Add(message);
                 receivedMessageCount++;
             });
-            subscriber.Subscribe(stringEvent, (string message) =>
-            {
-                receivedStringMessages.Add(message);
-                receivedMessageCount++;
-            });
-            subscriber.Subscribe(intEvent, (int message) =>
-            {
-                receivedIntMessages.Add(message);
-                receivedMessageCount++;
-            });
 
             var messagePublishDurations = new List<long>();
-            var a11Message = new IntegrationTestMessage { StringData = "A1-1", IntData = 13 };
-            var a12Message = new IntegrationTestMessage { StringData = "A1-2", IntData = 99 };
-            var a21Message = new IntegrationTestMessage { StringData = "A2-1", IntData = 7 };
-            var b11Message = new IntegrationTestMessage { StringData = "B1-1", IntData = -123 };
+            var a1Message1 = new Message<string>(topicA1, $"hello-{Guid.NewGuid()}");
+            var a1Message2 = new Message<string>(topicA1, $"world-{Guid.NewGuid()}");
+            var a2Message1 = new Message<int>(topicA2, 13);
+            var a2Message2 = new Message<int>(topicA2, 99);
+            var a2Message3 = new Message<int>(topicA2, -123);
+            var b1Message1 = new Message<IntegrationTestData>(topicB1, new IntegrationTestData { StringData = $"first-{Guid.NewGuid()}", IntData = 1 });
+            var b1Message2 = new Message<IntegrationTestData>(topicB1, new IntegrationTestData { StringData = $"second-{Guid.NewGuid()}", IntData = -2 });
 
             publisher.OnMessagePublished += (object sender, MessagePublishedArgs args) =>
             {
                 messagePublishDurations.Add(args.ElapsedMilliseconds);
             };
 
-            publisher.Publish(eventA1, a11Message);
-            publisher.Publish(eventA2, a21Message);
-            publisher.Publish(eventB1, b11Message);
-            publisher.Publish(eventA1, a12Message);
-            publisher.Publish(stringEvent, "first");
-            publisher.Publish(intEvent, 1);
-            publisher.Publish(stringEvent, "second");
-            publisher.Publish(intEvent, 2);
+            publisher.Publish(a1Message1);
+            publisher.Publish(a1Message2);
+            publisher.Publish(a2Message1);
+            publisher.Publish(a2Message2);
+            publisher.Publish(a2Message3);
+            publisher.Publish(b1Message1);
+            publisher.Publish(b1Message2);
 
             var waited = 0;
-            var expectedMessageCount = 8;
+            var expectedMessageCount = 7;
             while (receivedMessageCount < expectedMessageCount && waited < 5000)
             {
                 Thread.Sleep(100);
@@ -109,15 +102,20 @@ namespace EL.ServiceBus.IntegrationTests
             Console.WriteLine($"Waited for {waited}ms");
 
             Assert.That(exceptions.Count, Is.EqualTo(0), "Got unexpected exceptions!");
+            exceptions.ForEach(x => Console.WriteLine($"{x.Message}"));
 
-            AssertTestMessageReceived(receivedA1Messages, a11Message);
-            AssertTestMessageReceived(receivedA1Messages, a12Message);
-            AssertTestMessageReceived(receivedA2Messages, a21Message);
-            AssertTestMessageReceived(receivedB1Messages, b11Message);
-            Assert.That(receivedStringMessages, Does.Contain("first"));
-            Assert.That(receivedStringMessages, Does.Contain("second"));
-            Assert.That(receivedIntMessages, Does.Contain(1));
-            Assert.That(receivedIntMessages, Does.Contain(2));
+            AssertAllMessagesMatchTopic(receivedA1Messages, topicA1);
+            AssertAllMessagesMatchTopic(receivedA2Messages, topicA2);
+            AssertAllMessagesMatchTopic(receivedB1Messages, topicB1);
+
+            AssertTestMessageReceived(receivedA1Messages, a1Message1);
+            AssertTestMessageReceived(receivedA1Messages, a1Message2);
+            AssertTestMessageReceived(receivedA2Messages, a2Message1);
+            AssertTestMessageReceived(receivedA2Messages, a2Message2);
+            AssertTestMessageReceived(receivedA2Messages, a2Message3);
+            AssertTestMessageReceived(receivedB1Messages, b1Message1);
+            AssertTestMessageReceived(receivedB1Messages, b1Message2);
+
             Assert.That(receivedMessageCount, Is.GreaterThanOrEqualTo(expectedMessageCount), $"Did not get the expected number of messages");
             Assert.That(messageRoundTripDurations.Count, Is.GreaterThanOrEqualTo(receivedMessageCount), "Did not get the expected number of round trip durations");
             Assert.That(messageRoundTripDurations.Max(), Is.LessThanOrEqualTo(2000), $"Expected round trip durations to be < 2000ms");
@@ -126,13 +124,24 @@ namespace EL.ServiceBus.IntegrationTests
             Assert.That(messagePublishDurations.Average(), Is.LessThanOrEqualTo(500), $"Expected publish durations to be < 500ms");
         }
 
-        private void AssertTestMessageReceived(List<IntegrationTestMessage> messages, IntegrationTestMessage expected)
+        private void AssertTestMessageReceived<T>(List<Message<T>> receivedMessages, Message<T> expectedMessage)
         {
-            Assert.That(messages.Any(x => x.StringData == expected.StringData && x.IntData == expected.IntData), $"Message {expected.StringData} not found");
+            var match = receivedMessages.FirstOrDefault(x => x.MessageId == expectedMessage.MessageId);
+            Assert.That(match, Is.Not.Null, $"Unable to find matching message on topic {expectedMessage.Topic}");
+            Assert.That(serializer.Serialize(match), Is.EqualTo(serializer.Serialize(expectedMessage)));
+        }
+
+        private void AssertAllMessagesMatchTopic<T>(List<Message<T>> receivedMessages, Topic expectedTopic)
+        {
+            var mismatches = receivedMessages.Where(x => x.Topic.ToString() != expectedTopic.ToString()).ToList();
+            if (mismatches.Any())
+            {
+                Assert.Fail($"Expected {expectedTopic} but found {string.Join(", ", mismatches)}");
+            }
         }
     }
 
-    public class IntegrationTestMessage
+    public class IntegrationTestData
     {
         public string StringData { get; set; }
         public int IntData { get; set; }

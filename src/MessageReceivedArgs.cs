@@ -6,23 +6,20 @@ namespace EL.ServiceBus
 
     public class MessageReceivedArgs : EventArgs
     {
-        public MessageReceivedArgs(string messageEvent,
-            DateTimeOffset publishedAt,
+        public MessageReceivedArgs(Subscription subscription,
+            DateTimeOffset enqueuedAt,
             DateTimeOffset receivedAt,
-            TimeSpan processingTime,
-            int subscriberCount)
+            TimeSpan processingTime)
         {
-            MessageEvent = messageEvent;
-            PublishedAt = publishedAt;
+            Subscription = subscription;
+            EnqueuedAt = enqueuedAt;
             ReceivedAt = receivedAt;
             ProcessingTime = processingTime;
-            SubscriberCount = subscriberCount;
         }
 
-        public string MessageEvent { get; }
-        public DateTimeOffset PublishedAt { get; }
+        public Subscription Subscription { get; }
+        public DateTimeOffset EnqueuedAt { get; }
         public DateTimeOffset ReceivedAt { get; }
         public TimeSpan ProcessingTime { get; }
-        public int SubscriberCount { get; }
     }
 }
