@@ -11,13 +11,24 @@ namespace EL.ServiceBus.UnitTests
         {
             var topic = new Topic("el-service-bus", "test-event", 1);
             var body = new TestMessage { Data = "mapping-test" };
-            var message = new Message<TestMessage>(topic, body);
+            var message = new Message<TestMessage>(topic, body)
+            {
+                PublishedAt = DateTimeOffset.UtcNow,
+                EnqueuedAt = DateTimeOffset.UtcNow.AddMinutes(5)
+            };
             message.CorrelationId = "correlation-id";
             var serializedData = "serialized-data";
-            GetMock<IMessageSerializer>().Setup(x => x.Serialize(body)).Returns(serializedData);
+            Payload<TestMessage> payload = null;
+            GetMock<IMessageSerializer>()
+                .Setup(x => x.Serialize(Any<Payload<TestMessage>>()))
+                .Callback((Payload<TestMessage> x) => payload = x)
+                .Returns(serializedData);
 
             var result = ClassUnderTest.ToServiceBusMessage(message);
 
+            Assert.That(payload.Body, Is.SameAs(message.Body));
+            Assert.That(payload.PublishedAt, Is.EqualTo(message.PublishedAt));
+            Assert.That(payload.EnqueuedAt, Is.EqualTo(message.EnqueuedAt));
             Assert.That(Encoding.UTF8.GetString(result.Body), Is.EqualTo(serializedData));
             Assert.That(result.MessageId, Is.EqualTo(message.MessageId));
             Assert.That(result.CorrelationId, Is.EqualTo(message.CorrelationId));
@@ -32,15 +43,23 @@ namespace EL.ServiceBus.UnitTests
             message.MessageId = Guid.NewGuid().ToString();
             message.CorrelationId = "correlation-id";
             var topic = new Topic("el-service-bus", "test-event", 1);
-            var deserialized = new TestMessage { Data = "example data" };
-            GetMock<IMessageSerializer>().Setup(x => x.Deserialize<TestMessage>(serializedBody)).Returns(deserialized);
+            var deserialized = new Payload<TestMessage> {
+                Body = new TestMessage { Data = "example data" },
+                PublishedAt = DateTimeOffset.UtcNow.AddMinutes(-10),
+                EnqueuedAt = DateTimeOffset.UtcNow.AddMinutes(-5)   
+            };
+            var receivedAt = DateTimeOffset.UtcNow;
+            GetMock<IMessageSerializer>().Setup(x => x.Deserialize<Payload<TestMessage>>(serializedBody)).Returns(deserialized);
 
-            var result = ClassUnderTest.FromServiceBusMessage<TestMessage>(topic, message);
+            var result = ClassUnderTest.FromServiceBusMessage<TestMessage>(topic, message, receivedAt);
             
-            Assert.That(result.Body, Is.SameAs(deserialized));
+            Assert.That(result.Body, Is.SameAs(deserialized.Body));
             Assert.That(result.Topic, Is.SameAs(topic));
             Assert.That(result.MessageId, Is.EqualTo(message.MessageId));
             Assert.That(result.CorrelationId, Is.EqualTo(message.CorrelationId));
+            Assert.That(result.PublishedAt, Is.EqualTo(deserialized.PublishedAt), "Incorrect PublishedAt");
+            Assert.That(result.EnqueuedAt, Is.EqualTo(deserialized.EnqueuedAt), "Incorrect EnqueuedAt");
+            Assert.That(result.ReceivedAt, Is.EqualTo(receivedAt), "Incorrect ReceivedAt");
         }
     }
 }

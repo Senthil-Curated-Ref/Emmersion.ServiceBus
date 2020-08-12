@@ -45,6 +45,7 @@ namespace EL.ServiceBus.UnitTests
             var receivedMessages = new List<Message<TestMessage>>();
             var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
             var message = new Message<TestMessage>(subscription.Topic, new TestMessage { Data = "test data"});
+            var receivedAt = DateTimeOffset.MinValue;
             GetMock<ISubscriptionClientWrapperCreator>()
                 .Setup(x => x.Create(subscription))
                 .Returns(GetMock<ISubscriptionClientWrapper>().Object);
@@ -52,14 +53,17 @@ namespace EL.ServiceBus.UnitTests
                 .Setup(x => x.RegisterMessageHandler(Any<Action<Microsoft.Azure.ServiceBus.Message>>(), Any<Action<ExceptionReceivedEventArgs>>()))
                 .Callback<Action<Microsoft.Azure.ServiceBus.Message>, Action<ExceptionReceivedEventArgs>>((handler, _) => messageHandler = handler);
             GetMock<IMessageMapper>()
-                .Setup(x => x.FromServiceBusMessage<TestMessage>(subscription.Topic, serviceBusMessage))
+                .Setup(x => x.FromServiceBusMessage<TestMessage>(subscription.Topic, serviceBusMessage, Any<DateTimeOffset>()))
+                .Callback<Topic, Microsoft.Azure.ServiceBus.Message, DateTimeOffset>((x, y, z) => receivedAt = z)
                 .Returns(message);
 
             ClassUnderTest.Subscribe(subscription, (Message<TestMessage> message) => receivedMessages.Add(message));
+            var before = DateTimeOffset.UtcNow;
             messageHandler(serviceBusMessage);
 
             Assert.That(receivedMessages.Count, Is.EqualTo(1));
             Assert.That(receivedMessages[0], Is.SameAs(message));
+            Assert.That(receivedAt, Is.EqualTo(before).Within(TimeSpan.FromMilliseconds(10)));
         }
 
         [Test]
@@ -67,11 +71,12 @@ namespace EL.ServiceBus.UnitTests
         {
             Action<Microsoft.Azure.ServiceBus.Message> messageHandler = null;
             var receivedMessages = new List<Message<TestMessage>>();
-            var publishedAt = DateTimeOffset.UtcNow.AddMinutes(-5);
-            var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message {
-                ScheduledEnqueueTimeUtc = publishedAt.UtcDateTime
+            var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
+            var message = new Message<TestMessage>(subscription.Topic, new TestMessage { Data = "test data"})
+            {
+                PublishedAt = DateTimeOffset.UtcNow.AddMinutes(-10),
+                EnqueuedAt = DateTimeOffset.UtcNow.AddMinutes(-3)
             };
-            var message = new Message<TestMessage>(subscription.Topic, new TestMessage { Data = "test data"});
             var eventArgs = new List<MessageReceivedArgs>();
             GetMock<ISubscriptionClientWrapperCreator>()
                 .Setup(x => x.Create(subscription))
@@ -80,7 +85,7 @@ namespace EL.ServiceBus.UnitTests
                 .Setup(x => x.RegisterMessageHandler(Any<Action<Microsoft.Azure.ServiceBus.Message>>(), Any<Action<ExceptionReceivedEventArgs>>()))
                 .Callback<Action<Microsoft.Azure.ServiceBus.Message>, Action<ExceptionReceivedEventArgs>>((handler, _) => messageHandler = handler);
             GetMock<IMessageMapper>()
-                .Setup(x => x.FromServiceBusMessage<TestMessage>(subscription.Topic, serviceBusMessage))
+                .Setup(x => x.FromServiceBusMessage<TestMessage>(subscription.Topic, serviceBusMessage, Any<DateTimeOffset>()))
                 .Returns(message);
 
             ClassUnderTest.OnMessageReceived += (object sender, MessageReceivedArgs args) => eventArgs.Add(args);
@@ -99,7 +104,8 @@ namespace EL.ServiceBus.UnitTests
 
             Assert.That(eventArgs.Count, Is.EqualTo(1), "No eventArgs were received");
             Assert.That(eventArgs[0].Subscription, Is.EqualTo(subscription));
-            Assert.That(eventArgs[0].EnqueuedAt, Is.EqualTo(publishedAt));
+            Assert.That(eventArgs[0].PublishedAt, Is.EqualTo(message.PublishedAt));
+            Assert.That(eventArgs[0].EnqueuedAt, Is.EqualTo(message.EnqueuedAt));
             Assert.That(eventArgs[0].ReceivedAt, Is.EqualTo(DateTimeOffset.UtcNow).Within(TimeSpan.FromSeconds(1)));
             Assert.That(eventArgs[0].ReceivedAt, Is.EqualTo(before).Within(TimeSpan.FromMilliseconds(10)));
             Assert.That(eventArgs[0].ProcessingTime, Is.EqualTo(duration).Within(TimeSpan.FromMilliseconds(10)));
@@ -110,11 +116,12 @@ namespace EL.ServiceBus.UnitTests
         {
             Action<Microsoft.Azure.ServiceBus.Message> messageHandler = null;
             var receivedMessages = new List<Message<TestMessage>>();
-            var publishedAt = DateTimeOffset.UtcNow.AddMinutes(-5);
-            var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message {
-                ScheduledEnqueueTimeUtc = publishedAt.UtcDateTime
+            var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
+            var message = new Message<TestMessage>(subscription.Topic, new TestMessage { Data = "test data"})
+            {
+                PublishedAt = DateTimeOffset.UtcNow.AddSeconds(-3),
+                EnqueuedAt = DateTimeOffset.UtcNow.AddSeconds(-1)
             };
-            var message = new Message<TestMessage>(subscription.Topic, new TestMessage { Data = "test data"});
             var eventArgs = new List<MessageReceivedArgs>();
             var testException = new Exception("test exception");
             GetMock<ISubscriptionClientWrapperCreator>()
@@ -124,7 +131,7 @@ namespace EL.ServiceBus.UnitTests
                 .Setup(x => x.RegisterMessageHandler(Any<Action<Microsoft.Azure.ServiceBus.Message>>(), Any<Action<ExceptionReceivedEventArgs>>()))
                 .Callback<Action<Microsoft.Azure.ServiceBus.Message>, Action<ExceptionReceivedEventArgs>>((handler, _) => messageHandler = handler);
             GetMock<IMessageMapper>()
-                .Setup(x => x.FromServiceBusMessage<TestMessage>(subscription.Topic, serviceBusMessage))
+                .Setup(x => x.FromServiceBusMessage<TestMessage>(subscription.Topic, serviceBusMessage, Any<DateTimeOffset>()))
                 .Returns(message);
 
             ClassUnderTest.OnMessageReceived += (object sender, MessageReceivedArgs args) => eventArgs.Add(args);
@@ -144,7 +151,8 @@ namespace EL.ServiceBus.UnitTests
 
             Assert.That(eventArgs.Count, Is.EqualTo(1), "No eventArgs were received");
             Assert.That(eventArgs[0].Subscription, Is.EqualTo(subscription));
-            Assert.That(eventArgs[0].EnqueuedAt, Is.EqualTo(publishedAt));
+            Assert.That(eventArgs[0].PublishedAt, Is.EqualTo(message.PublishedAt));
+            Assert.That(eventArgs[0].EnqueuedAt, Is.EqualTo(message.EnqueuedAt));
             Assert.That(eventArgs[0].ReceivedAt, Is.EqualTo(DateTimeOffset.UtcNow).Within(TimeSpan.FromSeconds(1)));
             Assert.That(eventArgs[0].ReceivedAt, Is.EqualTo(before).Within(TimeSpan.FromMilliseconds(10)));
             Assert.That(eventArgs[0].ProcessingTime, Is.EqualTo(duration).Within(TimeSpan.FromMilliseconds(10)));

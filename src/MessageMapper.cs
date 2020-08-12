@@ -1,3 +1,4 @@
+using System;
 using System.Text;
 
 namespace EL.ServiceBus
@@ -5,7 +6,7 @@ namespace EL.ServiceBus
     internal interface IMessageMapper
     {
         Microsoft.Azure.ServiceBus.Message ToServiceBusMessage<T>(Message<T> message);
-        Message<T> FromServiceBusMessage<T>(Topic topic, Microsoft.Azure.ServiceBus.Message message);
+        Message<T> FromServiceBusMessage<T>(Topic topic, Microsoft.Azure.ServiceBus.Message message, DateTimeOffset receivedAt);
     }
 
     internal class MessageMapper : IMessageMapper
@@ -19,7 +20,12 @@ namespace EL.ServiceBus
 
         public Microsoft.Azure.ServiceBus.Message ToServiceBusMessage<T>(Message<T> message)
         {
-            var bytes = Encoding.UTF8.GetBytes(serializer.Serialize(message.Body));
+            var payload = new Payload<T> {
+                Body = message.Body,
+                PublishedAt = message.PublishedAt.Value,
+                EnqueuedAt = message.EnqueuedAt.Value
+            };
+            var bytes = Encoding.UTF8.GetBytes(serializer.Serialize(payload));
             return new Microsoft.Azure.ServiceBus.Message(bytes)
             {
                 MessageId = message.MessageId,
@@ -27,13 +33,23 @@ namespace EL.ServiceBus
             };
         }
 
-        public Message<T> FromServiceBusMessage<T>(Topic topic, Microsoft.Azure.ServiceBus.Message message)
+        public Message<T> FromServiceBusMessage<T>(Topic topic, Microsoft.Azure.ServiceBus.Message message, DateTimeOffset receivedAt)
         {
-            var body = serializer.Deserialize<T>(Encoding.UTF8.GetString(message.Body));
-            return new Message<T>(message.MessageId, topic, body)
+            var payload = serializer.Deserialize<Payload<T>>(Encoding.UTF8.GetString(message.Body));
+            return new Message<T>(message.MessageId, topic, payload.Body)
             {
-                CorrelationId = message.CorrelationId
+                CorrelationId = message.CorrelationId,
+                PublishedAt = payload.PublishedAt,
+                EnqueuedAt = payload.EnqueuedAt,
+                ReceivedAt = receivedAt
             };
         }
+    }
+
+    internal class Payload<T>
+    {
+        public T Body { get; set; }
+        public DateTimeOffset PublishedAt { get; set; }
+        public DateTimeOffset EnqueuedAt { get; set; }
     }
 }

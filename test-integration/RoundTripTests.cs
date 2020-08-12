@@ -50,7 +50,7 @@ namespace EL.ServiceBus.IntegrationTests
             subscriber.OnServiceBusException += (_, args) => exceptions.Add(args.Exception);
             subscriber.OnMessageReceived += (_, args) =>
             {
-                var duration = 0; //(args.ReceivedAt - args.EnqueuedAt).TotalMilliseconds;
+                var duration = (args.ReceivedAt - args.EnqueuedAt.Value).TotalMilliseconds;
                 messageRoundTripDurations.Add(duration);
             };
             
@@ -128,7 +128,11 @@ namespace EL.ServiceBus.IntegrationTests
         {
             var match = receivedMessages.FirstOrDefault(x => x.MessageId == expectedMessage.MessageId);
             Assert.That(match, Is.Not.Null, $"Unable to find matching message on topic {expectedMessage.Topic}");
-            Assert.That(serializer.Serialize(match), Is.EqualTo(serializer.Serialize(expectedMessage)));
+            Assert.That(match.CorrelationId, Is.EqualTo(expectedMessage.CorrelationId), "Incorrect CorrelationId");
+            Assert.That(match.PublishedAt, Is.EqualTo(expectedMessage.PublishedAt), "Incorrect PublishedAt");
+            Assert.That(match.EnqueuedAt, Is.EqualTo(expectedMessage.EnqueuedAt), "Incorrect PublishedAt");
+            Assert.That(match.Topic.ToString(), Is.EqualTo(expectedMessage.Topic.ToString()));
+            Assert.That(serializer.Serialize(match.Body), Is.EqualTo(serializer.Serialize(expectedMessage.Body)));
         }
 
         private void AssertAllMessagesMatchTopic<T>(List<Message<T>> receivedMessages, Topic expectedTopic)

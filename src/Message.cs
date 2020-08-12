@@ -8,6 +8,9 @@ namespace EL.ServiceBus
         public string CorrelationId { get; set; }
         public Topic Topic { get; private set; }
         public T Body { get; private set; }
+        public DateTimeOffset? PublishedAt { get; internal set; }
+        public DateTimeOffset? EnqueuedAt { get; internal set; }
+        public DateTimeOffset? ReceivedAt { get; internal set; }
 
         public Message(Topic topic, T body)
         {

@@ -23,8 +23,11 @@ namespace EL.ServiceBus.UnitTests
                 .Returns(GetMock<ITopicClientWrapper>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToServiceBusMessage(message)).Returns(serviceBusMessage);
 
+            var before = DateTimeOffset.UtcNow;
             ClassUnderTest.Publish(message);
 
+            Assert.That(message.PublishedAt, Is.EqualTo(before).Within(TimeSpan.FromMilliseconds(10)), "Incorrect PublishedAt");
+            Assert.That(message.EnqueuedAt, Is.EqualTo(message.PublishedAt), "Incorrect EnqueuedAt");
             GetMock<ITopicClientWrapper>().Verify(x => x.SendAsync(serviceBusMessage));
         }
 
@@ -69,8 +72,11 @@ namespace EL.ServiceBus.UnitTests
                 .Returns(GetMock<ITopicClientWrapper>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToServiceBusMessage(message)).Returns(serviceBusMessage);
 
+            var before = DateTimeOffset.UtcNow;
             ClassUnderTest.PublishScheduled(message, enqueueAt);
 
+            Assert.That(message.PublishedAt, Is.EqualTo(before).Within(TimeSpan.FromMilliseconds(10)), "Incorrect PublishedAt");
+            Assert.That(message.EnqueuedAt, Is.EqualTo(enqueueAt), "Incorrect EnqueuedAt");
             GetMock<ITopicClientWrapper>().Verify(x => x.ScheduleMessageAsync(serviceBusMessage, enqueueAt));
         }
 

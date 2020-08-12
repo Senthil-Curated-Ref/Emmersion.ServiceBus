@@ -35,16 +35,20 @@ namespace EL.ServiceBus
             var client = GetClient(subscription);
             client.RegisterMessageHandler((serviceBusMessage) => {
                 var receivedAt = DateTimeOffset.UtcNow;
+                DateTimeOffset? publishedAt = null;
+                DateTimeOffset? enqueuedAt = null;
                 try {
-                    var message = messageMapper.FromServiceBusMessage<T>(subscription.Topic, serviceBusMessage);
+                    var message = messageMapper.FromServiceBusMessage<T>(subscription.Topic, serviceBusMessage, receivedAt);
+                    publishedAt = message.PublishedAt;
+                    enqueuedAt = message.EnqueuedAt;
                     action(message);
                 }
                 finally
                 {
                     var processingTime = DateTimeOffset.UtcNow - receivedAt;
-                    var enqueuedAt = new DateTimeOffset(serviceBusMessage.ScheduledEnqueueTimeUtc, TimeSpan.Zero);
                     OnMessageReceived?.Invoke(this, new MessageReceivedArgs(
                         subscription,
+                        publishedAt,
                         enqueuedAt,
                         receivedAt,
                         processingTime

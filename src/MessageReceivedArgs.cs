@@ -7,18 +7,21 @@ namespace EL.ServiceBus
     public class MessageReceivedArgs : EventArgs
     {
         public MessageReceivedArgs(Subscription subscription,
-            DateTimeOffset enqueuedAt,
+            DateTimeOffset? publishedAt,
+            DateTimeOffset? enqueuedAt,
             DateTimeOffset receivedAt,
             TimeSpan processingTime)
         {
             Subscription = subscription;
+            PublishedAt = publishedAt;
             EnqueuedAt = enqueuedAt;
             ReceivedAt = receivedAt;
             ProcessingTime = processingTime;
         }
 
         public Subscription Subscription { get; }
-        public DateTimeOffset EnqueuedAt { get; }
+        public DateTimeOffset? PublishedAt { get; }
+        public DateTimeOffset? EnqueuedAt { get; }
         public DateTimeOffset ReceivedAt { get; }
         public TimeSpan ProcessingTime { get; }
     }

@@ -40,17 +40,19 @@ namespace EL.ServiceBus
 
         public void Publish<T>(Message<T> message)
         {
-            Publish(message, (client, data) => client.SendAsync(data));
+            Publish(message, null, (client, data) => client.SendAsync(data));
         }
 
         public void PublishScheduled<T>(Message<T> message, DateTimeOffset enqueueAt)
         {
-            Publish(message, (client, data) => client.ScheduleMessageAsync(data, enqueueAt));
+            Publish(message, enqueueAt, (client, data) => client.ScheduleMessageAsync(data, enqueueAt));
         }
 
-        private void Publish<T>(Message<T> message, Func<ITopicClientWrapper, Microsoft.Azure.ServiceBus.Message, Task> action)
+        private void Publish<T>(Message<T> message, DateTimeOffset? enqueueAt, Func<ITopicClientWrapper, Microsoft.Azure.ServiceBus.Message, Task> action)
         {
             var client = pool.GetForTopic(publisherConfig.ConnectionString, message.Topic.ToString());
+            message.PublishedAt = DateTimeOffset.UtcNow;
+            message.EnqueuedAt = enqueueAt ?? message.PublishedAt;
             var stopwatch = Stopwatch.StartNew();
             action(client, messageMapper.ToServiceBusMessage(message)).Wait();
             OnMessagePublished?.Invoke(this, new MessagePublishedArgs(stopwatch.ElapsedMilliseconds));
