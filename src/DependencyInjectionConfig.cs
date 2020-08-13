@@ -20,6 +20,7 @@ namespace EL.ServiceBus
             services.AddTransient<ISubscriptionClientWrapper, SubscriptionClientWrapper>();
             services.AddTransient<ISubscriptionClientWrapperCreator, SubscriptionClientWrapperCreator>();
             services.AddTransient<IMessageMapper, MessageMapper>();
+            services.AddTransient<IMessageSerializer, MessageSerializer>();
         }
 
         public static void ConfigurePublisherServices(IServiceCollection services)
@@ -28,6 +29,7 @@ namespace EL.ServiceBus
             services.AddTransient<ITopicClientWrapperPool, TopicClientWrapperPool>();
             services.AddTransient<ITopicClientWrapperCreator, TopicClientWrapperCreator>();
             services.AddTransient<IMessageMapper, MessageMapper>();
+            services.AddTransient<IMessageSerializer, MessageSerializer>();
         }
     }
 }

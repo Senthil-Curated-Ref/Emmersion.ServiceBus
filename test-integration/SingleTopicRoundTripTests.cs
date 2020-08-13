@@ -21,7 +21,6 @@ namespace EL.ServiceBus.IntegrationTests
             services.AddTransient<ISettings, Settings>();
             services.AddTransient(ctx => ctx.GetRequiredService<ISettings>().PublisherConfig);
             services.AddTransient(ctx => ctx.GetRequiredService<ISettings>().SubscriptionConfig);
-            services.AddTransient<IMessageSerializer, MessageSerializer>();
             var serviceProvider = services.BuildServiceProvider();
 
             subscriber = serviceProvider.GetRequiredService<IMessageSubscriber>();
