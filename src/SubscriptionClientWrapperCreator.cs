@@ -3,6 +3,7 @@ namespace EL.ServiceBus
     internal interface ISubscriptionClientWrapperCreator
     {
         ISubscriptionClientWrapper Create(Subscription subscription);
+        ISubscriptionClientWrapper CreateSingleTopic();
     }
 
     internal class SubscriptionClientWrapperCreator : ISubscriptionClientWrapperCreator
@@ -16,7 +17,12 @@ namespace EL.ServiceBus
 
         public ISubscriptionClientWrapper Create(Subscription subscription)
         {
-            return new SubscriptionClientWrapper(config, subscription.Topic.ToString(), subscription.SubscriptionName);
+            return new SubscriptionClientWrapper(config.ConnectionString, subscription.Topic.ToString(), subscription.SubscriptionName, config.MaxConcurrentMessages);
+        }
+
+        public ISubscriptionClientWrapper CreateSingleTopic()
+        {
+            return new SubscriptionClientWrapper(config.SingleTopicConnectionString, config.SingleTopicName, config.SingleTopicSubscriptionName, config.MaxConcurrentMessages);
         }
     }
 }

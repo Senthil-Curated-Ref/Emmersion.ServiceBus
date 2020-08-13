@@ -4,5 +4,8 @@ namespace EL.ServiceBus
     {
         string ConnectionString { get; }
         int MaxConcurrentMessages { get; }
+        string SingleTopicConnectionString { get; }
+        string SingleTopicName { get; }
+        string SingleTopicSubscriptionName { get; }
     }
 }

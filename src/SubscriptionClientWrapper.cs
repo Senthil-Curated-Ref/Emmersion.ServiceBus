@@ -13,13 +13,13 @@ namespace EL.ServiceBus
     internal class SubscriptionClientWrapper : ISubscriptionClientWrapper
     {
         private readonly SubscriptionClient client;
-        private readonly ISubscriptionConfig config;
+        private readonly int maxConcurrentMessages;
 
-        public SubscriptionClientWrapper(ISubscriptionConfig config, string topicName, string subscriptionName)
+        public SubscriptionClientWrapper(string connectionString, string topicName, string subscriptionName, int maxConcurrentMessages)
         {
-            if (string.IsNullOrEmpty(config.ConnectionString))
+            if (string.IsNullOrEmpty(connectionString))
             {
-                throw new ArgumentException($"Invalid ConnectionString in ISubscriptionConfig", nameof(config.ConnectionString));
+                throw new ArgumentException($"Invalid connectionString", nameof(connectionString));
             }
             if (string.IsNullOrEmpty(topicName))
             {
@@ -29,13 +29,13 @@ namespace EL.ServiceBus
             {
                 throw new ArgumentException($"Invalid subscription", nameof(subscriptionName));
             }
-            if (config.MaxConcurrentMessages < 1)
+            if (maxConcurrentMessages < 1)
             {
-                throw new ArgumentException($"ISubscriptionConfig.MaxConcurrentMessages must be greater than zero.", nameof(config.MaxConcurrentMessages));
+                throw new ArgumentException($"MaxConcurrentMessages must be greater than zero.", nameof(maxConcurrentMessages));
             }
 
-            client = new SubscriptionClient(config.ConnectionString, topicName, subscriptionName);
-            this.config = config;
+            this.maxConcurrentMessages = maxConcurrentMessages;
+            client = new SubscriptionClient(connectionString, topicName, subscriptionName);
         }
 
         public void RegisterMessageHandler(Action<Microsoft.Azure.ServiceBus.Message> messageHandler, Action<ExceptionReceivedEventArgs> exceptionHandler)
@@ -45,7 +45,7 @@ namespace EL.ServiceBus
                 return Task.CompletedTask;
             })
             {
-                MaxConcurrentCalls = config.MaxConcurrentMessages,
+                MaxConcurrentCalls = maxConcurrentMessages,
                 AutoComplete = false
             };
             client.RegisterMessageHandler(async (message, cancellationToken) => {
