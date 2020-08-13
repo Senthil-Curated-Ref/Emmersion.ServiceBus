@@ -16,7 +16,7 @@ namespace EL.ServiceBus
 
         public ISubscriptionClientWrapper Create(Subscription subscription)
         {
-            return new SubscriptionClientWrapper(config, subscription);
+            return new SubscriptionClientWrapper(config, subscription.Topic.ToString(), subscription.SubscriptionName);
         }
     }
 }

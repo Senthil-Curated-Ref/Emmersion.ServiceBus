@@ -15,22 +15,26 @@ namespace EL.ServiceBus
         private readonly SubscriptionClient client;
         private readonly ISubscriptionConfig config;
 
-        public SubscriptionClientWrapper(ISubscriptionConfig config, Subscription subscription)
+        public SubscriptionClientWrapper(ISubscriptionConfig config, string topicName, string subscriptionName)
         {
             if (string.IsNullOrEmpty(config.ConnectionString))
             {
                 throw new ArgumentException($"Invalid ConnectionString in ISubscriptionConfig", nameof(config.ConnectionString));
             }
-            if (subscription == null)
+            if (string.IsNullOrEmpty(topicName))
             {
-                throw new ArgumentException($"Invalid Subscription", nameof(subscription));
+                throw new ArgumentException($"Invalid topic", nameof(topicName));
+            }
+            if (string.IsNullOrEmpty(subscriptionName))
+            {
+                throw new ArgumentException($"Invalid subscription", nameof(subscriptionName));
             }
             if (config.MaxConcurrentMessages < 1)
             {
                 throw new ArgumentException($"ISubscriptionConfig.MaxConcurrentMessages must be greater than zero.", nameof(config.MaxConcurrentMessages));
             }
 
-            client = new SubscriptionClient(config.ConnectionString, subscription.Topic.ToString(), subscription.SubscriptionName);
+            client = new SubscriptionClient(config.ConnectionString, topicName, subscriptionName);
             this.config = config;
         }
 
