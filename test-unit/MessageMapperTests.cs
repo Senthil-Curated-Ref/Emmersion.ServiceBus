@@ -61,5 +61,18 @@ namespace EL.ServiceBus.UnitTests
             Assert.That(result.EnqueuedAt, Is.EqualTo(deserialized.EnqueuedAt), "Incorrect EnqueuedAt");
             Assert.That(result.ReceivedAt, Is.EqualTo(receivedAt), "Incorrect ReceivedAt");
         }
+
+        [Test]
+        public void When_mapping_to_message_envelope()
+        {
+            var body = "test-message-body";
+            var message = new Microsoft.Azure.ServiceBus.Message(Encoding.UTF8.GetBytes(body));
+            var envelope = new MessageEnvelope<TestMessage>();
+            GetMock<IMessageSerializer>().Setup(x => x.Deserialize<MessageEnvelope<TestMessage>>(body)).Returns(envelope);
+
+            var result = ClassUnderTest.ToMessageEnvelope<TestMessage>(message);
+
+            Assert.That(result, Is.SameAs(envelope));
+        }
     }
 }

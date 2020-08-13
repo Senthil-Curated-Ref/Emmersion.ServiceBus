@@ -8,6 +8,7 @@ namespace EL.ServiceBus
     public interface IMessageSubscriber : IDisposable
     {
         void Subscribe<T>(Subscription subscription, Action<Message<T>> action);
+        void Subscribe<T>(MessageEvent messageEvent, Action<T> action);
         event OnMessageReceived OnMessageReceived;
         event OnServiceBusException OnServiceBusException;
     }
@@ -17,6 +18,7 @@ namespace EL.ServiceBus
         private readonly ISubscriptionClientWrapperCreator subscriptionClientWrapperCreator;
         private readonly IMessageMapper messageMapper;
         private Dictionary<string, ISubscriptionClientWrapper> clients;
+        private readonly List<Route> routes = new List<Route>();
 
         public event OnMessageReceived OnMessageReceived;
         public event OnServiceBusException OnServiceBusException;
@@ -72,5 +74,56 @@ namespace EL.ServiceBus
         {
             Task.WaitAll(clients.Select(x => x.Value.CloseAsync()).ToArray());
         }
+
+        public void Subscribe<T>(MessageEvent messageEvent, Action<T> action)
+        {
+            InitializeSingleTopicClient();
+            routes.Add(new Route
+            {
+                MessageEvent = messageEvent.ToString(),
+                Action = (serviceBusMessage) =>
+                {
+                    var envelope = messageMapper.ToMessageEnvelope<T>(serviceBusMessage);
+                    action(envelope.Payload);
+                }
+            });
+        }
+
+        private void InitializeSingleTopicClient()
+        {
+            if (!clients.ContainsKey("single-topic"))
+            {
+                clients["single-topic"] = subscriptionClientWrapperCreator.CreateSingleTopic();
+                clients["single-topic"].RegisterMessageHandler(RouteMessage,
+                    (args) => OnServiceBusException?.Invoke(this, new ServiceBusExceptionArgs(null, args)));
+            }
+        }
+
+        internal void RouteMessage(Microsoft.Azure.ServiceBus.Message serviceBusMessage)
+        {
+            var receivedAt = DateTimeOffset.UtcNow;
+            var envelope = messageMapper.ToMessageEnvelope<object>(serviceBusMessage);
+            var recipients = routes.Where(x => x.MessageEvent == envelope.MessageEvent).ToList();
+            try
+            {
+                recipients.ForEach(x => x.Action(serviceBusMessage));
+            }
+            finally
+            {
+                var processingTime = DateTimeOffset.UtcNow - receivedAt;
+                OnMessageReceived?.Invoke(this, new MessageReceivedArgs(
+                    envelope.MessageEvent,
+                    envelope.PublishedAt,
+                    receivedAt,
+                    processingTime
+                ));
+            }
+        }
+    }
+
+    internal class Route
+    {
+        public string MessageEvent { get; set; }
+        public Action<Microsoft.Azure.ServiceBus.Message> Action { get; set; }
     }
 }

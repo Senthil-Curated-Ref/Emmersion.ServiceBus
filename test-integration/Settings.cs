@@ -35,7 +35,10 @@ namespace EL.ServiceBus.IntegrationTests
 
         public ISubscriptionConfig SubscriptionConfig => new TestSubscriptionConfig
         {
-            ConnectionString = configuration.GetValue<string>("ConnectionString")
+            ConnectionString = configuration.GetValue<string>("ConnectionString"),
+            SingleTopicConnectionString = configuration.GetValue<string>("SingleTopicConnectionString"),
+            SingleTopicName = configuration.GetValue<string>("SingleTopicName"),
+            SingleTopicSubscriptionName = configuration.GetValue<string>("SingleTopicSubscriptionName")
         };
     }
 }

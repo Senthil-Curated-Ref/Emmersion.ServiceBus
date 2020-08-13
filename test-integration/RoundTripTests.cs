@@ -7,7 +7,7 @@ using NUnit.Framework;
 
 namespace EL.ServiceBus.IntegrationTests
 {
-    public class Tests
+    public class RoundTripTests
     {
         private IMessagePublisher publisher;
         private IMessageSubscriber subscriber;
@@ -30,7 +30,7 @@ namespace EL.ServiceBus.IntegrationTests
         }
 
         [Test]
-        public void RoundTripTests()
+        public void RoundTripTest()
         {
             var topicA1 = new Topic("el-service-bus", "integration-test-a", 1);
             var topicA2 = new Topic("el-service-bus", "integration-test-a", 2);

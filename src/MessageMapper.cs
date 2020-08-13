@@ -7,6 +7,7 @@ namespace EL.ServiceBus
     {
         Microsoft.Azure.ServiceBus.Message ToServiceBusMessage<T>(Message<T> message);
         Message<T> FromServiceBusMessage<T>(Topic topic, Microsoft.Azure.ServiceBus.Message message, DateTimeOffset receivedAt);
+        MessageEnvelope<T> ToMessageEnvelope<T>(Microsoft.Azure.ServiceBus.Message message);
     }
 
     internal class MessageMapper : IMessageMapper
@@ -43,6 +44,11 @@ namespace EL.ServiceBus
                 EnqueuedAt = payload.EnqueuedAt,
                 ReceivedAt = receivedAt
             };
+        }
+
+        public MessageEnvelope<T> ToMessageEnvelope<T>(Microsoft.Azure.ServiceBus.Message message)
+        {
+            return serializer.Deserialize<MessageEnvelope<T>>(Encoding.UTF8.GetString(message.Body));
         }
     }
 

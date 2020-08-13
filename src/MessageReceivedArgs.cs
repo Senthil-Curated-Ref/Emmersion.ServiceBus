@@ -19,7 +19,20 @@ namespace EL.ServiceBus
             ProcessingTime = processingTime;
         }
 
+        public MessageReceivedArgs(string messageEvent,
+            DateTimeOffset? publishedAt,
+            DateTimeOffset receivedAt,
+            TimeSpan processingTime)
+        {
+            MessageEvent = messageEvent;
+            PublishedAt = publishedAt;
+            EnqueuedAt = publishedAt;
+            ReceivedAt = receivedAt;
+            ProcessingTime = processingTime;
+        }
+
         public Subscription Subscription { get; }
+        public string MessageEvent { get; }
         public DateTimeOffset? PublishedAt { get; }
         public DateTimeOffset? EnqueuedAt { get; }
         public DateTimeOffset ReceivedAt { get; }
