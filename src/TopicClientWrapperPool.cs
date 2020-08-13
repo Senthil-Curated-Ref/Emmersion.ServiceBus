@@ -14,6 +14,7 @@ namespace EL.ServiceBus
     {
         private readonly Dictionary<string, ITopicClientWrapper> pool;
         private readonly ITopicClientWrapperCreator topicClientWrapperCreator;
+        private static object threadLock = new object();
 
         public TopicClientWrapperPool(ITopicClientWrapperCreator topicClientWrapperCreator)
         {
@@ -30,7 +31,13 @@ namespace EL.ServiceBus
         {
             if (!pool.ContainsKey(topicName))
             {
-                pool[topicName] = topicClientWrapperCreator.Create(connectionString, topicName);
+                lock (threadLock)
+                {
+                    if (!pool.ContainsKey(topicName))
+                    {
+                        pool[topicName] = topicClientWrapperCreator.Create(connectionString, topicName);
+                    }
+                }
             }
             return pool[topicName];
         }

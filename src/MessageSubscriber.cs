@@ -19,6 +19,7 @@ namespace EL.ServiceBus
         private readonly IMessageMapper messageMapper;
         private Dictionary<string, ISubscriptionClientWrapper> clients;
         private readonly List<Route> routes = new List<Route>();
+        private static object threadLock = new object();
 
         public event OnMessageReceived OnMessageReceived;
         public event OnServiceBusException OnServiceBusException;
@@ -61,13 +62,16 @@ namespace EL.ServiceBus
 
         private ISubscriptionClientWrapper GetClient(Subscription subscription)
         {
-            if (clients.ContainsKey(subscription.ToString()))
+            lock (threadLock)
             {
-                throw new Exception("Connecting to the same subscription twice is not allowed.");
+                if (clients.ContainsKey(subscription.ToString()))
+                {
+                    throw new Exception("Connecting to the same subscription twice is not allowed.");
+                }
+                var client = subscriptionClientWrapperCreator.Create(subscription);
+                clients[subscription.ToString()] = client;
+                return client;
             }
-            var client = subscriptionClientWrapperCreator.Create(subscription);
-            clients[subscription.ToString()] = client;
-            return client;
         }
 
         public void Dispose()
@@ -91,11 +95,14 @@ namespace EL.ServiceBus
 
         private void InitializeSingleTopicClient()
         {
-            if (!clients.ContainsKey("single-topic"))
+            lock (threadLock)
             {
-                clients["single-topic"] = subscriptionClientWrapperCreator.CreateSingleTopic();
-                clients["single-topic"].RegisterMessageHandler(RouteMessage,
-                    (args) => OnServiceBusException?.Invoke(this, new ServiceBusExceptionArgs(null, args)));
+                if (!clients.ContainsKey("single-topic"))
+                {
+                    clients["single-topic"] = subscriptionClientWrapperCreator.CreateSingleTopic();
+                    clients["single-topic"].RegisterMessageHandler(RouteMessage,
+                        (args) => OnServiceBusException?.Invoke(this, new ServiceBusExceptionArgs(null, args)));
+                }
             }
         }
 
