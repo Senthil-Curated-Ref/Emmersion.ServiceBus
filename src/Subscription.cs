@@ -6,8 +6,8 @@ namespace EL.ServiceBus
     public class Subscription
     {
         public readonly Topic Topic;
-        public readonly string SubscriptionName;
-        private readonly string fullName;
+        public string SubscriptionName { get; protected set; }
+        protected string fullName;
         internal static string Pattern = "^[a-z]+[a-z-]*[a-z]+$";
         private static Regex regex = new Regex(Pattern, RegexOptions.Compiled);
 
@@ -32,5 +32,16 @@ namespace EL.ServiceBus
         }
 
         public override string ToString() => fullName;
+    }
+
+    public class DeadLetterSubscription : Subscription
+    {
+        private const string DeadLetterQueueSuffix = "/$DeadLetterQueue";
+
+        public DeadLetterSubscription(Topic topic, string productContext, string process) : base (topic, productContext, process)
+        {
+            SubscriptionName += DeadLetterQueueSuffix;
+            fullName += DeadLetterQueueSuffix;
+        }
     }
 }

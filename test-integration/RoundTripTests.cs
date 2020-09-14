@@ -132,9 +132,7 @@ namespace EL.ServiceBus.IntegrationTests
             var messageRoundTripDurations = new List<double>();
             var messageQueueDurations = new List<double>();
             var receivedMessageCount = 0;
-            var receivedA1Messages = new List<Message<string>>();
-            var receivedA2Messages = new List<Message<int>>();
-            var receivedB1Messages = new List<Message<IntegrationTestData>>();
+            var receivedMessages = new List<Message<string>>();
             var exceptions = new List<Exception>();
 
             subscriber.OnServiceBusException += (_, args) => exceptions.Add(args.Exception);
@@ -148,7 +146,7 @@ namespace EL.ServiceBus.IntegrationTests
             
             subscriber.Subscribe(subscription, (Message<string> message) =>
             {
-                receivedA1Messages.Add(message);
+                receivedMessages.Add(message);
                 receivedMessageCount++;
             });
 
@@ -174,7 +172,7 @@ namespace EL.ServiceBus.IntegrationTests
             Assert.That(exceptions.Count, Is.EqualTo(0), "Got unexpected exceptions!");
             exceptions.ForEach(x => Console.WriteLine($"{x.Message}"));
 
-            AssertTestMessageReceived(receivedA1Messages, message);
+            AssertTestMessageReceived(receivedMessages, message);
 
             Assert.That(receivedMessageCount, Is.GreaterThanOrEqualTo(expectedMessageCount), $"Did not get the expected number of messages");
             Assert.That(messageRoundTripDurations.Count, Is.GreaterThanOrEqualTo(receivedMessageCount), "Did not get the expected number of round trip durations");
@@ -184,6 +182,43 @@ namespace EL.ServiceBus.IntegrationTests
             Assert.That(messageQueueDurations.Min(), Is.GreaterThanOrEqualTo(0), $"Expected queue durations to be >= 0ms");
             Assert.That(messagePublishDurations.Count, Is.EqualTo(expectedMessageCount), "Did not get the expected number of publish durations");
             Assert.That(messagePublishDurations.Average(), Is.LessThanOrEqualTo(1000), $"Expected publish durations to be < 1000ms");
+        }
+
+        [Test]
+        public void DeadLetterQueueTest()
+        {
+            var topic = new Topic("el-service-bus", "integration-test-deadletter", 1);
+            var subscription = new Subscription(topic, "el-service-bus", "integration-tests");
+            var deadLetterSubscription = new DeadLetterSubscription(topic, "el-service-bus", "integration-tests");
+            
+            var receivedMessageCount = 0;
+            var deadLetters = new List<Message<string>>();
+            
+            subscriber.Subscribe(deadLetterSubscription, (Message<string> message) => deadLetters.Add(message));
+            subscriber.Subscribe(subscription, (Message<string> message) =>
+            {
+                receivedMessageCount++;
+                throw new Exception("Force deadletter exception");
+            });
+
+            var message = new Message<string>(topic, $"hello-{Guid.NewGuid()}");
+
+            publisher.Publish(message);
+            
+            var waited = 0;
+            var expectedDeadLetterCount = 1;
+            var expectedReceivedMessageCount = 10;
+            while (deadLetters.Count < expectedDeadLetterCount && waited < 5000)
+            {
+                Thread.Sleep(100);
+                waited += 100;
+            }
+            Console.WriteLine($"Waited for {waited}ms");
+
+            AssertTestMessageReceived(deadLetters, message);
+
+            Assert.That(deadLetters.Count, Is.GreaterThanOrEqualTo(expectedDeadLetterCount), $"Did not get the expected number of dead-letter messages");
+            Assert.That(receivedMessageCount, Is.GreaterThanOrEqualTo(expectedReceivedMessageCount), $"Did not get the expected number of messages");
         }
 
         private void AssertTestMessageReceived<T>(List<Message<T>> receivedMessages, Message<T> expectedMessage)
