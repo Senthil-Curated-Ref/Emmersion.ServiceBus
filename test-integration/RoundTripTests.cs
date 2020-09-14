@@ -193,7 +193,7 @@ namespace EL.ServiceBus.IntegrationTests
             var receivedMessageCount = 0;
             var deadLetters = new List<string>();
             
-            subscriber.SubscribeToDeadLetters(subscription, (string message) => deadLetters.Add(message));
+            subscriber.SubscribeToDeadLetters(subscription, (string deadLetter) => deadLetters.Add(deadLetter));
             subscriber.Subscribe(subscription, (Message<string> message) =>
             {
                 receivedMessageCount++;
