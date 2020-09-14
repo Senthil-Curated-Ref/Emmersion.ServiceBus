@@ -63,6 +63,18 @@ namespace EL.ServiceBus.UnitTests
         }
 
         [Test]
+        public void When_mapping_the_dead_letter_body()
+        {
+            var serializedBody = "serialized-data";
+            var bodyBytes = Encoding.UTF8.GetBytes(serializedBody);
+            var message = new Microsoft.Azure.ServiceBus.Message(bodyBytes);
+
+            var result = ClassUnderTest.GetDeadLetterBody(message);
+
+            Assert.That(result, Is.EqualTo(serializedBody));
+        }
+
+        [Test]
         public void When_mapping_to_message_envelope()
         {
             var body = "test-message-body";

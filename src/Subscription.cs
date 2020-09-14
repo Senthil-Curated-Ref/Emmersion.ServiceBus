@@ -6,10 +6,11 @@ namespace EL.ServiceBus
     public class Subscription
     {
         public readonly Topic Topic;
-        public string SubscriptionName { get; protected set; }
-        protected string fullName;
+        public readonly string SubscriptionName;
+        readonly string fullName;
         internal static string Pattern = "^[a-z]+[a-z-]*[a-z]+$";
         private static Regex regex = new Regex(Pattern, RegexOptions.Compiled);
+        private const string DeadLetterQueueSuffix = "/$DeadLetterQueue";
 
         public Subscription(Topic topic, string productContext, string process)
         {
@@ -26,22 +27,23 @@ namespace EL.ServiceBus
                 throw new ArgumentException("Process name must match pattern: " + Pattern, nameof(process));
             }
 
-            this.Topic = topic;
+            Topic = topic;
             SubscriptionName = $"{productContext}.{process}";
             fullName = $"{Topic}=>{SubscriptionName}";
         }
 
-        public override string ToString() => fullName;
-    }
-
-    public class DeadLetterSubscription : Subscription
-    {
-        private const string DeadLetterQueueSuffix = "/$DeadLetterQueue";
-
-        public DeadLetterSubscription(Topic topic, string productContext, string process) : base (topic, productContext, process)
+        private Subscription(Topic topic, string subscriptionName)
         {
-            SubscriptionName += DeadLetterQueueSuffix;
-            fullName += DeadLetterQueueSuffix;
+            Topic = topic;
+            SubscriptionName = subscriptionName;
+            fullName = $"{Topic}=>{SubscriptionName}";
+        }
+
+        public override string ToString() => fullName;
+
+        internal Subscription GetDeadLetterQueue()
+        {
+            return new Subscription(Topic, SubscriptionName + DeadLetterQueueSuffix);
         }
     }
 }

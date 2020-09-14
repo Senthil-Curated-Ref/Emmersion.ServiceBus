@@ -8,6 +8,7 @@ namespace EL.ServiceBus
     public interface IMessageSubscriber : IDisposable
     {
         void Subscribe<T>(Subscription subscription, Action<Message<T>> action);
+        void SubscribeToDeadLetters(Subscription subscription, Action<string> action);
         void Subscribe<T>(MessageEvent messageEvent, Action<T> action);
         event OnMessageReceived OnMessageReceived;
         event OnServiceBusException OnServiceBusException;
@@ -58,6 +59,15 @@ namespace EL.ServiceBus
                     ));
                 }
             }, (args) => OnServiceBusException?.Invoke(this, new ServiceBusExceptionArgs(subscription, args)));
+        }
+
+        public void SubscribeToDeadLetters(Subscription subscription, Action<string> action)
+        {
+            var deadLetterSubscription = subscription.GetDeadLetterQueue();
+            var client = GetClient(deadLetterSubscription);
+            client.RegisterMessageHandler(
+                (serviceBusMessage) => action(messageMapper.GetDeadLetterBody(serviceBusMessage)),
+                (args) => OnServiceBusException?.Invoke(this, new ServiceBusExceptionArgs(deadLetterSubscription, args)));
         }
 
         private ISubscriptionClientWrapper GetClient(Subscription subscription)

@@ -190,6 +190,30 @@ namespace EL.ServiceBus.UnitTests
         }
 
         [Test]
+        public void When_subscribing_to_the_dead_letter_queue()
+        {
+            Subscription deadLetterSubscription = null;
+            Action<Microsoft.Azure.ServiceBus.Message> messageHandler = null;
+            var testMessage = new Microsoft.Azure.ServiceBus.Message();
+            var expectedDeadLetter = "example-dead-letter";
+            string deadLetter = null;
+            GetMock<ISubscriptionClientWrapperCreator>()
+                .Setup(x => x.Create(Any<Subscription>()))
+                .Callback<Subscription>(x => deadLetterSubscription = x)
+                .Returns(GetMock<ISubscriptionClientWrapper>().Object);
+            GetMock<ISubscriptionClientWrapper>()
+                .Setup(x => x.RegisterMessageHandler(Any<Action<Microsoft.Azure.ServiceBus.Message>>(), Any<Action<ExceptionReceivedEventArgs>>()))
+                .Callback<Action<Microsoft.Azure.ServiceBus.Message>, Action<ExceptionReceivedEventArgs>>((handler, _) => messageHandler = handler);
+            GetMock<IMessageMapper>().Setup(x => x.GetDeadLetterBody(testMessage)).Returns(expectedDeadLetter);
+
+            ClassUnderTest.SubscribeToDeadLetters(subscription, (string x) => deadLetter = x);
+            messageHandler(testMessage);
+            
+            Assert.That(deadLetterSubscription.ToString(), Is.EqualTo(subscription.GetDeadLetterQueue().ToString()));
+            Assert.That(deadLetter, Is.EqualTo(expectedDeadLetter));
+        }
+
+        [Test]
         public void When_subscribing_to_a_single_topic_message_event()
         {
             GetMock<ISubscriptionClientWrapperCreator>().Setup(x => x.CreateSingleTopic()).Returns(GetMock<ISubscriptionClientWrapper>().Object);

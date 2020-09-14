@@ -189,12 +189,11 @@ namespace EL.ServiceBus.IntegrationTests
         {
             var topic = new Topic("el-service-bus", "integration-test-deadletter", 1);
             var subscription = new Subscription(topic, "el-service-bus", "integration-tests");
-            var deadLetterSubscription = new DeadLetterSubscription(topic, "el-service-bus", "integration-tests");
             
             var receivedMessageCount = 0;
-            var deadLetters = new List<Message<string>>();
+            var deadLetters = new List<string>();
             
-            subscriber.Subscribe(deadLetterSubscription, (Message<string> message) => deadLetters.Add(message));
+            subscriber.SubscribeToDeadLetters(subscription, (string message) => deadLetters.Add(message));
             subscriber.Subscribe(subscription, (Message<string> message) =>
             {
                 receivedMessageCount++;
@@ -214,11 +213,13 @@ namespace EL.ServiceBus.IntegrationTests
                 waited += 100;
             }
             Console.WriteLine($"Waited for {waited}ms");
+            Console.WriteLine("Dead letters:");
+            Console.WriteLine(deadLetters[0]);
 
-            AssertTestMessageReceived(deadLetters, message);
+            Assert.That(deadLetters.Any(x => x.Contains(message.Body)), Is.True, $"Unable to find dead letter containing {message.Body}");
 
             Assert.That(deadLetters.Count, Is.GreaterThanOrEqualTo(expectedDeadLetterCount), $"Did not get the expected number of dead-letter messages");
-            Assert.That(receivedMessageCount, Is.GreaterThanOrEqualTo(expectedReceivedMessageCount), $"Did not get the expected number of messages");
+            Assert.That(receivedMessageCount, Is.GreaterThanOrEqualTo(expectedReceivedMessageCount), $"Did not get the expected number of messages before dead lettering");
         }
 
         private void AssertTestMessageReceived<T>(List<Message<T>> receivedMessages, Message<T> expectedMessage)

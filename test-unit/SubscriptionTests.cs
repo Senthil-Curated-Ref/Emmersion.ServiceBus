@@ -48,5 +48,18 @@ namespace EL.ServiceBus.UnitTests
 
             Assert.That(exception.Message, Is.EqualTo("Process name must match pattern: " + Topic.Pattern + " (Parameter 'process')"));
         }
+
+        [Test]
+        public void When_getting_a_dead_letter_queue()
+        {
+            var topic = new Topic("monolith", "user-signed-in", 1);
+            var subscription = new Subscription(topic, "other-context", "listener");
+            
+            var deadLetterSubscription = subscription.GetDeadLetterQueue();
+
+            Assert.That(deadLetterSubscription.Topic, Is.EqualTo(topic));
+            Assert.That(deadLetterSubscription.SubscriptionName, Is.EqualTo($"{subscription.SubscriptionName}/$DeadLetterQueue"));
+            Assert.That(deadLetterSubscription.ToString(), Is.EqualTo($"{subscription}/$DeadLetterQueue"));
+        }
     }
 }
