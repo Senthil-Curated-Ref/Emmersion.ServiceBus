@@ -15,11 +15,9 @@ namespace EL.ServiceBus.UnitTests
             var topic = new Topic("el-service-bus", "test-event", 1);
             var body = new TestMessage { Data = "test-data" };
             var message = new Message<TestMessage>(topic, body);
-            var connectionString = "connection-string";
             var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
-            GetMock<IPublisherConfig>().Setup(x => x.ConnectionString).Returns(connectionString);
             GetMock<ITopicClientWrapperPool>()
-                .Setup(x => x.GetForTopic(connectionString, topic.ToString()))
+                .Setup(x => x.GetForTopic(topic))
                 .Returns(GetMock<ITopicClientWrapper>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToServiceBusMessage(message)).Returns(serviceBusMessage);
 
@@ -37,12 +35,10 @@ namespace EL.ServiceBus.UnitTests
             var topic = new Topic("el-service-bus", "test-event", 1);
             var body = new TestMessage { Data = "test-data" };
             var message = new Message<TestMessage>(topic, body);
-            var connectionString = "connection-string";
             var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
             var receivedTimings = new List<MessagePublishedArgs>();
-            GetMock<IPublisherConfig>().Setup(x => x.ConnectionString).Returns(connectionString);
             GetMock<ITopicClientWrapperPool>()
-                .Setup(x => x.GetForTopic(connectionString, topic.ToString()))
+                .Setup(x => x.GetForTopic(topic))
                 .Returns(GetMock<ITopicClientWrapper>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToServiceBusMessage(message)).Returns(serviceBusMessage);
             GetMock<ITopicClientWrapper>()
@@ -64,11 +60,9 @@ namespace EL.ServiceBus.UnitTests
             var body = new TestMessage { Data = "test-data" };
             var message = new Message<TestMessage>(topic, body);
             var enqueueAt = DateTimeOffset.UtcNow.AddMinutes(5);
-            var connectionString = "connection-string";
             var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
-            GetMock<IPublisherConfig>().Setup(x => x.ConnectionString).Returns(connectionString);
             GetMock<ITopicClientWrapperPool>()
-                .Setup(x => x.GetForTopic(connectionString, topic.ToString()))
+                .Setup(x => x.GetForTopic(topic))
                 .Returns(GetMock<ITopicClientWrapper>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToServiceBusMessage(message)).Returns(serviceBusMessage);
 
@@ -87,12 +81,10 @@ namespace EL.ServiceBus.UnitTests
             var body = new TestMessage { Data = "test-data" };
             var message = new Message<TestMessage>(topic, body);
             var enqueueAt = DateTimeOffset.UtcNow.AddMinutes(3);
-            var connectionString = "connection-string";
             var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
             var receivedTimings = new List<MessagePublishedArgs>();
-            GetMock<IPublisherConfig>().Setup(x => x.ConnectionString).Returns(connectionString);
             GetMock<ITopicClientWrapperPool>()
-                .Setup(x => x.GetForTopic(connectionString, topic.ToString()))
+                .Setup(x => x.GetForTopic(topic))
                 .Returns(GetMock<ITopicClientWrapper>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToServiceBusMessage(message)).Returns(serviceBusMessage);
             GetMock<ITopicClientWrapper>()
@@ -114,12 +106,8 @@ namespace EL.ServiceBus.UnitTests
             var message = new TestMessage { Data = "I am the very model of a modern major test message." };
             MessageEnvelope<TestMessage> envelope = null;
             var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
-            var singleTopicConnectionString = "single-topic-connection-string";
-            var singleTopicName = "single-topic-name";
-            GetMock<IPublisherConfig>().Setup(x => x.SingleTopicConnectionString).Returns(singleTopicConnectionString);
-            GetMock<IPublisherConfig>().Setup(x => x.SingleTopicName).Returns(singleTopicName);
             GetMock<ITopicClientWrapperPool>()
-                .Setup(x => x.GetForTopic(singleTopicConnectionString, singleTopicName))
+                .Setup(x => x.GetForSingleTopic())
                 .Returns(GetMock<ITopicClientWrapper>().Object);
             GetMock<IMessageMapper>()
                 .Setup(x => x.FromMessageEnvelope(Any<MessageEnvelope<TestMessage>>()))
@@ -144,12 +132,8 @@ namespace EL.ServiceBus.UnitTests
             var messageEvent = new MessageEvent("test-event", 13);
             var message = new TestMessage { Data = "I am the very model of a modern major test message." };
             var receivedTimings = new List<MessagePublishedArgs>();
-            var singleTopicConnectionString = "single-topic-connection-string";
-            var singleTopicName = "single-topic-name";
-            GetMock<IPublisherConfig>().Setup(x => x.SingleTopicConnectionString).Returns(singleTopicConnectionString);
-            GetMock<IPublisherConfig>().Setup(x => x.SingleTopicName).Returns(singleTopicName);
             GetMock<ITopicClientWrapperPool>()
-                .Setup(x => x.GetForTopic(singleTopicConnectionString, singleTopicName))
+                .Setup(x => x.GetForSingleTopic())
                 .Returns(GetMock<ITopicClientWrapper>().Object);
             GetMock<ITopicClientWrapper>()
                 .Setup(x => x.SendAsync(Any<Microsoft.Azure.ServiceBus.Message>()))

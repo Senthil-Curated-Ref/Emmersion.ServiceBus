@@ -16,17 +16,14 @@ namespace EL.ServiceBus
     internal class MessagePublisher : IMessagePublisher
     {
         private readonly ITopicClientWrapperPool pool;
-        private readonly IPublisherConfig publisherConfig;
         private readonly IMessageMapper messageMapper;
 
         public event OnMessagePublished OnMessagePublished;
 
         public MessagePublisher(ITopicClientWrapperPool topicClientWrapperPool,
-            IPublisherConfig publisherConfig,
             IMessageMapper messageMapper)
         {
             this.pool = topicClientWrapperPool;
-            this.publisherConfig = publisherConfig;
             this.messageMapper = messageMapper;
         }
 
@@ -47,7 +44,7 @@ namespace EL.ServiceBus
 
         private void Publish<T>(Message<T> message, DateTimeOffset? enqueueAt, Func<ITopicClientWrapper, Microsoft.Azure.ServiceBus.Message, Task> action)
         {
-            var client = pool.GetForTopic(publisherConfig.ConnectionString, message.Topic.ToString());
+            var client = pool.GetForTopic(message.Topic);
             message.PublishedAt = DateTimeOffset.UtcNow;
             message.EnqueuedAt = enqueueAt ?? message.PublishedAt;
             var stopwatch = Stopwatch.StartNew();
@@ -57,7 +54,7 @@ namespace EL.ServiceBus
 
         public void Publish<T>(MessageEvent messageEvent, T message)
         {
-            var client = pool.GetForTopic(publisherConfig.SingleTopicConnectionString, publisherConfig.SingleTopicName);
+            var client = pool.GetForSingleTopic();
             var stopwatch = Stopwatch.StartNew();
             var envelope = new MessageEnvelope<T> {
                 MessageEvent = messageEvent.ToString(),
