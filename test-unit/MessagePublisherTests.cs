@@ -13,8 +13,8 @@ namespace EL.ServiceBus.UnitTests
         public void When_publishing_a_message()
         {
             var topic = new Topic("el-service-bus", "test-event", 1);
-            var body = new TestMessage { Data = "test-data" };
-            var message = new Message<TestMessage>(topic, body);
+            var body = new TestData { Data = "test-data" };
+            var message = new Message<TestData>(topic, body);
             var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
             GetMock<ITopicClientWrapperPool>()
                 .Setup(x => x.GetForTopic(topic))
@@ -33,8 +33,8 @@ namespace EL.ServiceBus.UnitTests
         public void When_publishing_a_message_timing_data_is_emitted()
         {
             var topic = new Topic("el-service-bus", "test-event", 1);
-            var body = new TestMessage { Data = "test-data" };
-            var message = new Message<TestMessage>(topic, body);
+            var body = new TestData { Data = "test-data" };
+            var message = new Message<TestData>(topic, body);
             var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
             var receivedTimings = new List<MessagePublishedArgs>();
             GetMock<ITopicClientWrapperPool>()
@@ -57,8 +57,8 @@ namespace EL.ServiceBus.UnitTests
         public void When_publishing_a_scheduled_message()
         {
             var topic = new Topic("el-service-bus", "test-event", 1);
-            var body = new TestMessage { Data = "test-data" };
-            var message = new Message<TestMessage>(topic, body);
+            var body = new TestData { Data = "test-data" };
+            var message = new Message<TestData>(topic, body);
             var enqueueAt = DateTimeOffset.UtcNow.AddMinutes(5);
             var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
             GetMock<ITopicClientWrapperPool>()
@@ -78,8 +78,8 @@ namespace EL.ServiceBus.UnitTests
         public void When_publishing_a_scheduled_message_timing_data_is_emitted()
         {
             var topic = new Topic("el-service-bus", "test-event", 1);
-            var body = new TestMessage { Data = "test-data" };
-            var message = new Message<TestMessage>(topic, body);
+            var body = new TestData { Data = "test-data" };
+            var message = new Message<TestData>(topic, body);
             var enqueueAt = DateTimeOffset.UtcNow.AddMinutes(3);
             var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
             var receivedTimings = new List<MessagePublishedArgs>();
@@ -103,15 +103,15 @@ namespace EL.ServiceBus.UnitTests
         public void When_publishing_a_message_to_the_single_topic()
         {
             var messageEvent = new MessageEvent("test-event", 5);
-            var message = new TestMessage { Data = "I am the very model of a modern major test message." };
-            MessageEnvelope<TestMessage> envelope = null;
+            var message = new TestData { Data = "I am the very model of a modern major test message." };
+            MessageEnvelope<TestData> envelope = null;
             var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
             GetMock<ITopicClientWrapperPool>()
                 .Setup(x => x.GetForSingleTopic())
                 .Returns(GetMock<ITopicClientWrapper>().Object);
             GetMock<IMessageMapper>()
-                .Setup(x => x.FromMessageEnvelope(Any<MessageEnvelope<TestMessage>>()))
-                .Callback<MessageEnvelope<TestMessage>>(x => envelope = x)
+                .Setup(x => x.FromMessageEnvelope(Any<MessageEnvelope<TestData>>()))
+                .Callback<MessageEnvelope<TestData>>(x => envelope = x)
                 .Returns(serviceBusMessage);
             GetMock<ITopicClientWrapper>()
                 .Setup(x => x.SendAsync(Any<Microsoft.Azure.ServiceBus.Message>()))
@@ -130,7 +130,7 @@ namespace EL.ServiceBus.UnitTests
         public void When_publishing_a_message_to_the_single_topic_timing_data_is_returned()
         {
             var messageEvent = new MessageEvent("test-event", 13);
-            var message = new TestMessage { Data = "I am the very model of a modern major test message." };
+            var message = new TestData { Data = "I am the very model of a modern major test message." };
             var receivedTimings = new List<MessagePublishedArgs>();
             GetMock<ITopicClientWrapperPool>()
                 .Setup(x => x.GetForSingleTopic())

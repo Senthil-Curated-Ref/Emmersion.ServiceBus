@@ -10,18 +10,18 @@ namespace EL.ServiceBus.UnitTests
         public void When_mapping_to_service_bus_message()
         {
             var topic = new Topic("el-service-bus", "test-event", 1);
-            var body = new TestMessage { Data = "mapping-test" };
-            var message = new Message<TestMessage>(topic, body)
+            var body = new TestData { Data = "mapping-test" };
+            var message = new Message<TestData>(topic, body)
             {
                 PublishedAt = DateTimeOffset.UtcNow,
                 EnqueuedAt = DateTimeOffset.UtcNow.AddMinutes(5)
             };
             message.CorrelationId = "correlation-id";
             var serializedData = "serialized-data";
-            Payload<TestMessage> payload = null;
+            Payload<TestData> payload = null;
             GetMock<IMessageSerializer>()
-                .Setup(x => x.Serialize(Any<Payload<TestMessage>>()))
-                .Callback((Payload<TestMessage> x) => payload = x)
+                .Setup(x => x.Serialize(Any<Payload<TestData>>()))
+                .Callback((Payload<TestData> x) => payload = x)
                 .Returns(serializedData);
 
             var result = ClassUnderTest.ToServiceBusMessage(message);
@@ -43,15 +43,15 @@ namespace EL.ServiceBus.UnitTests
             message.MessageId = Guid.NewGuid().ToString();
             message.CorrelationId = "correlation-id";
             var topic = new Topic("el-service-bus", "test-event", 1);
-            var deserialized = new Payload<TestMessage> {
-                Body = new TestMessage { Data = "example data" },
+            var deserialized = new Payload<TestData> {
+                Body = new TestData { Data = "example data" },
                 PublishedAt = DateTimeOffset.UtcNow.AddMinutes(-10),
                 EnqueuedAt = DateTimeOffset.UtcNow.AddMinutes(-5)   
             };
             var receivedAt = DateTimeOffset.UtcNow;
-            GetMock<IMessageSerializer>().Setup(x => x.Deserialize<Payload<TestMessage>>(serializedBody)).Returns(deserialized);
+            GetMock<IMessageSerializer>().Setup(x => x.Deserialize<Payload<TestData>>(serializedBody)).Returns(deserialized);
 
-            var result = ClassUnderTest.FromServiceBusMessage<TestMessage>(topic, message, receivedAt);
+            var result = ClassUnderTest.FromServiceBusMessage<TestData>(topic, message, receivedAt);
             
             Assert.That(result.Body, Is.SameAs(deserialized.Body));
             Assert.That(result.Topic, Is.SameAs(topic));
@@ -77,7 +77,7 @@ namespace EL.ServiceBus.UnitTests
         [Test]
         public void When_mapping_from_message_envelope()
         {
-            var envelope = new MessageEnvelope<TestMessage>();
+            var envelope = new MessageEnvelope<TestData>();
             var serialized = "serialized-data";
             GetMock<IMessageSerializer>().Setup(x => x.Serialize(envelope)).Returns(serialized);
 
@@ -91,10 +91,10 @@ namespace EL.ServiceBus.UnitTests
         {
             var body = "test-message-body";
             var message = new Microsoft.Azure.ServiceBus.Message(Encoding.UTF8.GetBytes(body));
-            var envelope = new MessageEnvelope<TestMessage>();
-            GetMock<IMessageSerializer>().Setup(x => x.Deserialize<MessageEnvelope<TestMessage>>(body)).Returns(envelope);
+            var envelope = new MessageEnvelope<TestData>();
+            GetMock<IMessageSerializer>().Setup(x => x.Deserialize<MessageEnvelope<TestData>>(body)).Returns(envelope);
 
-            var result = ClassUnderTest.ToMessageEnvelope<TestMessage>(message);
+            var result = ClassUnderTest.ToMessageEnvelope<TestData>(message);
 
             Assert.That(result, Is.SameAs(envelope));
         }
