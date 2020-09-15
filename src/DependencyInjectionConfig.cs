@@ -17,6 +17,8 @@ namespace EL.ServiceBus
         public static void ConfigureSubscriberServices(IServiceCollection services)
         {
             services.AddSingleton<IMessageSubscriber, MessageSubscriber>();
+            services.AddSingleton<ISubscriptionClientWrapperPool, SubscriptionClientWrapperPool>();
+
             services.AddTransient<ISubscriptionClientWrapper, SubscriptionClientWrapper>();
             services.AddTransient<ISubscriptionClientWrapperCreator, SubscriptionClientWrapperCreator>();
             services.AddTransient<IMessageMapper, MessageMapper>();
@@ -26,7 +28,8 @@ namespace EL.ServiceBus
         public static void ConfigurePublisherServices(IServiceCollection services)
         {
             services.AddSingleton<IMessagePublisher, MessagePublisher>();
-            services.AddTransient<ITopicClientWrapperPool, TopicClientWrapperPool>();
+            services.AddSingleton<ITopicClientWrapperPool, TopicClientWrapperPool>();
+
             services.AddTransient<ITopicClientWrapperCreator, TopicClientWrapperCreator>();
             services.AddTransient<IMessageMapper, MessageMapper>();
             services.AddTransient<IMessageSerializer, MessageSerializer>();
