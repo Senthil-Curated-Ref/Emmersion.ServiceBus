@@ -16,19 +16,16 @@ namespace EL.ServiceBus
     internal class MessagePublisher : IMessagePublisher
     {
         private readonly ITopicClientWrapperPool pool;
-        private readonly IMessageSerializer serializer;
         private readonly IPublisherConfig publisherConfig;
         private readonly IMessageMapper messageMapper;
 
         public event OnMessagePublished OnMessagePublished;
 
         public MessagePublisher(ITopicClientWrapperPool topicClientWrapperPool,
-            IMessageSerializer serializer,
             IPublisherConfig publisherConfig,
             IMessageMapper messageMapper)
         {
             this.pool = topicClientWrapperPool;
-            this.serializer = serializer;
             this.publisherConfig = publisherConfig;
             this.messageMapper = messageMapper;
         }
@@ -66,8 +63,7 @@ namespace EL.ServiceBus
                 MessageEvent = messageEvent.ToString(),
                 Payload = message
             };
-            var bytes = Encoding.UTF8.GetBytes(serializer.Serialize(envelope));
-            client.SendAsync(new Microsoft.Azure.ServiceBus.Message(bytes)).Wait();
+            client.SendAsync(messageMapper.FromMessageEnvelope(envelope)).Wait();
             OnMessagePublished?.Invoke(this, new MessagePublishedArgs(stopwatch.ElapsedMilliseconds));
         }
     }

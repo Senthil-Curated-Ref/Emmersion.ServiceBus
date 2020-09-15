@@ -113,22 +113,20 @@ namespace EL.ServiceBus.UnitTests
             var messageEvent = new MessageEvent("test-event", 5);
             var message = new TestMessage { Data = "I am the very model of a modern major test message." };
             MessageEnvelope<TestMessage> envelope = null;
-            var serializedString = "pretend this is json";
-            Microsoft.Azure.ServiceBus.Message sentMessage = null;
-            var singleTopicConnectionString = "single-topic-connnection-string";
+            var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
+            var singleTopicConnectionString = "single-topic-connection-string";
             var singleTopicName = "single-topic-name";
             GetMock<IPublisherConfig>().Setup(x => x.SingleTopicConnectionString).Returns(singleTopicConnectionString);
             GetMock<IPublisherConfig>().Setup(x => x.SingleTopicName).Returns(singleTopicName);
             GetMock<ITopicClientWrapperPool>()
                 .Setup(x => x.GetForTopic(singleTopicConnectionString, singleTopicName))
                 .Returns(GetMock<ITopicClientWrapper>().Object);
-            GetMock<IMessageSerializer>()
-                .Setup(x => x.Serialize(Any<MessageEnvelope<TestMessage>>()))
+            GetMock<IMessageMapper>()
+                .Setup(x => x.FromMessageEnvelope(Any<MessageEnvelope<TestMessage>>()))
                 .Callback<MessageEnvelope<TestMessage>>(x => envelope = x)
-                .Returns(serializedString);
+                .Returns(serviceBusMessage);
             GetMock<ITopicClientWrapper>()
                 .Setup(x => x.SendAsync(Any<Microsoft.Azure.ServiceBus.Message>()))
-                .Callback<Microsoft.Azure.ServiceBus.Message>(x => sentMessage = x)
                 .Returns(Task.CompletedTask);
 
             ClassUnderTest.Publish(messageEvent, message);
@@ -137,7 +135,7 @@ namespace EL.ServiceBus.UnitTests
             Assert.That(envelope.PublishedAt, Is.EqualTo(DateTimeOffset.UtcNow).Within(TimeSpan.FromSeconds(1)));
             Assert.That(envelope.Payload, Is.SameAs(message));
 
-            Assert.That(sentMessage.Body, Is.EqualTo(Encoding.UTF8.GetBytes(serializedString)));
+            GetMock<ITopicClientWrapper>().Verify(x => x.SendAsync(serviceBusMessage));
         }
 
         [Test]
@@ -145,18 +143,14 @@ namespace EL.ServiceBus.UnitTests
         {
             var messageEvent = new MessageEvent("test-event", 13);
             var message = new TestMessage { Data = "I am the very model of a modern major test message." };
-            var serializedString = "pretend this is json";
             var receivedTimings = new List<MessagePublishedArgs>();
-            var singleTopicConnectionString = "single-topic-connnection-string";
+            var singleTopicConnectionString = "single-topic-connection-string";
             var singleTopicName = "single-topic-name";
             GetMock<IPublisherConfig>().Setup(x => x.SingleTopicConnectionString).Returns(singleTopicConnectionString);
             GetMock<IPublisherConfig>().Setup(x => x.SingleTopicName).Returns(singleTopicName);
             GetMock<ITopicClientWrapperPool>()
                 .Setup(x => x.GetForTopic(singleTopicConnectionString, singleTopicName))
                 .Returns(GetMock<ITopicClientWrapper>().Object);
-            GetMock<IMessageSerializer>()
-                .Setup(x => x.Serialize(Any<MessageEnvelope<TestMessage>>()))
-                .Returns(serializedString);
             GetMock<ITopicClientWrapper>()
                 .Setup(x => x.SendAsync(Any<Microsoft.Azure.ServiceBus.Message>()))
                 .Returns(Task.Run(() => Thread.Sleep(150)));

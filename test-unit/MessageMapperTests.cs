@@ -75,6 +75,18 @@ namespace EL.ServiceBus.UnitTests
         }
 
         [Test]
+        public void When_mapping_from_message_envelope()
+        {
+            var envelope = new MessageEnvelope<TestMessage>();
+            var serialized = "serialized-data";
+            GetMock<IMessageSerializer>().Setup(x => x.Serialize(envelope)).Returns(serialized);
+
+            var result = ClassUnderTest.FromMessageEnvelope(envelope);
+
+            Assert.That(Encoding.UTF8.GetString(result.Body), Is.EqualTo(serialized));
+        }
+
+        [Test]
         public void When_mapping_to_message_envelope()
         {
             var body = "test-message-body";
