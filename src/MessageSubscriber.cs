@@ -10,7 +10,7 @@ namespace EL.ServiceBus
         void SubscribeToDeadLetters(Subscription subscription, Action<string> action);
         void Subscribe<T>(MessageEvent messageEvent, Action<T> action);
         event OnMessageReceived OnMessageReceived;
-        event OnServiceBusException OnServiceBusException;
+        event OnException OnException;
     }
 
     internal class MessageSubscriber : IMessageSubscriber
@@ -20,7 +20,7 @@ namespace EL.ServiceBus
         private readonly List<Route> routes = new List<Route>();
 
         public event OnMessageReceived OnMessageReceived;
-        public event OnServiceBusException OnServiceBusException;
+        public event OnException OnException;
 
         public MessageSubscriber(ISubscriptionClientWrapperPool subscriptionClientWrapperPool,
             IMessageMapper messageMapper)
@@ -53,7 +53,7 @@ namespace EL.ServiceBus
                         processingTime
                     ));
                 }
-            }, (args) => OnServiceBusException?.Invoke(this, new ServiceBusExceptionArgs(subscription, args)));
+            }, (args) => OnException?.Invoke(this, new ExceptionArgs(subscription, args)));
         }
 
         public void SubscribeToDeadLetters(Subscription subscription, Action<string> action)
@@ -62,7 +62,7 @@ namespace EL.ServiceBus
             var client = subscriptionClientWrapperPool.GetClient(deadLetterSubscription);
             client.RegisterMessageHandler(
                 (serviceBusMessage) => action(messageMapper.GetDeadLetterBody(serviceBusMessage)),
-                (args) => OnServiceBusException?.Invoke(this, new ServiceBusExceptionArgs(deadLetterSubscription, args)));
+                (args) => OnException?.Invoke(this, new ExceptionArgs(deadLetterSubscription, args)));
         }
 
         public void Subscribe<T>(MessageEvent messageEvent, Action<T> action)
@@ -83,7 +83,7 @@ namespace EL.ServiceBus
         {
             var client = subscriptionClientWrapperPool.GetSingleTopicClientIfFirstTime();
             client?.RegisterMessageHandler(RouteMessage,
-                (args) => OnServiceBusException?.Invoke(this, new ServiceBusExceptionArgs(null, args)));
+                (args) => OnException?.Invoke(this, new ExceptionArgs(null, args)));
         }
 
         internal void RouteMessage(Microsoft.Azure.ServiceBus.Message serviceBusMessage)

@@ -46,7 +46,7 @@ namespace EL.ServiceBus.IntegrationTests
             var receivedIntMessages = new List<int>();
             var exceptions = new List<Exception>();
 
-            subscriber.OnServiceBusException += (_, args) => exceptions.Add(args.Exception);
+            subscriber.OnException += (_, args) => exceptions.Add(args.Exception);
 
             subscriber.OnMessageReceived += (object sender, MessageReceivedArgs args) =>
             {

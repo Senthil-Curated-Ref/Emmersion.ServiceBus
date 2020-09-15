@@ -153,7 +153,7 @@ namespace EL.ServiceBus.UnitTests
         public void When_handling_exceptions()
         {
             Action<ExceptionReceivedEventArgs> exceptionHandler = null;
-            var exceptionArgs = new List<ServiceBusExceptionArgs>();
+            var exceptionArgs = new List<ExceptionArgs>();
             var serviceBusExceptionArgs = new ExceptionReceivedEventArgs(new Exception("test exception"), "action", "endpoint", "entity name", "client id");
             GetMock<ISubscriptionClientWrapperPool>()
                 .Setup(x => x.GetClient(subscription))
@@ -162,7 +162,7 @@ namespace EL.ServiceBus.UnitTests
                 .Setup(x => x.RegisterMessageHandler(Any<Action<Microsoft.Azure.ServiceBus.Message>>(), Any<Action<ExceptionReceivedEventArgs>>()))
                 .Callback<Action<Microsoft.Azure.ServiceBus.Message>, Action<ExceptionReceivedEventArgs>>((_, handler) => exceptionHandler = handler);
 
-            ClassUnderTest.OnServiceBusException += (object sender, ServiceBusExceptionArgs args) => exceptionArgs.Add(args);
+            ClassUnderTest.OnException += (object sender, ExceptionArgs args) => exceptionArgs.Add(args);
             ClassUnderTest.Subscribe(subscription, (Message<TestMessage> message) => {});
             exceptionHandler(serviceBusExceptionArgs);
             
@@ -346,7 +346,7 @@ namespace EL.ServiceBus.UnitTests
         public void When_handling_service_bus_exceptions_for_single_topic_subscriptions()
         {
             var serviceBusArgs = new ExceptionReceivedEventArgs(new Exception("test exception"), "action", "endpoint", "entity name", "client id");
-            var eventArgs = new List<ServiceBusExceptionArgs>();
+            var eventArgs = new List<ExceptionArgs>();
             Action<ExceptionReceivedEventArgs> exceptionHandler = null;
             GetMock<ISubscriptionClientWrapperPool>()
                 .Setup(x => x.GetSingleTopicClientIfFirstTime())
@@ -355,7 +355,7 @@ namespace EL.ServiceBus.UnitTests
                 .Setup(x => x.RegisterMessageHandler(ClassUnderTest.RouteMessage, Any<Action<ExceptionReceivedEventArgs>>()))
                 .Callback<Action<Microsoft.Azure.ServiceBus.Message>, Action<ExceptionReceivedEventArgs>>((_, handler) => exceptionHandler = handler);
 
-            ClassUnderTest.OnServiceBusException += (_, args) => eventArgs.Add(args);
+            ClassUnderTest.OnException += (_, args) => eventArgs.Add(args);
             ClassUnderTest.Subscribe(new MessageEvent("test-event", 1), (TestMessage message) => {});
             exceptionHandler(serviceBusArgs);
 

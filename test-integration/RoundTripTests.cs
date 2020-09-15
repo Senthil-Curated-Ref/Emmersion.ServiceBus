@@ -46,7 +46,7 @@ namespace EL.ServiceBus.IntegrationTests
             var receivedB1Messages = new List<Message<IntegrationTestData>>();
             var exceptions = new List<Exception>();
 
-            subscriber.OnServiceBusException += (_, args) => exceptions.Add(args.Exception);
+            subscriber.OnException += (_, args) => exceptions.Add(args.Exception);
             subscriber.OnMessageReceived += (_, args) =>
             {
                 var duration = (args.ReceivedAt - args.EnqueuedAt.Value).TotalMilliseconds;
@@ -135,7 +135,7 @@ namespace EL.ServiceBus.IntegrationTests
             var receivedMessages = new List<Message<string>>();
             var exceptions = new List<Exception>();
 
-            subscriber.OnServiceBusException += (_, args) => exceptions.Add(args.Exception);
+            subscriber.OnException += (_, args) => exceptions.Add(args.Exception);
             subscriber.OnMessageReceived += (_, args) =>
             {
                 var roundTripDuration = (args.ReceivedAt - args.PublishedAt.Value).TotalMilliseconds;
