@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace EL.ServiceBus
@@ -45,23 +44,33 @@ namespace EL.ServiceBus
         private void Publish<T>(Message<T> message, DateTimeOffset? enqueueAt, Func<ITopicClientWrapper, Microsoft.Azure.ServiceBus.Message, Task> action)
         {
             var client = pool.GetForTopic(message.Topic);
+            var stopwatch = Stopwatch.StartNew();
+            action(client, PrepareMessage(message, enqueueAt)).Wait();
+            OnMessagePublished?.Invoke(this, new MessagePublishedArgs(stopwatch.ElapsedMilliseconds));
+        }
+
+        private Microsoft.Azure.ServiceBus.Message PrepareMessage<T>(Message<T> message, DateTimeOffset? enqueueAt)
+        {
             message.PublishedAt = DateTimeOffset.UtcNow;
             message.EnqueuedAt = enqueueAt ?? message.PublishedAt;
-            var stopwatch = Stopwatch.StartNew();
-            action(client, messageMapper.ToServiceBusMessage(message)).Wait();
-            OnMessagePublished?.Invoke(this, new MessagePublishedArgs(stopwatch.ElapsedMilliseconds));
+            return messageMapper.ToServiceBusMessage(message);
         }
 
         public void Publish<T>(MessageEvent messageEvent, T message)
         {
             var client = pool.GetForSingleTopic();
             var stopwatch = Stopwatch.StartNew();
+            client.SendAsync(PrepareMessage(messageEvent, message)).Wait();
+            OnMessagePublished?.Invoke(this, new MessagePublishedArgs(stopwatch.ElapsedMilliseconds));
+        }
+
+        private Microsoft.Azure.ServiceBus.Message PrepareMessage<T>(MessageEvent messageEvent, T message)
+        {
             var envelope = new MessageEnvelope<T> {
                 MessageEvent = messageEvent.ToString(),
                 Payload = message
             };
-            client.SendAsync(messageMapper.FromMessageEnvelope(envelope)).Wait();
-            OnMessagePublished?.Invoke(this, new MessagePublishedArgs(stopwatch.ElapsedMilliseconds));
+            return messageMapper.FromMessageEnvelope(envelope);
         }
     }
 }
