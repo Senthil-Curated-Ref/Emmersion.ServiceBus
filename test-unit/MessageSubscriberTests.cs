@@ -14,8 +14,8 @@ namespace EL.ServiceBus.UnitTests
         [Test]
         public void When_subscribing()
         {
-            GetMock<ISubscriptionClientWrapperCreator>()
-                .Setup(x => x.Create(subscription))
+            GetMock<ISubscriptionClientWrapperPool>()
+                .Setup(x => x.GetClient(subscription))
                 .Returns(GetMock<ISubscriptionClientWrapper>().Object);
 
             ClassUnderTest.Subscribe(subscription, (Message<TestMessage> message) => {});
@@ -26,20 +26,6 @@ namespace EL.ServiceBus.UnitTests
         }
 
         [Test]
-        public void When_subscribing_and_there_is_already_an_instance_of_the_subscription()
-        {
-            GetMock<ISubscriptionClientWrapperCreator>()
-                .Setup(x => x.Create(subscription))
-                .Returns(GetMock<ISubscriptionClientWrapper>().Object);
-
-            ClassUnderTest.Subscribe(subscription, (Message<TestMessage> message) => {});
-
-            var exception = Assert.Catch(() => ClassUnderTest.Subscribe(subscription, (Message<TestMessage> message) => {}));
-
-            Assert.That(exception.Message, Is.EqualTo("Connecting to the same subscription twice is not allowed."));
-        }
-
-        [Test]
         public void When_handling_a_message()
         {
             Action<Microsoft.Azure.ServiceBus.Message> messageHandler = null;
@@ -47,8 +33,8 @@ namespace EL.ServiceBus.UnitTests
             var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
             var message = new Message<TestMessage>(subscription.Topic, new TestMessage { Data = "test data"});
             var receivedAt = DateTimeOffset.MinValue;
-            GetMock<ISubscriptionClientWrapperCreator>()
-                .Setup(x => x.Create(subscription))
+            GetMock<ISubscriptionClientWrapperPool>()
+                .Setup(x => x.GetClient(subscription))
                 .Returns(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
                 .Setup(x => x.RegisterMessageHandler(Any<Action<Microsoft.Azure.ServiceBus.Message>>(), Any<Action<ExceptionReceivedEventArgs>>()))
@@ -79,8 +65,8 @@ namespace EL.ServiceBus.UnitTests
                 EnqueuedAt = DateTimeOffset.UtcNow.AddMinutes(-3)
             };
             var eventArgs = new List<MessageReceivedArgs>();
-            GetMock<ISubscriptionClientWrapperCreator>()
-                .Setup(x => x.Create(subscription))
+            GetMock<ISubscriptionClientWrapperPool>()
+                .Setup(x => x.GetClient(subscription))
                 .Returns(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
                 .Setup(x => x.RegisterMessageHandler(Any<Action<Microsoft.Azure.ServiceBus.Message>>(), Any<Action<ExceptionReceivedEventArgs>>()))
@@ -126,8 +112,8 @@ namespace EL.ServiceBus.UnitTests
             };
             var eventArgs = new List<MessageReceivedArgs>();
             var testException = new Exception("test exception");
-            GetMock<ISubscriptionClientWrapperCreator>()
-                .Setup(x => x.Create(subscription))
+            GetMock<ISubscriptionClientWrapperPool>()
+                .Setup(x => x.GetClient(subscription))
                 .Returns(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
                 .Setup(x => x.RegisterMessageHandler(Any<Action<Microsoft.Azure.ServiceBus.Message>>(), Any<Action<ExceptionReceivedEventArgs>>()))
@@ -169,8 +155,8 @@ namespace EL.ServiceBus.UnitTests
             Action<ExceptionReceivedEventArgs> exceptionHandler = null;
             var exceptionArgs = new List<ServiceBusExceptionArgs>();
             var serviceBusExceptionArgs = new ExceptionReceivedEventArgs(new Exception("test exception"), "action", "endpoint", "entity name", "client id");
-            GetMock<ISubscriptionClientWrapperCreator>()
-                .Setup(x => x.Create(subscription))
+            GetMock<ISubscriptionClientWrapperPool>()
+                .Setup(x => x.GetClient(subscription))
                 .Returns(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
                 .Setup(x => x.RegisterMessageHandler(Any<Action<Microsoft.Azure.ServiceBus.Message>>(), Any<Action<ExceptionReceivedEventArgs>>()))
@@ -197,8 +183,8 @@ namespace EL.ServiceBus.UnitTests
             var testMessage = new Microsoft.Azure.ServiceBus.Message();
             var expectedDeadLetter = "example-dead-letter";
             string deadLetter = null;
-            GetMock<ISubscriptionClientWrapperCreator>()
-                .Setup(x => x.Create(Any<Subscription>()))
+            GetMock<ISubscriptionClientWrapperPool>()
+                .Setup(x => x.GetClient(Any<Subscription>()))
                 .Callback<Subscription>(x => deadLetterSubscription = x)
                 .Returns(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
@@ -216,7 +202,9 @@ namespace EL.ServiceBus.UnitTests
         [Test]
         public void When_subscribing_to_a_single_topic_message_event()
         {
-            GetMock<ISubscriptionClientWrapperCreator>().Setup(x => x.CreateSingleTopic()).Returns(GetMock<ISubscriptionClientWrapper>().Object);
+            GetMock<ISubscriptionClientWrapperPool>()
+                .Setup(x => x.GetSingleTopicClientIfFirstTime())
+                .Returns(GetMock<ISubscriptionClientWrapper>().Object);
 
             ClassUnderTest.Subscribe(new MessageEvent("test-event", 1), (TestMessage message) => {});
 
@@ -226,12 +214,14 @@ namespace EL.ServiceBus.UnitTests
         [Test]
         public void When_subscribing_to_a_single_topic_message_event_multiple_times()
         {
-            GetMock<ISubscriptionClientWrapperCreator>().Setup(x => x.CreateSingleTopic()).Returns(GetMock<ISubscriptionClientWrapper>().Object);
+            GetMock<ISubscriptionClientWrapperPool>()
+                .SetupSequence(x => x.GetSingleTopicClientIfFirstTime())
+                .Returns(GetMock<ISubscriptionClientWrapper>().Object)
+                .Returns((ISubscriptionClientWrapper)null);
 
             ClassUnderTest.Subscribe(new MessageEvent("test-event", 1), (TestMessage message) => {});
             ClassUnderTest.Subscribe(new MessageEvent("test-event", 2), (TestMessage message) => {});
 
-            GetMock<ISubscriptionClientWrapperCreator>().Verify(x => x.CreateSingleTopic(), Times.Once);
             GetMock<ISubscriptionClientWrapper>().Verify(x => x.RegisterMessageHandler(ClassUnderTest.RouteMessage, Any<Action<ExceptionReceivedEventArgs>>()), Times.Once);
         }
 
@@ -244,7 +234,9 @@ namespace EL.ServiceBus.UnitTests
             var testEventV1Messages = new List<TestMessage>();
             var testEventV2Messages = new List<TestMessage>();
             var otherEventV1Messages = new List<TestMessage>();
-            GetMock<ISubscriptionClientWrapperCreator>().Setup(x => x.CreateSingleTopic()).Returns(GetMock<ISubscriptionClientWrapper>().Object);
+            GetMock<ISubscriptionClientWrapperPool>()
+                .Setup(x => x.GetSingleTopicClientIfFirstTime())
+                .Returns(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToMessageEnvelope<object>(serviceBusMessage)).Returns(deserializedObject);
             GetMock<IMessageMapper>().Setup(x => x.ToMessageEnvelope<TestMessage>(serviceBusMessage)).Returns(deserializedMessage);
 
@@ -268,7 +260,9 @@ namespace EL.ServiceBus.UnitTests
             var deserializedMessage = new MessageEnvelope<TestMessage>() { Payload = new TestMessage { Data = "hello world" } };
             var subscriber1Messages = new List<TestMessage>();
             var subscriber2Messages = new List<TestMessage>();
-            GetMock<ISubscriptionClientWrapperCreator>().Setup(x => x.CreateSingleTopic()).Returns(GetMock<ISubscriptionClientWrapper>().Object);
+            GetMock<ISubscriptionClientWrapperPool>()
+                .Setup(x => x.GetSingleTopicClientIfFirstTime())
+                .Returns(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToMessageEnvelope<object>(serviceBusMessage)).Returns(deserializedObject);
             GetMock<IMessageMapper>().Setup(x => x.ToMessageEnvelope<TestMessage>(serviceBusMessage)).Returns(deserializedMessage);
 
@@ -289,7 +283,9 @@ namespace EL.ServiceBus.UnitTests
             var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
             var deserializedObject = new MessageEnvelope<object> { MessageEvent = "test-event.v3" };
             var eventArgs = new List<MessageReceivedArgs>();
-            GetMock<ISubscriptionClientWrapperCreator>().Setup(x => x.CreateSingleTopic()).Returns(GetMock<ISubscriptionClientWrapper>().Object);
+            GetMock<ISubscriptionClientWrapperPool>()
+                .Setup(x => x.GetSingleTopicClientIfFirstTime())
+                .Returns(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToMessageEnvelope<object>(serviceBusMessage)).Returns(deserializedObject);
 
             ClassUnderTest.OnMessageReceived += (object sender, MessageReceivedArgs args) => eventArgs.Add(args);
@@ -321,7 +317,9 @@ namespace EL.ServiceBus.UnitTests
             var messageEvent = new MessageEvent("test-event", 3);
             var deserializedObject = new MessageEnvelope<object> { MessageEvent = messageEvent.ToString() };
             var eventArgs = new List<MessageReceivedArgs>();
-            GetMock<ISubscriptionClientWrapperCreator>().Setup(x => x.CreateSingleTopic()).Returns(GetMock<ISubscriptionClientWrapper>().Object);
+            GetMock<ISubscriptionClientWrapperPool>()
+                .Setup(x => x.GetSingleTopicClientIfFirstTime())
+                .Returns(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToMessageEnvelope<object>(serviceBusMessage)).Returns(deserializedObject);
 
             ClassUnderTest.Subscribe(messageEvent, (object _) =>
@@ -350,7 +348,9 @@ namespace EL.ServiceBus.UnitTests
             var serviceBusArgs = new ExceptionReceivedEventArgs(new Exception("test exception"), "action", "endpoint", "entity name", "client id");
             var eventArgs = new List<ServiceBusExceptionArgs>();
             Action<ExceptionReceivedEventArgs> exceptionHandler = null;
-            GetMock<ISubscriptionClientWrapperCreator>().Setup(x => x.CreateSingleTopic()).Returns(GetMock<ISubscriptionClientWrapper>().Object);
+            GetMock<ISubscriptionClientWrapperPool>()
+                .Setup(x => x.GetSingleTopicClientIfFirstTime())
+                .Returns(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
                 .Setup(x => x.RegisterMessageHandler(ClassUnderTest.RouteMessage, Any<Action<ExceptionReceivedEventArgs>>()))
                 .Callback<Action<Microsoft.Azure.ServiceBus.Message>, Action<ExceptionReceivedEventArgs>>((_, handler) => exceptionHandler = handler);
