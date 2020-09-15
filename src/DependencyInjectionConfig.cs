@@ -8,12 +8,6 @@ namespace EL.ServiceBus
 {
     public class DependencyInjectionConfig
     {
-        public static void ConfigureServices(IServiceCollection services)
-        {
-            ConfigureSubscriberServices(services);
-            ConfigurePublisherServices(services);
-        }
-
         public static void ConfigureSubscriberServices(IServiceCollection services)
         {
             services.AddSingleton<IMessageSubscriber, MessageSubscriber>();

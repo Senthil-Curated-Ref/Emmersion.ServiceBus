@@ -17,7 +17,8 @@ namespace EL.ServiceBus.IntegrationTests
         public void Setup()
         {
             var services = new ServiceCollection();
-            DependencyInjectionConfig.ConfigureServices(services);
+            DependencyInjectionConfig.ConfigurePublisherServices(services);
+            DependencyInjectionConfig.ConfigureSubscriberServices(services);
             services.AddTransient<ISettings, Settings>();
             services.AddTransient(ctx => ctx.GetRequiredService<ISettings>().PublisherConfig);
             services.AddTransient(ctx => ctx.GetRequiredService<ISettings>().SubscriptionConfig);
