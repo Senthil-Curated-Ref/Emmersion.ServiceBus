@@ -22,10 +22,6 @@ namespace EL.ServiceBus.IntegrationTests
             configuration = configurationBuilder.Build();
         }
 
-        public string ConnectionString => configuration.GetValue<string>("ConnectionStrings:ELServiceBus");
-        public string TopicName => configuration.GetValue<string>("NameResolvers:ELServiceBusTopicName");
-        public string SubscriptionName => configuration.GetValue<string>("NameResolvers:ELServiceBusSubscriberName");
-
         public IPublisherConfig PublisherConfig => new TestPublisherConfig
         {
             ConnectionString = configuration.GetValue<string>("ConnectionString"),
