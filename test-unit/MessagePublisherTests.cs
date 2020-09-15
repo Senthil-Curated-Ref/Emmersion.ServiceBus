@@ -146,13 +146,5 @@ namespace EL.ServiceBus.UnitTests
             Assert.That(receivedTimings[0].ElapsedMilliseconds, Is.GreaterThanOrEqualTo(150));
             Assert.That(receivedTimings[0].ElapsedMilliseconds, Is.LessThan(1000));
         }
-
-        [Test]
-        public void When_disposing()
-        {
-            ClassUnderTest.Dispose();
-
-            GetMock<ITopicClientWrapperPool>().Verify(x => x.Dispose());
-        }
     }
 }

@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace EL.ServiceBus
 {
-    public interface IMessagePublisher : IDisposable
+    public interface IMessagePublisher
     {
         void Publish<T>(Message<T> message);
         void PublishScheduled<T>(Message<T> message, DateTimeOffset enqueueAt);
@@ -24,11 +24,6 @@ namespace EL.ServiceBus
         {
             this.pool = topicClientWrapperPool;
             this.messageMapper = messageMapper;
-        }
-
-        public void Dispose()
-        {
-            pool.Dispose();
         }
 
         public void Publish<T>(Message<T> message)
