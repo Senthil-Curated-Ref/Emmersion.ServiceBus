@@ -8,6 +8,7 @@ namespace EL.ServiceBus
     internal interface ISubscriptionClientWrapperPool : IDisposable
     {
         ISubscriptionClientWrapper GetClient(Subscription subscription);
+        ISubscriptionClientWrapper GetDeadLetterClient(Subscription subscription);
         ISubscriptionClientWrapper GetSingleTopicClientIfFirstTime();
     }
 
@@ -16,22 +17,36 @@ namespace EL.ServiceBus
         private Dictionary<string, ISubscriptionClientWrapper> clients = new Dictionary<string, ISubscriptionClientWrapper>();
         private static object threadLock = new object();
         private readonly ISubscriptionClientWrapperCreator subscriptionClientWrapperCreator;
+        private readonly ISubscriptionCreator subscriptionCreator;
 
-        public SubscriptionClientWrapperPool(ISubscriptionClientWrapperCreator subscriptionClientWrapperCreator)
+        public SubscriptionClientWrapperPool(ISubscriptionClientWrapperCreator subscriptionClientWrapperCreator,
+            ISubscriptionCreator subscriptionCreator)
         {
             this.subscriptionClientWrapperCreator = subscriptionClientWrapperCreator;
+            this.subscriptionCreator = subscriptionCreator;
         }
 
         public ISubscriptionClientWrapper GetClient(Subscription subscription)
         {
+            return GetClient(subscription.ToString(), subscription, () => subscriptionClientWrapperCreator.Create(subscription));
+        }
+
+        public ISubscriptionClientWrapper GetDeadLetterClient(Subscription subscription)
+        {
+            return GetClient(subscription.ToString() + "-dead-letter", subscription, () => subscriptionClientWrapperCreator.CreateDeadLetter(subscription));
+        }
+
+        private ISubscriptionClientWrapper GetClient(string key, Subscription subscription, Func<ISubscriptionClientWrapper> createAction)
+        {
             lock (threadLock)
             {
-                if (clients.ContainsKey(subscription.ToString()))
+                if (clients.ContainsKey(key))
                 {
                     throw new Exception($"Connecting to the same subscription twice is not allowed: {subscription}");
                 }
-                var client = subscriptionClientWrapperCreator.Create(subscription);
-                clients[subscription.ToString()] = client;
+                subscriptionCreator.CreateSubscriptionIfNecessary(subscription).Wait();
+                var client = createAction();
+                clients[key] = client;
                 return client;
             }
         }

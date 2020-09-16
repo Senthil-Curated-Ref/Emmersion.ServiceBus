@@ -178,14 +178,12 @@ namespace EL.ServiceBus.UnitTests
         [Test]
         public void When_subscribing_to_the_dead_letter_queue()
         {
-            Subscription deadLetterSubscription = null;
             Action<Microsoft.Azure.ServiceBus.Message> messageHandler = null;
             var testMessage = new Microsoft.Azure.ServiceBus.Message();
             var expectedDeadLetter = "example-dead-letter";
             string deadLetter = null;
             GetMock<ISubscriptionClientWrapperPool>()
-                .Setup(x => x.GetClient(Any<Subscription>()))
-                .Callback<Subscription>(x => deadLetterSubscription = x)
+                .Setup(x => x.GetDeadLetterClient(subscription))
                 .Returns(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
                 .Setup(x => x.RegisterMessageHandler(Any<Action<Microsoft.Azure.ServiceBus.Message>>(), Any<Action<ExceptionReceivedEventArgs>>()))
@@ -195,7 +193,6 @@ namespace EL.ServiceBus.UnitTests
             ClassUnderTest.SubscribeToDeadLetters(subscription, (string x) => deadLetter = x);
             messageHandler(testMessage);
             
-            Assert.That(deadLetterSubscription.ToString(), Is.EqualTo(subscription.GetDeadLetterQueue().ToString()));
             Assert.That(deadLetter, Is.EqualTo(expectedDeadLetter));
         }
 

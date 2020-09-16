@@ -58,11 +58,10 @@ namespace EL.ServiceBus
 
         public void SubscribeToDeadLetters(Subscription subscription, Action<string> action)
         {
-            var deadLetterSubscription = subscription.GetDeadLetterQueue();
-            var client = subscriptionClientWrapperPool.GetClient(deadLetterSubscription);
+            var client = subscriptionClientWrapperPool.GetDeadLetterClient(subscription);
             client.RegisterMessageHandler(
                 (serviceBusMessage) => action(messageMapper.GetDeadLetterBody(serviceBusMessage)),
-                (args) => OnException?.Invoke(this, new ExceptionArgs(deadLetterSubscription, args)));
+                (args) => OnException?.Invoke(this, new ExceptionArgs(subscription, args)));
         }
 
         public void Subscribe<T>(MessageEvent messageEvent, Action<T> action)

@@ -36,9 +36,9 @@ namespace EL.ServiceBus.IntegrationTests
             var topicA2 = new Topic("el-service-bus", "integration-test-a", 2);
             var topicB1 = new Topic("el-service-bus", "integration-test-b", 1);
 
-            var subscriptionA1 = new Subscription(topicA1, "el-service-bus", "integration-tests");
-            var subscriptionA2 = new Subscription(topicA2, "el-service-bus", "integration-tests");
-            var subscriptionB1 = new Subscription(topicB1, "el-service-bus", "integration-tests");
+            var subscriptionA1 = new Subscription(topicA1, "el-service-bus", RandomAutoDeletingProcess());
+            var subscriptionA2 = new Subscription(topicA2, "el-service-bus", RandomAutoDeletingProcess());
+            var subscriptionB1 = new Subscription(topicB1, "el-service-bus", RandomAutoDeletingProcess());
 
             var messageRoundTripDurations = new List<double>();
             var receivedMessageCount = 0;
@@ -128,7 +128,7 @@ namespace EL.ServiceBus.IntegrationTests
         public void ScheduledRoundTripTests()
         {
             var topic = new Topic("el-service-bus", "integration-test-scheduled", 1);
-            var subscription = new Subscription(topic, "el-service-bus", "integration-tests");
+            var subscription = new Subscription(topic, "el-service-bus", RandomAutoDeletingProcess());
             
             var messageRoundTripDurations = new List<double>();
             var messageQueueDurations = new List<double>();
@@ -189,7 +189,7 @@ namespace EL.ServiceBus.IntegrationTests
         public void DeadLetterQueueTest()
         {
             var topic = new Topic("el-service-bus", "integration-test-deadletter", 1);
-            var subscription = new Subscription(topic, "el-service-bus", "integration-tests");
+            var subscription = new Subscription(topic, "el-service-bus", RandomAutoDeletingProcess());
             
             var receivedMessageCount = 0;
             var deadLetters = new List<string>();
@@ -221,6 +221,39 @@ namespace EL.ServiceBus.IntegrationTests
 
             Assert.That(deadLetters.Count, Is.GreaterThanOrEqualTo(expectedDeadLetterCount), $"Did not get the expected number of dead-letter messages");
             Assert.That(receivedMessageCount, Is.GreaterThanOrEqualTo(expectedReceivedMessageCount), $"Did not get the expected number of messages before dead lettering");
+        }
+
+        [Test]
+        public void WhenPublishingToANonExistantTopic()
+        {
+            var topic = new Topic("el-service-bus", "fake", 1);
+            Assert.Catch(() => publisher.Publish(new Message<string>(topic, "hello")));
+        }
+
+        [Test]
+        public void WhenSubscribingToANonExistantTopic()
+        {
+            var topic = new Topic("el-service-bus", "fake", 1);
+            var subscription = new Subscription(topic, "el-service-bus", "integration-tests");
+ 
+            Assert.Catch(() => subscriber.Subscribe(subscription, (Message<string> message) => {}));
+        }
+
+        private string RandomAutoDeletingProcess()
+        {
+            return "auto-delete-" + Guid.NewGuid().ToString()
+                .Replace("-", "")
+                .Replace("0", "g")
+                .Replace("1", "h")
+                .Replace("2", "i")
+                .Replace("3", "j")
+                .Replace("4", "k")
+                .Replace("5", "l")
+                .Replace("6", "m")
+                .Replace("7", "n")
+                .Replace("8", "o")
+                .Replace("9", "p")
+                .Substring(0, 20);
         }
 
         private void AssertTestMessageReceived<T>(List<Message<T>> receivedMessages, Message<T> expectedMessage)

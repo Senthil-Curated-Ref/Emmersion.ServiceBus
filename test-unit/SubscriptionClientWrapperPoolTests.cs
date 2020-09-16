@@ -19,6 +19,7 @@ namespace EL.ServiceBus.UnitTests
             var result = ClassUnderTest.GetClient(subscription);
 
             Assert.That(result, Is.SameAs(mockSubscriptionClientWrapper.Object));
+            GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessary(subscription));
         }
 
         [Test]
@@ -33,6 +34,7 @@ namespace EL.ServiceBus.UnitTests
             var result = Assert.Catch(() => ClassUnderTest.GetClient(subscription));
 
             Assert.That(result.Message, Does.Contain(subscription.ToString()));
+            GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessary(Any<Subscription>()), Times.Once);
         }
 
         [Test]
@@ -52,6 +54,37 @@ namespace EL.ServiceBus.UnitTests
 
             Assert.That(result1, Is.SameAs(mockSubscriptionClientWrapper.Object));
             Assert.That(result2, Is.SameAs(otherMockSubscriptionClientWrapper.Object));
+            GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessary(subscription));
+            GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessary(otherSubscription));
+        }
+
+        [Test]
+        public void When_getting_a_dead_letter_client_the_first_time()
+        {
+            var mockSubscriptionClientWrapper = new Mock<ISubscriptionClientWrapper>();
+            GetMock<ISubscriptionClientWrapperCreator>()
+                .Setup(x => x.CreateDeadLetter(subscription))
+                .Returns(mockSubscriptionClientWrapper.Object);
+
+            var result = ClassUnderTest.GetDeadLetterClient(subscription);
+
+            Assert.That(result, Is.SameAs(mockSubscriptionClientWrapper.Object));
+            GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessary(subscription));
+        }
+
+        [Test]
+        public void When_getting_a_dead_letter_client_after_the_first_time()
+        {
+            var mockSubscriptionClientWrapper = new Mock<ISubscriptionClientWrapper>();
+            GetMock<ISubscriptionClientWrapperCreator>()
+                .Setup(x => x.CreateDeadLetter(subscription))
+                .Returns(mockSubscriptionClientWrapper.Object);
+
+            ClassUnderTest.GetDeadLetterClient(subscription);
+            var result = Assert.Catch(() => ClassUnderTest.GetDeadLetterClient(subscription));
+
+            Assert.That(result.Message, Does.Contain(subscription.ToString()));
+            GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessary(Any<Subscription>()), Times.Once);
         }
 
         [Test]

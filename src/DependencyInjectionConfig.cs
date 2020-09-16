@@ -12,9 +12,11 @@ namespace EL.ServiceBus
         {
             services.AddSingleton<IMessageSubscriber, MessageSubscriber>();
             services.AddSingleton<ISubscriptionClientWrapperPool, SubscriptionClientWrapperPool>();
+            services.AddSingleton<IManagementClientWrapperPool, ManagementClientWrapperPool>();
 
             services.AddTransient<ISubscriptionClientWrapper, SubscriptionClientWrapper>();
             services.AddTransient<ISubscriptionClientWrapperCreator, SubscriptionClientWrapperCreator>();
+            services.AddTransient<ISubscriptionCreator, SubscriptionCreator>();
             services.AddTransient<IMessageMapper, MessageMapper>();
             services.AddTransient<IMessageSerializer, MessageSerializer>();
         }

@@ -10,7 +10,6 @@ namespace EL.ServiceBus
         readonly string fullName;
         internal static string Pattern = "^[a-z]+[a-z-]*[a-z]+$";
         private static Regex regex = new Regex(Pattern, RegexOptions.Compiled);
-        private const string DeadLetterQueueSuffix = "/$DeadLetterQueue";
 
         public Subscription(Topic topic, string productContext, string process)
         {
@@ -40,10 +39,5 @@ namespace EL.ServiceBus
         }
 
         public override string ToString() => fullName;
-
-        internal Subscription GetDeadLetterQueue()
-        {
-            return new Subscription(Topic, SubscriptionName + DeadLetterQueueSuffix);
-        }
     }
 }
