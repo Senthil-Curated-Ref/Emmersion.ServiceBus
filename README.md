@@ -19,7 +19,8 @@ EL.ServiceBus.DependencyInjectionConfig.ConfigurePublisherServices(services);
 You will also need to provide an `ISubscriptionConfig` and/or `IPublisherConfig` respectively.
 
 In both cases:
-* `ConnectionString` - the connection string for a ServiceBus instance, not specific to a single topic
+* `ConnectionString` - the connection string for a ServiceBus instance, not specific to a single topic.
+    This connection string must have the "Manage" permission.
 * `SingleTopicConnectionString` - the connection string for the specific topic used in the single-topic strategy
 * `SingleTopicName` - the name of the specific topic used in the single-topic strategy
 
@@ -85,6 +86,9 @@ subscriber.Subscribe(subscription, (Message<UserAssessmentScored> message) =>
 
 Note that you are given the entire message object, which contains additional information such as `MessageId` and `CorrelationId`.
 
+Calling `Subscribe` will create the topic subscription in Azure automatically (if it didn't already exist).
+If the name of the subscription contains the text `auto-delete` then it will delete itself after it is idle for 5 minutes.
+
 Version 3.0 also now provides a way to subscribe to the dead letter queue.
 
 ```csharp
@@ -143,6 +147,10 @@ Other changes:
 * There is now a default implementation for `IMessageSerializer`
 * You can now publish a scheduled message
 * Ability to subscribe to dead letter queues
+* Connections to ServiceBus are no longer initiated immediately at startup, but wait until you publish or subscribe.
+* Subscriptions are automatically created if they do not exist
+* Subscribing will throw an exception if the topic does not exist
+* Ability to create auto-deleting subscriptions
 
 ### v2.1
 * Added separate methods in `DependencyInjectionConfig` for configuring publishers and subscribers.
