@@ -18,6 +18,15 @@ namespace EL.ServiceBus
             Body = body;
         }
 
+        public Message(Topic topic, T body, DateTimeOffset? publishedAt, DateTimeOffset? enqueuedAt, DateTimeOffset? receivedAt)
+        {
+            Topic = topic;
+            Body = body;
+            PublishedAt = publishedAt;
+            EnqueuedAt = enqueuedAt;
+            ReceivedAt = receivedAt;
+        }
+
         internal Message(string messageId, Topic topic, T body)
         {
             MessageId = messageId;
