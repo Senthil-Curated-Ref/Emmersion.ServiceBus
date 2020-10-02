@@ -63,15 +63,21 @@ namespace EL.ServiceBus.UnitTests
         }
 
         [Test]
-        public void When_mapping_the_dead_letter_body()
+        public void When_mapping_a_dead_letter()
         {
             var serializedBody = "serialized-data";
             var bodyBytes = Encoding.UTF8.GetBytes(serializedBody);
-            var message = new Microsoft.Azure.ServiceBus.Message(bodyBytes);
+            var message = new Microsoft.Azure.ServiceBus.Message(bodyBytes)
+            {
+                MessageId = Guid.NewGuid().ToString(),
+                CorrelationId = Guid.NewGuid().ToString()
+            };
 
-            var result = ClassUnderTest.GetDeadLetterBody(message);
+            var result = ClassUnderTest.GetDeadLetter(message);
 
-            Assert.That(result, Is.EqualTo(serializedBody));
+            Assert.That(result.MessageId, Is.EqualTo(message.MessageId));
+            Assert.That(result.CorrelationId, Is.EqualTo(message.CorrelationId));
+            Assert.That(result.Body, Is.EqualTo(serializedBody));
         }
 
         [Test]

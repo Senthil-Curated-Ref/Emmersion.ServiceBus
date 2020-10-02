@@ -92,12 +92,12 @@ If the name of the subscription contains the text `auto-delete` then it will del
 Version 3.0 also now provides a way to subscribe to the dead letter queue.
 
 ```csharp
-subscriber.SubscribeToDeadLetters(subscription, (string deadLetter) => {
+subscriber.SubscribeToDeadLetters(subscription, (DeadLetter deadLetter) => {
     // Do something with the deadLetter.
 });
 ```
 
-Dead letter messages always come back as a string since deserialization into a type
+Dead letter messages always come back with a `string Body` since deserialization into a type
 may have been the problem that caused it to become a dead letter in the first place.
 
 You can also subscribe to messages in the older, single-topic way:

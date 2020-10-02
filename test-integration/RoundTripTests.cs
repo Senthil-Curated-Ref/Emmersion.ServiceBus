@@ -192,9 +192,9 @@ namespace EL.ServiceBus.IntegrationTests
             var subscription = new Subscription(topic, "el-service-bus", RandomAutoDeletingProcess());
             
             var receivedMessageCount = 0;
-            var deadLetters = new List<string>();
+            var deadLetters = new List<DeadLetter>();
             
-            subscriber.SubscribeToDeadLetters(subscription, (string deadLetter) => deadLetters.Add(deadLetter));
+            subscriber.SubscribeToDeadLetters(subscription, (DeadLetter deadLetter) => deadLetters.Add(deadLetter));
             subscriber.Subscribe(subscription, (Message<string> message) =>
             {
                 receivedMessageCount++;
@@ -217,7 +217,7 @@ namespace EL.ServiceBus.IntegrationTests
             Console.WriteLine("Dead letters:");
             Console.WriteLine(deadLetters[0]);
 
-            Assert.That(deadLetters.Any(x => x.Contains(message.Body)), Is.True, $"Unable to find dead letter containing {message.Body}");
+            Assert.That(deadLetters.Any(x => x.Body.Contains(message.Body)), Is.True, $"Unable to find dead letter containing {message.Body}");
 
             Assert.That(deadLetters.Count, Is.GreaterThanOrEqualTo(expectedDeadLetterCount), $"Did not get the expected number of dead-letter messages");
             Assert.That(receivedMessageCount, Is.GreaterThanOrEqualTo(expectedReceivedMessageCount), $"Did not get the expected number of messages before dead lettering");

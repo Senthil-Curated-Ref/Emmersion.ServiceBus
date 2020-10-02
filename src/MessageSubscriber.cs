@@ -7,7 +7,7 @@ namespace EL.ServiceBus
     public interface IMessageSubscriber
     {
         void Subscribe<T>(Subscription subscription, Action<Message<T>> action);
-        void SubscribeToDeadLetters(Subscription subscription, Action<string> action);
+        void SubscribeToDeadLetters(Subscription subscription, Action<DeadLetter> action);
         void Subscribe<T>(MessageEvent messageEvent, Action<T> action);
         event OnMessageReceived OnMessageReceived;
         event OnException OnException;
@@ -56,11 +56,11 @@ namespace EL.ServiceBus
             }, (args) => OnException?.Invoke(this, new ExceptionArgs(subscription, args)));
         }
 
-        public void SubscribeToDeadLetters(Subscription subscription, Action<string> action)
+        public void SubscribeToDeadLetters(Subscription subscription, Action<DeadLetter> action)
         {
             var client = subscriptionClientWrapperPool.GetDeadLetterClient(subscription);
             client.RegisterMessageHandler(
-                (serviceBusMessage) => action(messageMapper.GetDeadLetterBody(serviceBusMessage)),
+                (serviceBusMessage) => action(messageMapper.GetDeadLetter(serviceBusMessage)),
                 (args) => OnException?.Invoke(this, new ExceptionArgs(subscription, args)));
         }
 

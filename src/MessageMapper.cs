@@ -7,7 +7,7 @@ namespace EL.ServiceBus
     {
         Microsoft.Azure.ServiceBus.Message ToServiceBusMessage<T>(Message<T> message);
         Message<T> FromServiceBusMessage<T>(Topic topic, Microsoft.Azure.ServiceBus.Message message, DateTimeOffset receivedAt);
-        string GetDeadLetterBody(Microsoft.Azure.ServiceBus.Message message);
+        DeadLetter GetDeadLetter(Microsoft.Azure.ServiceBus.Message message);
         Microsoft.Azure.ServiceBus.Message FromMessageEnvelope<T>(MessageEnvelope<T> envelope);
         MessageEnvelope<T> ToMessageEnvelope<T>(Microsoft.Azure.ServiceBus.Message message);
     }
@@ -48,8 +48,13 @@ namespace EL.ServiceBus
             };
         }
 
-        public string GetDeadLetterBody(Microsoft.Azure.ServiceBus.Message message) {
-            return Encoding.UTF8.GetString(message.Body);
+        public DeadLetter GetDeadLetter(Microsoft.Azure.ServiceBus.Message message) {
+            return new DeadLetter
+            {
+                MessageId = message.MessageId,
+                CorrelationId = message.CorrelationId,
+                Body = Encoding.UTF8.GetString(message.Body)
+            };
         }
 
         public Microsoft.Azure.ServiceBus.Message FromMessageEnvelope<T>(MessageEnvelope<T> envelope)

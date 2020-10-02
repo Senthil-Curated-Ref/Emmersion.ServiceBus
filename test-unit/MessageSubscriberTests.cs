@@ -180,17 +180,17 @@ namespace EL.ServiceBus.UnitTests
         {
             Action<Microsoft.Azure.ServiceBus.Message> messageHandler = null;
             var testMessage = new Microsoft.Azure.ServiceBus.Message();
-            var expectedDeadLetter = "example-dead-letter";
-            string deadLetter = null;
+            var expectedDeadLetter = new DeadLetter();
+            DeadLetter deadLetter = null;
             GetMock<ISubscriptionClientWrapperPool>()
                 .Setup(x => x.GetDeadLetterClient(subscription))
                 .Returns(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
                 .Setup(x => x.RegisterMessageHandler(Any<Action<Microsoft.Azure.ServiceBus.Message>>(), Any<Action<ExceptionReceivedEventArgs>>()))
                 .Callback<Action<Microsoft.Azure.ServiceBus.Message>, Action<ExceptionReceivedEventArgs>>((handler, _) => messageHandler = handler);
-            GetMock<IMessageMapper>().Setup(x => x.GetDeadLetterBody(testMessage)).Returns(expectedDeadLetter);
+            GetMock<IMessageMapper>().Setup(x => x.GetDeadLetter(testMessage)).Returns(expectedDeadLetter);
 
-            ClassUnderTest.SubscribeToDeadLetters(subscription, (string x) => deadLetter = x);
+            ClassUnderTest.SubscribeToDeadLetters(subscription, (DeadLetter x) => deadLetter = x);
             messageHandler(testMessage);
             
             Assert.That(deadLetter, Is.EqualTo(expectedDeadLetter));
