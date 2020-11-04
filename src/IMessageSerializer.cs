@@ -15,7 +15,10 @@ namespace EL.ServiceBus
 
         public MessageSerializer()
         {
-            jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+            jsonOptions = new JsonSerializerOptions {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                PropertyNameCaseInsensitive = true
+            };
         }
 
         public string Serialize<T>(T message)
