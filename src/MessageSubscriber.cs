@@ -19,7 +19,6 @@ namespace EL.ServiceBus
         private readonly IMessageMapper messageMapper;
         private readonly ISubscriptionConfig config;
         private readonly List<Route> routes = new List<Route>();
-        private readonly bool filteringDisabled;
 
         public event OnMessageReceived OnMessageReceived;
         public event OnException OnException;
@@ -31,11 +30,11 @@ namespace EL.ServiceBus
             this.subscriptionClientWrapperPool = subscriptionClientWrapperPool;
             this.messageMapper = messageMapper;
             this.config = config;
-            filteringDisabled = string.IsNullOrEmpty(config.EnvironmentFilter);
         }
 
         public void Subscribe<T>(Subscription subscription, Action<Message<T>> action)
         {
+            var filteringDisabled = string.IsNullOrEmpty(config.EnvironmentFilter);
             var client = subscriptionClientWrapperPool.GetClient(subscription);
             client.RegisterMessageHandler((serviceBusMessage) => {
                 var receivedAt = DateTimeOffset.UtcNow;
