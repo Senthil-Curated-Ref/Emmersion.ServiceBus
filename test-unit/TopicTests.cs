@@ -51,12 +51,16 @@ namespace EL.ServiceBus.UnitTests
         [Test]
         public void When_attempting_to_create_a_topic_with_a_name_which_is_too_long_for_azure()
         {
+            var productContext = "an-extremely-long-name-for-a-very-particular-product-context-which-makes-us-sad-because-keeping-track-of-it-is-such-a-mouthful-all-the-time";
+            var eventName = "an-even-longer-name-for-a-very-specific-event-which-probably-only-happens-at-scale-and-might-never-occur-once";
+            var version = 1234567890;
             var exception = Assert.Catch(() => new Topic(
-                "an-extremely-long-name-for-a-very-particular-product-context-which-makes-us-sad-because-keeping-track-of-it-is-such-a-mouthful-all-the-time", 
-                "an-even-longer-name-for-a-very-specific-event-which-probably-only-happens-at-scale-and-might-never-occur-once",
-                1234567890));
+                productContext, 
+                eventName,
+                version));
 
-            Assert.That(exception.Message, Is.EqualTo("The full name of the topic may not exceed the Azure 260 character limitation"));
+            var expected = $"The topic name '{productContext}.{eventName}.v{version}' exceeds the Azure 260 character limit";
+            Assert.That(exception.Message, Is.EqualTo(expected));
         }
     }
 }

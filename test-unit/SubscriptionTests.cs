@@ -48,5 +48,18 @@ namespace EL.ServiceBus.UnitTests
 
             Assert.That(exception.Message, Is.EqualTo("Process name must match pattern: " + Topic.Pattern + " (Parameter 'process')"));
         }
+        
+        [Test]
+        public void When_attempting_to_create_a_subscription_but_the_name_is_too_long()
+        {
+            var topic = new Topic("monolith", "user-signed-in", 1);
+            var productContext = "really-long-product-context-name";
+            var process = "azure-webjob-listener";
+            
+            var exception = Assert.Catch(() => new Subscription(topic, productContext, process));
+
+            var expected = $"The subscription name '{productContext}.{process}' exceeds the Azure 50 character limit";
+            Assert.That(exception.Message, Is.EqualTo(expected));
+        }
     }
 }

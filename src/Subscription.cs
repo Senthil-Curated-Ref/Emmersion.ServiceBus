@@ -10,6 +10,7 @@ namespace EL.ServiceBus
         readonly string fullName;
         internal static string Pattern = "^[a-z]+[a-z-]*[a-z]+$";
         private static Regex regex = new Regex(Pattern, RegexOptions.Compiled);
+        private const int AzureSubscriptionNameMaximumLength = 50;
 
         public Subscription(Topic topic, string productContext, string process)
         {
@@ -25,17 +26,14 @@ namespace EL.ServiceBus
             {
                 throw new ArgumentException("Process name must match pattern: " + Pattern, nameof(process));
             }
-
+            
             Topic = topic;
             SubscriptionName = $"{productContext}.{process}";
             fullName = $"{Topic}=>{SubscriptionName}";
-        }
-
-        private Subscription(Topic topic, string subscriptionName)
-        {
-            Topic = topic;
-            SubscriptionName = subscriptionName;
-            fullName = $"{Topic}=>{SubscriptionName}";
+            
+            if (SubscriptionName.Length > AzureSubscriptionNameMaximumLength) {
+                throw new Exception($"The subscription name '{SubscriptionName}' exceeds the Azure {AzureSubscriptionNameMaximumLength} character limit");
+            }
         }
 
         public override string ToString() => fullName;

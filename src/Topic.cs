@@ -28,7 +28,7 @@ namespace EL.ServiceBus
             fullName = $"{productContext}.{eventName}.v{version}";
             
             if (fullName.Length > AzureTopicNameMaximumLength) {
-                throw new Exception("The full name of the topic may not exceed the Azure 260 character limitation");
+                throw new Exception($"The topic name '{fullName}' exceeds the Azure {AzureTopicNameMaximumLength} character limit");
             }
         }
 
