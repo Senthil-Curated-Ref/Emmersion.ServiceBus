@@ -8,22 +8,27 @@ namespace EL.ServiceBus
 {
     public class DependencyInjectionConfig
     {
-        public static void ConfigureServices(IServiceCollection services)
-        {
-            ConfigureSubscriberServices(services);
-            ConfigurePublisherServices(services);
-        }
-
         public static void ConfigureSubscriberServices(IServiceCollection services)
         {
             services.AddSingleton<IMessageSubscriber, MessageSubscriber>();
+            services.AddSingleton<ISubscriptionClientWrapperPool, SubscriptionClientWrapperPool>();
+            services.AddSingleton<IManagementClientWrapperPool, ManagementClientWrapperPool>();
+
             services.AddTransient<ISubscriptionClientWrapper, SubscriptionClientWrapper>();
+            services.AddTransient<ISubscriptionClientWrapperCreator, SubscriptionClientWrapperCreator>();
+            services.AddTransient<ISubscriptionCreator, SubscriptionCreator>();
+            services.AddTransient<IMessageMapper, MessageMapper>();
+            services.AddTransient<IMessageSerializer, MessageSerializer>();
         }
 
         public static void ConfigurePublisherServices(IServiceCollection services)
         {
             services.AddSingleton<IMessagePublisher, MessagePublisher>();
-            services.AddTransient<ITopicClientWrapper, TopicClientWrapper>();
+            services.AddSingleton<ITopicClientWrapperPool, TopicClientWrapperPool>();
+
+            services.AddTransient<ITopicClientWrapperCreator, TopicClientWrapperCreator>();
+            services.AddTransient<IMessageMapper, MessageMapper>();
+            services.AddTransient<IMessageSerializer, MessageSerializer>();
         }
     }
 }

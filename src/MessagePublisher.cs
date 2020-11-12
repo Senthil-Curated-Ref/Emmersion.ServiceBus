@@ -1,44 +1,75 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Text;
 using System.Threading.Tasks;
-using Microsoft.Azure.ServiceBus;
 
 namespace EL.ServiceBus
 {
-    public interface IMessagePublisher : IDisposable
+    public interface IMessagePublisher
     {
+        void Publish<T>(Message<T> message);
+        void PublishScheduled<T>(Message<T> message, DateTimeOffset enqueueAt);
         void Publish<T>(MessageEvent messageEvent, T message);
         event OnMessagePublished OnMessagePublished;
     }
 
     internal class MessagePublisher : IMessagePublisher
     {
-        private readonly ITopicClientWrapper client;
-        private readonly IMessageSerializer serializer;
+        private readonly ITopicClientWrapperPool pool;
+        private readonly IMessageMapper messageMapper;
+        private readonly IPublisherConfig config;
+
         public event OnMessagePublished OnMessagePublished;
 
-        public MessagePublisher(ITopicClientWrapper topicClientWrapper, IMessageSerializer serializer)
+        public MessagePublisher(ITopicClientWrapperPool topicClientWrapperPool,
+            IMessageMapper messageMapper,
+            IPublisherConfig config)
         {
-            this.client = topicClientWrapper;
-            this.serializer = serializer;
+            pool = topicClientWrapperPool;
+            this.messageMapper = messageMapper;
+            this.config = config;
         }
 
-        public void Dispose()
+        public void Publish<T>(Message<T> message)
         {
-            client.CloseAsync();
+            Publish(message, null, (client, data) => client.SendAsync(data));
+        }
+
+        public void PublishScheduled<T>(Message<T> message, DateTimeOffset enqueueAt)
+        {
+            Publish(message, enqueueAt, (client, data) => client.ScheduleMessageAsync(data, enqueueAt));
+        }
+
+        private void Publish<T>(Message<T> message, DateTimeOffset? enqueueAt, Func<ITopicClientWrapper, Microsoft.Azure.ServiceBus.Message, Task> action)
+        {
+            var client = pool.GetForTopic(message.Topic);
+            var stopwatch = Stopwatch.StartNew();
+            action(client, PrepareMessage(message, enqueueAt)).Wait();
+            OnMessagePublished?.Invoke(this, new MessagePublishedArgs(stopwatch.ElapsedMilliseconds));
+        }
+
+        private Microsoft.Azure.ServiceBus.Message PrepareMessage<T>(Message<T> message, DateTimeOffset? enqueueAt)
+        {
+            message.PublishedAt = DateTimeOffset.UtcNow;
+            message.EnqueuedAt = enqueueAt ?? message.PublishedAt;
+            message.Environment = config.Environment;
+            return messageMapper.ToServiceBusMessage(message);
         }
 
         public void Publish<T>(MessageEvent messageEvent, T message)
         {
+            var client = pool.GetForSingleTopic();
             var stopwatch = Stopwatch.StartNew();
+            client.SendAsync(PrepareMessage(messageEvent, message)).Wait();
+            OnMessagePublished?.Invoke(this, new MessagePublishedArgs(stopwatch.ElapsedMilliseconds));
+        }
+
+        private Microsoft.Azure.ServiceBus.Message PrepareMessage<T>(MessageEvent messageEvent, T message)
+        {
             var envelope = new MessageEnvelope<T> {
                 MessageEvent = messageEvent.ToString(),
                 Payload = message
             };
-            var bytes = Encoding.UTF8.GetBytes(serializer.Serialize(envelope));
-            Task.WaitAll(client.SendAsync(new Message(bytes)));
-            OnMessagePublished?.Invoke(this, new MessagePublishedArgs(stopwatch.ElapsedMilliseconds));
+            return messageMapper.FromMessageEnvelope(envelope);
         }
     }
 }

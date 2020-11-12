@@ -1,61 +1,106 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Azure.ServiceBus;
 
 namespace EL.ServiceBus
 {
     public interface IMessageSubscriber
     {
+        void Subscribe<T>(Subscription subscription, Action<Message<T>> action);
+        void SubscribeToDeadLetters(Subscription subscription, Action<DeadLetter> action);
         void Subscribe<T>(MessageEvent messageEvent, Action<T> action);
         event OnMessageReceived OnMessageReceived;
-        event OnUnhandledException OnUnhandledException;
-        event OnServiceBusException OnServiceBusException;
+        event OnException OnException;
     }
 
     internal class MessageSubscriber : IMessageSubscriber
     {
-        private readonly List<Subscription> subscriptions = new List<Subscription>();
-        private readonly ISubscriptionClientWrapper subscriptionClientWrapper;
-        private readonly IMessageSerializer messageSerializer;
+        private readonly ISubscriptionClientWrapperPool subscriptionClientWrapperPool;
+        private readonly IMessageMapper messageMapper;
+        private readonly ISubscriptionConfig config;
+        private readonly List<Route> routes = new List<Route>();
+        private readonly bool filteringDisabled;
+
         public event OnMessageReceived OnMessageReceived;
-        public event OnUnhandledException OnUnhandledException;
-        public event OnServiceBusException OnServiceBusException;
+        public event OnException OnException;
 
-        public MessageSubscriber(ISubscriptionClientWrapper subscriptionClientWrapper, IMessageSerializer messageSerializer)
+        public MessageSubscriber(ISubscriptionClientWrapperPool subscriptionClientWrapperPool,
+            IMessageMapper messageMapper,
+            ISubscriptionConfig config)
         {
-            this.subscriptionClientWrapper = subscriptionClientWrapper;
-            this.messageSerializer = messageSerializer;
+            this.subscriptionClientWrapperPool = subscriptionClientWrapperPool;
+            this.messageMapper = messageMapper;
+            this.config = config;
+            filteringDisabled = string.IsNullOrEmpty(config.EnvironmentFilter);
+        }
 
-            subscriptionClientWrapper.Subscribe(RouteMessage, HandleException);
+        public void Subscribe<T>(Subscription subscription, Action<Message<T>> action)
+        {
+            var client = subscriptionClientWrapperPool.GetClient(subscription);
+            client.RegisterMessageHandler((serviceBusMessage) => {
+                var receivedAt = DateTimeOffset.UtcNow;
+                DateTimeOffset? publishedAt = null;
+                DateTimeOffset? enqueuedAt = null;
+                try {
+                    var message = messageMapper.FromServiceBusMessage<T>(subscription.Topic, serviceBusMessage, receivedAt);
+                    publishedAt = message.PublishedAt;
+                    enqueuedAt = message.EnqueuedAt;
+                    if (filteringDisabled || message.Environment == config.EnvironmentFilter)
+                    {
+                        action(message);
+                    }
+                }
+                finally
+                {
+                    var processingTime = DateTimeOffset.UtcNow - receivedAt;
+                    OnMessageReceived?.Invoke(this, new MessageReceivedArgs(
+                        subscription,
+                        publishedAt,
+                        enqueuedAt,
+                        receivedAt,
+                        processingTime
+                    ));
+                }
+            }, (args) => OnException?.Invoke(this, new ExceptionArgs(subscription, args)));
+        }
+
+        public void SubscribeToDeadLetters(Subscription subscription, Action<DeadLetter> action)
+        {
+            var client = subscriptionClientWrapperPool.GetDeadLetterClient(subscription);
+            client.RegisterMessageHandler(
+                (serviceBusMessage) => action(messageMapper.GetDeadLetter(serviceBusMessage)),
+                (args) => OnException?.Invoke(this, new ExceptionArgs(subscription, args)));
         }
 
         public void Subscribe<T>(MessageEvent messageEvent, Action<T> action)
         {
-            subscriptions.Add(new Subscription
+            InitializeSingleTopicClient();
+            routes.Add(new Route
             {
                 MessageEvent = messageEvent.ToString(),
-                Action = (serializedMessage) =>
+                Action = (serviceBusMessage) =>
                 {
-                    var envelope = messageSerializer.Deserialize<MessageEnvelope<T>>(serializedMessage);
+                    var envelope = messageMapper.ToMessageEnvelope<T>(serviceBusMessage);
                     action(envelope.Payload);
                 }
             });
         }
 
-        internal void RouteMessage(string serializedMessage)
+        private void InitializeSingleTopicClient()
+        {
+            var client = subscriptionClientWrapperPool.GetSingleTopicClientIfFirstTime();
+            client?.RegisterMessageHandler(RouteMessage,
+                (args) => OnException?.Invoke(this, new ExceptionArgs(null, args)));
+        }
+
+        internal void RouteMessage(Microsoft.Azure.ServiceBus.Message serviceBusMessage)
         {
             var receivedAt = DateTimeOffset.UtcNow;
-            var envelope = messageSerializer.Deserialize<MessageEnvelope<object>>(serializedMessage);
-            var recipients = subscriptions.Where(x => x.MessageEvent == envelope.MessageEvent).ToList();
+            var envelope = messageMapper.ToMessageEnvelope<object>(serviceBusMessage);
+            var recipients = routes.Where(x => x.MessageEvent == envelope.MessageEvent).ToList();
             try
             {
-                recipients.ForEach(x => x.Action(serializedMessage));
-            }
-            catch (Exception e)
-            {
-                OnUnhandledException?.Invoke(this, new UnhandledExceptionArgs(envelope.MessageEvent, e));
-                throw;
+                recipients.ForEach(x => x.Action(serviceBusMessage));
             }
             finally
             {
@@ -64,21 +109,15 @@ namespace EL.ServiceBus
                     envelope.MessageEvent,
                     envelope.PublishedAt,
                     receivedAt,
-                    processingTime,
-                    recipients.Count
+                    processingTime
                 ));
             }
         }
-
-        internal void HandleException(ExceptionReceivedEventArgs args)
-        {
-            OnServiceBusException?.Invoke(this, new ServiceBusExceptionArgs(args));
-        }
     }
 
-    internal class Subscription
+    internal class Route
     {
         public string MessageEvent { get; set; }
-        public Action<string> Action { get; set; }
+        public Action<Microsoft.Azure.ServiceBus.Message> Action { get; set; }
     }
 }

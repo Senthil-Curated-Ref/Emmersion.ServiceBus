@@ -6,7 +6,7 @@ namespace EL.ServiceBus.IntegrationTests
 {
     public interface ISettings
     {
-        ITopicConfig TopicConfig { get; }
+        IPublisherConfig PublisherConfig { get; }
         ISubscriptionConfig SubscriptionConfig { get; }
     }
 
@@ -22,21 +22,20 @@ namespace EL.ServiceBus.IntegrationTests
             configuration = configurationBuilder.Build();
         }
 
-        public string ConnectionString => configuration.GetValue<string>("ConnectionStrings:ELServiceBus");
-        public string TopicName => configuration.GetValue<string>("NameResolvers:ELServiceBusTopicName");
-        public string SubscriptionName => configuration.GetValue<string>("NameResolvers:ELServiceBusSubscriberName");
-
-        public ITopicConfig TopicConfig => new TestTopicConfig
+        public IPublisherConfig PublisherConfig => new TestPublisherConfig
         {
             ConnectionString = configuration.GetValue<string>("ConnectionString"),
-            TopicName = configuration.GetValue<string>("TopicName")
+            SingleTopicConnectionString = configuration.GetValue<string>("SingleTopicConnectionString"),
+            SingleTopicName = configuration.GetValue<string>("SingleTopicName"),
+            Environment = "el.servicebus.integration-tests"
         };
 
         public ISubscriptionConfig SubscriptionConfig => new TestSubscriptionConfig
         {
             ConnectionString = configuration.GetValue<string>("ConnectionString"),
-            TopicName = configuration.GetValue<string>("TopicName"),
-            SubscriptionName = configuration.GetValue<string>("SubscriptionName")
+            SingleTopicConnectionString = configuration.GetValue<string>("SingleTopicConnectionString"),
+            SingleTopicName = configuration.GetValue<string>("SingleTopicName"),
+            SingleTopicSubscriptionName = configuration.GetValue<string>("SingleTopicSubscriptionName")
         };
     }
 }

@@ -7,6 +7,7 @@ namespace EL.ServiceBus
     internal interface ITopicClientWrapper
     {
         Task SendAsync(Message message);
+        Task ScheduleMessageAsync(Message message, DateTimeOffset scheduleEnqueueTimeUtc);
         Task CloseAsync();
     }
 
@@ -14,17 +15,17 @@ namespace EL.ServiceBus
     {
         private readonly TopicClient client;
 
-        public TopicClientWrapper(ITopicConfig config)
+        public TopicClientWrapper(string connectionString, string topicName)
         {
-            if (string.IsNullOrEmpty(config.ConnectionString))
+            if (string.IsNullOrEmpty(connectionString))
             {
-                throw new ArgumentException($"Invalid ConnectionString in ITopicConfig", nameof(config.ConnectionString));
+                throw new ArgumentException($"Invalid connectionString", nameof(connectionString));
             }
-            if (string.IsNullOrEmpty(config.TopicName))
+            if (string.IsNullOrEmpty(topicName))
             {
-                throw new ArgumentException($"Invalid TopicName in ITopicConfig", nameof(config.TopicName));
+                throw new ArgumentException($"Invalid topicName", nameof(topicName));
             }
-            client = new TopicClient(config.ConnectionString, config.TopicName);
+            client = new TopicClient(connectionString, topicName);
         }
 
         public Task CloseAsync()
@@ -35,6 +36,11 @@ namespace EL.ServiceBus
         public Task SendAsync(Message message)
         {
             return client.SendAsync(message);
+        }
+
+        public Task ScheduleMessageAsync(Message message, DateTimeOffset scheduleEnqueueTimeUtc)
+        {
+            return client.ScheduleMessageAsync(message, scheduleEnqueueTimeUtc);
         }
     }
 }

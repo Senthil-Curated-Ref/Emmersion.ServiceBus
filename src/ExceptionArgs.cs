@@ -3,12 +3,13 @@ using Microsoft.Azure.ServiceBus;
 
 namespace EL.ServiceBus
 {
-    public delegate void OnServiceBusException(object source, ServiceBusExceptionArgs args);
+    public delegate void OnException(object source, ExceptionArgs args);
 
-    public class ServiceBusExceptionArgs
+    public class ExceptionArgs
     {
-        public ServiceBusExceptionArgs(Exception exception, string action, string clientId, string endpoint, string entityPath)
+        public ExceptionArgs(Subscription subscription, Exception exception, string action, string clientId, string endpoint, string entityPath)
         {
+            Subscription = subscription;
             Exception = exception;
             Action = action;
             ClientId = clientId;
@@ -16,8 +17,9 @@ namespace EL.ServiceBus
             EntityPath = entityPath;
         }
 
-        internal ServiceBusExceptionArgs(ExceptionReceivedEventArgs args)
+        internal ExceptionArgs(Subscription subscription, ExceptionReceivedEventArgs args)
         {
+            Subscription = subscription;
             Exception = args.Exception;
             Action = args.ExceptionReceivedContext?.Action ?? "";
             ClientId = args.ExceptionReceivedContext?.ClientId ?? "";
@@ -25,6 +27,7 @@ namespace EL.ServiceBus
             EntityPath = args.ExceptionReceivedContext?.EntityPath ?? "";
         }
 
+        public Subscription Subscription { get; }
         public Exception Exception { get; }
         public string Action { get; }
         public string ClientId { get; }

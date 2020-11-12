@@ -1,6 +1,6 @@
 namespace EL.ServiceBus.UnitTests
 {
-    internal class TestMessage
+    internal class TestData
     {
         public string Data { get; set; }
     }

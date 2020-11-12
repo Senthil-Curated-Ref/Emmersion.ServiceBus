@@ -1,57 +1,55 @@
 using System;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.ServiceBus;
 
 namespace EL.ServiceBus
 {
-    internal interface ISubscriptionClientWrapper : IDisposable
+    internal interface ISubscriptionClientWrapper
     {
-        void Subscribe(Action<string> messageHandler, Action<ExceptionReceivedEventArgs> exceptionHandler);
+        void RegisterMessageHandler(Action<Microsoft.Azure.ServiceBus.Message> messageHandler, Action<ExceptionReceivedEventArgs> exceptionHandler);
+        Task CloseAsync();
     }
 
     internal class SubscriptionClientWrapper : ISubscriptionClientWrapper
     {
         private readonly SubscriptionClient client;
-        private readonly ISubscriptionConfig config;
+        private readonly int maxConcurrentMessages;
 
-        public SubscriptionClientWrapper(ISubscriptionConfig config)
+        public SubscriptionClientWrapper(string connectionString, string topicName, string subscriptionName, int maxConcurrentMessages)
         {
-            if (string.IsNullOrEmpty(config.ConnectionString))
+            if (string.IsNullOrEmpty(connectionString))
             {
-                throw new ArgumentException($"Invalid ConnectionString in ISubscriptionConfig", nameof(config.ConnectionString));
+                throw new ArgumentException($"Invalid connectionString", nameof(connectionString));
             }
-            if (string.IsNullOrEmpty(config.TopicName))
+            if (string.IsNullOrEmpty(topicName))
             {
-                throw new ArgumentException($"Invalid TopicName in ISubscriptionConfig", nameof(config.TopicName));
+                throw new ArgumentException($"Invalid topic", nameof(topicName));
             }
-            if (string.IsNullOrEmpty(config.SubscriptionName))
+            if (string.IsNullOrEmpty(subscriptionName))
             {
-                throw new ArgumentException($"Invalid SubscriptionName in ISubscriptionConfig", nameof(config.SubscriptionName));
+                throw new ArgumentException($"Invalid subscription", nameof(subscriptionName));
             }
-            if (config.MaxConcurrentMessages < 1)
+            if (maxConcurrentMessages < 1)
             {
-                throw new ArgumentException($"ISubscriptionConfig.MaxConcurrentMessages must be greater than zero.", nameof(config.MaxConcurrentMessages));
+                throw new ArgumentException($"MaxConcurrentMessages must be greater than zero.", nameof(maxConcurrentMessages));
             }
 
-            client = new SubscriptionClient(config.ConnectionString, config.TopicName, config.SubscriptionName);
-            this.config = config;
+            this.maxConcurrentMessages = maxConcurrentMessages;
+            client = new SubscriptionClient(connectionString, topicName, subscriptionName);
         }
 
-        public void Subscribe(Action<string> messageHandler, Action<ExceptionReceivedEventArgs> exceptionHandler)
+        public void RegisterMessageHandler(Action<Microsoft.Azure.ServiceBus.Message> messageHandler, Action<ExceptionReceivedEventArgs> exceptionHandler)
         {
             var options = new MessageHandlerOptions(exceptionReceivedEventArgs => {
                 exceptionHandler(exceptionReceivedEventArgs);
                 return Task.CompletedTask;
             })
             {
-                MaxConcurrentCalls = config.MaxConcurrentMessages,
+                MaxConcurrentCalls = maxConcurrentMessages,
                 AutoComplete = false
             };
             client.RegisterMessageHandler(async (message, cancellationToken) => {
-                var serializedMessage = Encoding.UTF8.GetString(message.Body);
-                messageHandler(serializedMessage);
+                messageHandler(message);
                 if (!cancellationToken.IsCancellationRequested)
                 {
                     await client.CompleteAsync(message.SystemProperties.LockToken);
@@ -59,9 +57,9 @@ namespace EL.ServiceBus
             }, options);
         }
 
-        public void Dispose()
+        public Task CloseAsync()
         {
-            client.CloseAsync();
+            return client.CloseAsync();
         }
     }
 }

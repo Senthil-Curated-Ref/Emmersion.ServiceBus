@@ -1,17 +1,13 @@
 namespace EL.ServiceBus.IntegrationTests
 {
-    public class TestSubscriptionConfig : ISubscriptionConfig
+    public class TestPublisherConfig : IPublisherConfig
     {
         public string ConnectionString { get; set; }
-
-        public int MaxConcurrentMessages => 1;
 
         public string SingleTopicConnectionString { get; set; }
 
         public string SingleTopicName { get; set; }
-
-        public string SingleTopicSubscriptionName { get; set; }
-
-        public string EnvironmentFilter => null;
+        
+        public string Environment { get; set; }
     }
 }
