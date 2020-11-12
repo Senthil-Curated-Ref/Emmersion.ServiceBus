@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using NUnit.Framework;
@@ -20,12 +19,14 @@ namespace EL.ServiceBus.UnitTests
                 .Setup(x => x.GetForTopic(topic))
                 .Returns(GetMock<ITopicClientWrapper>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToServiceBusMessage(message)).Returns(serviceBusMessage);
+            GetMock<IPublisherConfig>().Setup(x => x.Environment).Returns("unit-tests");
 
             var before = DateTimeOffset.UtcNow;
             ClassUnderTest.Publish(message);
 
             Assert.That(message.PublishedAt, Is.EqualTo(before).Within(TimeSpan.FromMilliseconds(10)), "Incorrect PublishedAt");
             Assert.That(message.EnqueuedAt, Is.EqualTo(message.PublishedAt), "Incorrect EnqueuedAt");
+            Assert.That(message.Environment, Is.EqualTo("unit-tests"));
             GetMock<ITopicClientWrapper>().Verify(x => x.SendAsync(serviceBusMessage));
         }
 
@@ -65,12 +66,14 @@ namespace EL.ServiceBus.UnitTests
                 .Setup(x => x.GetForTopic(topic))
                 .Returns(GetMock<ITopicClientWrapper>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToServiceBusMessage(message)).Returns(serviceBusMessage);
+            GetMock<IPublisherConfig>().Setup(x => x.Environment).Returns("unit-tests");
 
             var before = DateTimeOffset.UtcNow;
             ClassUnderTest.PublishScheduled(message, enqueueAt);
 
             Assert.That(message.PublishedAt, Is.EqualTo(before).Within(TimeSpan.FromMilliseconds(10)), "Incorrect PublishedAt");
             Assert.That(message.EnqueuedAt, Is.EqualTo(enqueueAt), "Incorrect EnqueuedAt");
+            Assert.That(message.Environment, Is.EqualTo("unit-tests"));
             GetMock<ITopicClientWrapper>().Verify(x => x.ScheduleMessageAsync(serviceBusMessage, enqueueAt));
         }
 

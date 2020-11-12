@@ -26,7 +26,8 @@ namespace EL.ServiceBus.IntegrationTests
         {
             ConnectionString = configuration.GetValue<string>("ConnectionString"),
             SingleTopicConnectionString = configuration.GetValue<string>("SingleTopicConnectionString"),
-            SingleTopicName = configuration.GetValue<string>("SingleTopicName")
+            SingleTopicName = configuration.GetValue<string>("SingleTopicName"),
+            Environment = "el.servicebus.integration-tests"
         };
 
         public ISubscriptionConfig SubscriptionConfig => new TestSubscriptionConfig

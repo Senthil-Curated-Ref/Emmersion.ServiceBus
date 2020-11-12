@@ -26,7 +26,8 @@ namespace EL.ServiceBus
             var payload = new Payload<T> {
                 Body = message.Body,
                 PublishedAt = message.PublishedAt.Value,
-                EnqueuedAt = message.EnqueuedAt.Value
+                EnqueuedAt = message.EnqueuedAt.Value,
+                Environment = message.Environment
             };
             var bytes = Encoding.UTF8.GetBytes(serializer.Serialize(payload));
             return new Microsoft.Azure.ServiceBus.Message(bytes)
@@ -44,7 +45,8 @@ namespace EL.ServiceBus
                 CorrelationId = message.CorrelationId,
                 PublishedAt = payload.PublishedAt,
                 EnqueuedAt = payload.EnqueuedAt,
-                ReceivedAt = receivedAt
+                ReceivedAt = receivedAt,
+                Environment = payload.Environment
             };
         }
 
@@ -74,5 +76,6 @@ namespace EL.ServiceBus
         public T Body { get; set; }
         public DateTimeOffset PublishedAt { get; set; }
         public DateTimeOffset EnqueuedAt { get; set; }
+        public string Environment { get; set; }
     }
 }

@@ -16,14 +16,17 @@ namespace EL.ServiceBus
     {
         private readonly ITopicClientWrapperPool pool;
         private readonly IMessageMapper messageMapper;
+        private readonly IPublisherConfig config;
 
         public event OnMessagePublished OnMessagePublished;
 
         public MessagePublisher(ITopicClientWrapperPool topicClientWrapperPool,
-            IMessageMapper messageMapper)
+            IMessageMapper messageMapper,
+            IPublisherConfig config)
         {
-            this.pool = topicClientWrapperPool;
+            pool = topicClientWrapperPool;
             this.messageMapper = messageMapper;
+            this.config = config;
         }
 
         public void Publish<T>(Message<T> message)
@@ -48,6 +51,7 @@ namespace EL.ServiceBus
         {
             message.PublishedAt = DateTimeOffset.UtcNow;
             message.EnqueuedAt = enqueueAt ?? message.PublishedAt;
+            message.Environment = config.Environment;
             return messageMapper.ToServiceBusMessage(message);
         }
 

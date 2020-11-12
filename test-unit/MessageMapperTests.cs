@@ -14,7 +14,8 @@ namespace EL.ServiceBus.UnitTests
             var message = new Message<TestData>(topic, body)
             {
                 PublishedAt = DateTimeOffset.UtcNow,
-                EnqueuedAt = DateTimeOffset.UtcNow.AddMinutes(5)
+                EnqueuedAt = DateTimeOffset.UtcNow.AddMinutes(5),
+                Environment = "unit-tests"
             };
             message.CorrelationId = "correlation-id";
             var serializedData = "serialized-data";
@@ -29,6 +30,7 @@ namespace EL.ServiceBus.UnitTests
             Assert.That(payload.Body, Is.SameAs(message.Body));
             Assert.That(payload.PublishedAt, Is.EqualTo(message.PublishedAt));
             Assert.That(payload.EnqueuedAt, Is.EqualTo(message.EnqueuedAt));
+            Assert.That(payload.Environment, Is.EqualTo(message.Environment));
             Assert.That(Encoding.UTF8.GetString(result.Body), Is.EqualTo(serializedData));
             Assert.That(result.MessageId, Is.EqualTo(message.MessageId));
             Assert.That(result.CorrelationId, Is.EqualTo(message.CorrelationId));
@@ -46,7 +48,8 @@ namespace EL.ServiceBus.UnitTests
             var deserialized = new Payload<TestData> {
                 Body = new TestData { Data = "example data" },
                 PublishedAt = DateTimeOffset.UtcNow.AddMinutes(-10),
-                EnqueuedAt = DateTimeOffset.UtcNow.AddMinutes(-5)   
+                EnqueuedAt = DateTimeOffset.UtcNow.AddMinutes(-5),
+                Environment = "unit-tests"
             };
             var receivedAt = DateTimeOffset.UtcNow;
             GetMock<IMessageSerializer>().Setup(x => x.Deserialize<Payload<TestData>>(serializedBody)).Returns(deserialized);
@@ -60,6 +63,7 @@ namespace EL.ServiceBus.UnitTests
             Assert.That(result.PublishedAt, Is.EqualTo(deserialized.PublishedAt), "Incorrect PublishedAt");
             Assert.That(result.EnqueuedAt, Is.EqualTo(deserialized.EnqueuedAt), "Incorrect EnqueuedAt");
             Assert.That(result.ReceivedAt, Is.EqualTo(receivedAt), "Incorrect ReceivedAt");
+            Assert.That(result.Environment, Is.EqualTo(deserialized.Environment));
         }
 
         [Test]

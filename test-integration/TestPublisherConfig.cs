@@ -7,5 +7,7 @@ namespace EL.ServiceBus.IntegrationTests
         public string SingleTopicConnectionString { get; set; }
 
         public string SingleTopicName { get; set; }
+        
+        public string Environment { get; set; }
     }
 }

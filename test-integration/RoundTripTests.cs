@@ -12,6 +12,7 @@ namespace EL.ServiceBus.IntegrationTests
         private IMessagePublisher publisher;
         private IMessageSubscriber subscriber;
         private IMessageSerializer serializer;
+        private IPublisherConfig publisherConfig;
 
         [SetUp]
         public void Setup()
@@ -23,10 +24,11 @@ namespace EL.ServiceBus.IntegrationTests
             services.AddTransient(ctx => ctx.GetRequiredService<ISettings>().PublisherConfig);
             services.AddTransient(ctx => ctx.GetRequiredService<ISettings>().SubscriptionConfig);
             var serviceProvider = services.BuildServiceProvider();
-
+            
             subscriber = serviceProvider.GetRequiredService<IMessageSubscriber>();
             publisher = serviceProvider.GetRequiredService<IMessagePublisher>();
             serializer = serviceProvider.GetRequiredService<IMessageSerializer>();
+            publisherConfig = serviceProvider.GetRequiredService<IPublisherConfig>();
         }
 
         [Test]
@@ -265,6 +267,7 @@ namespace EL.ServiceBus.IntegrationTests
             Assert.That(match.EnqueuedAt, Is.EqualTo(expectedMessage.EnqueuedAt), "Incorrect PublishedAt");
             Assert.That(match.Topic.ToString(), Is.EqualTo(expectedMessage.Topic.ToString()));
             Assert.That(serializer.Serialize(match.Body), Is.EqualTo(serializer.Serialize(expectedMessage.Body)));
+            Assert.That(match.Environment, Is.EqualTo(publisherConfig.Environment));
         }
 
         private void AssertAllMessagesMatchTopic<T>(List<Message<T>> receivedMessages, Topic expectedTopic)
