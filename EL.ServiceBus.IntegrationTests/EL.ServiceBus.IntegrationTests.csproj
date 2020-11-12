@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\El.ServiceBus.csproj" />
+    <ProjectReference Include="..\EL.ServiceBus\El.ServiceBus.csproj" />
   </ItemGroup>
 
   <ItemGroup>

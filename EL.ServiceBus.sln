@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26124.0
 MinimumVisualStudioVersion = 15.0.26124.0
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EL.ServiceBus", "src\EL.ServiceBus.csproj", "{F49BE09A-2A89-48BF-940D-D9741B11DDA4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EL.ServiceBus", "EL.ServiceBus\EL.ServiceBus.csproj", "{F49BE09A-2A89-48BF-940D-D9741B11DDA4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EL.ServiceBus.UnitTests", "test-unit\EL.ServiceBus.UnitTests.csproj", "{EB83B0D7-1BBF-491F-A611-3C9C5BC8087D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EL.ServiceBus.UnitTests", "EL.ServiceBus.UnitTests\EL.ServiceBus.UnitTests.csproj", "{EB83B0D7-1BBF-491F-A611-3C9C5BC8087D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EL.ServiceBus.IntegrationTests", "test-integration\EL.ServiceBus.IntegrationTests.csproj", "{96CB243F-A156-48F0-88A6-577DEF72FFB6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EL.ServiceBus.IntegrationTests", "EL.ServiceBus.IntegrationTests\EL.ServiceBus.IntegrationTests.csproj", "{96CB243F-A156-48F0-88A6-577DEF72FFB6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
