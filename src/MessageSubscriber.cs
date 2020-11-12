@@ -17,16 +17,21 @@ namespace EL.ServiceBus
     {
         private readonly ISubscriptionClientWrapperPool subscriptionClientWrapperPool;
         private readonly IMessageMapper messageMapper;
+        private readonly ISubscriptionConfig config;
         private readonly List<Route> routes = new List<Route>();
+        private readonly bool filteringDisabled;
 
         public event OnMessageReceived OnMessageReceived;
         public event OnException OnException;
 
         public MessageSubscriber(ISubscriptionClientWrapperPool subscriptionClientWrapperPool,
-            IMessageMapper messageMapper)
+            IMessageMapper messageMapper,
+            ISubscriptionConfig config)
         {
             this.subscriptionClientWrapperPool = subscriptionClientWrapperPool;
             this.messageMapper = messageMapper;
+            this.config = config;
+            filteringDisabled = string.IsNullOrEmpty(config.EnvironmentFilter);
         }
 
         public void Subscribe<T>(Subscription subscription, Action<Message<T>> action)
@@ -40,7 +45,10 @@ namespace EL.ServiceBus
                     var message = messageMapper.FromServiceBusMessage<T>(subscription.Topic, serviceBusMessage, receivedAt);
                     publishedAt = message.PublishedAt;
                     enqueuedAt = message.EnqueuedAt;
-                    action(message);
+                    if (filteringDisabled || message.Environment == config.EnvironmentFilter)
+                    {
+                        action(message);
+                    }
                 }
                 finally
                 {

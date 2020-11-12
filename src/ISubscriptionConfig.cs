@@ -7,5 +7,6 @@ namespace EL.ServiceBus
         string SingleTopicConnectionString { get; }
         string SingleTopicName { get; }
         string SingleTopicSubscriptionName { get; }
+        string EnvironmentFilter { get; }
     }
 }

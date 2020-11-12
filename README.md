@@ -24,9 +24,13 @@ In both cases:
 * `SingleTopicConnectionString` - the connection string for the specific topic used in the single-topic strategy
 * `SingleTopicName` - the name of the specific topic used in the single-topic strategy
 
-Additionally, `ISubscriptionConfig` provides:
+`IPublisherConfig` also provides:
+* `Environment` - (optional) the name of the publishing environment (e.g. `production` or `dev-allan`); used for filtering
+
+`ISubscriptionConfig` also provides:
 * `SingleTopicSubscriptionName` - the subscription name for the specific topic used in the single-topic strategy
 * `MaxConcurrentMessages` - the number of messages that can be processed concurrently
+* `EnvironmentFilter` - (optional) if provided a non-null/empty value, any messages that do not have a matching environment will be filtered out
 
 
 ## Usage
@@ -128,6 +132,16 @@ subscriber.OnException += (object sender, ExceptionArgs args) =>
 };
 ```
 
+
+### Filtering for Development
+In order to make local development easier when sharing a subscription,
+you can set the `Environment` and `EnvironmentFilter` configuration variables
+so that your message processor will only get messages meant for you.
+
+You may wish to do this in conjunction with unique (per developer) subscription names
+so that you don't consume other's messages on a shared subscription.
+
+
 ### Unit Testing
 When unit testing your subscription handler, you may at times wish to set fields that are normally inaccessible.
 In these cases, please use the `TestMessageBulider<T>` class.
@@ -168,6 +182,7 @@ Other changes:
 * Subscriptions are automatically created if they do not exist
 * Subscribing will throw an exception if the topic does not exist
 * Ability to create auto-deleting subscriptions
+* Ability to filter messages when subscribing
 
 ### v2.1
 * Added separate methods in `DependencyInjectionConfig` for configuring publishers and subscribers.

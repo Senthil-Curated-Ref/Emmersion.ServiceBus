@@ -11,5 +11,7 @@ namespace EL.ServiceBus.IntegrationTests
         public string SingleTopicName { get; set; }
 
         public string SingleTopicSubscriptionName { get; set; }
+
+        public string EnvironmentFilter => null;
     }
 }

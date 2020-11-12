@@ -98,6 +98,37 @@ namespace EL.ServiceBus.UnitTests
             Assert.That(eventArgs[0].ReceivedAt, Is.EqualTo(before).Within(TimeSpan.FromMilliseconds(10)));
             Assert.That(eventArgs[0].ProcessingTime, Is.EqualTo(duration).Within(TimeSpan.FromMilliseconds(10)));
         }
+        
+        [Test]
+        public void When_handling_a_message_that_should_be_filtered_out()
+        {
+            Action<Microsoft.Azure.ServiceBus.Message> messageHandler = null;
+            var receivedMessages = new List<Message<TestData>>();
+            var serviceBusMessageToReceive = new Microsoft.Azure.ServiceBus.Message();
+            var serviceBusMessageToFilterOut = new Microsoft.Azure.ServiceBus.Message();
+            var messageToReceive = new Message<TestData>(subscription.Topic, new TestData { Data = "test data"}) { Environment = "unit-tests" };
+            var messageToFilterOut = new Message<TestData>(subscription.Topic, new TestData { Data = "test data"}) { Environment = "other-env"};
+            GetMock<ISubscriptionClientWrapperPool>()
+                .Setup(x => x.GetClient(subscription))
+                .Returns(GetMock<ISubscriptionClientWrapper>().Object);
+            GetMock<ISubscriptionClientWrapper>()
+                .Setup(x => x.RegisterMessageHandler(Any<Action<Microsoft.Azure.ServiceBus.Message>>(), Any<Action<ExceptionReceivedEventArgs>>()))
+                .Callback<Action<Microsoft.Azure.ServiceBus.Message>, Action<ExceptionReceivedEventArgs>>((handler, _) => messageHandler = handler);
+            GetMock<IMessageMapper>()
+                .Setup(x => x.FromServiceBusMessage<TestData>(subscription.Topic, serviceBusMessageToReceive, Any<DateTimeOffset>()))
+                .Returns(messageToReceive);
+            GetMock<IMessageMapper>()
+                .Setup(x => x.FromServiceBusMessage<TestData>(subscription.Topic, serviceBusMessageToFilterOut, Any<DateTimeOffset>()))
+                .Returns(messageToFilterOut);
+            GetMock<ISubscriptionConfig>().Setup(x => x.EnvironmentFilter).Returns("unit-tests");
+
+            ClassUnderTest.Subscribe(subscription, (Message<TestData> message) => receivedMessages.Add(message));
+            messageHandler(serviceBusMessageToReceive);
+            messageHandler(serviceBusMessageToFilterOut);
+
+            Assert.That(receivedMessages.Count, Is.EqualTo(1));
+            Assert.That(receivedMessages[0], Is.SameAs(messageToReceive));
+        }
 
         [Test]
         public void When_handling_a_message_timing_data_is_emitted_even_if_the_subscribed_action_throws()
