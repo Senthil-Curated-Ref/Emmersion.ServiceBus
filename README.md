@@ -160,6 +160,12 @@ var message = new TestMessageBuilder<UserAssessmentScored>()
 ```
 
 
+### Connection Loss
+Some initial testing shows that Microsoft's SDK handles reconnecting to ServiceBus in case of a network partition.
+This is true for both publishing and subscribing.
+Message publishing will block until the message is successfully delivered. 
+
+
 ## Changes & Upgrading Info
 
 ### v3.0
