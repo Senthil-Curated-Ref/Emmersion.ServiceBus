@@ -128,6 +128,23 @@ subscriber.OnException += (object sender, ExceptionArgs args) =>
 };
 ```
 
+### Unit Testing
+When unit testing your subscription handler, you may at times wish to set fields that are normally inaccessible.
+In these cases, please use the `TestMessageBulider<T>` class.
+For example:
+
+```csharp
+var message = new TestMessageBuilder<UserAssessmentScored>()
+    .WithPublishedAt(DateTimeOffset.UtcNow.AddMinutes(-5))
+    .WithEnqueuedAt(DateTimeOffset.UtcNow.AddMilliseconds(-300))
+    .WithReceivedAt(DateTimeOffset.UtcNow)
+    .Build(new UserAssessmentScored
+    {
+       UserAssessmentId = Guid.NewGuid(),
+       UserId = Guid.NewGuid()
+    });
+```
+
 
 ## Changes & Upgrading Info
 

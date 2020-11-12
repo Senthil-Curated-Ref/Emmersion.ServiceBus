@@ -11,6 +11,7 @@ namespace EL.ServiceBus
         public DateTimeOffset? PublishedAt { get; internal set; }
         public DateTimeOffset? EnqueuedAt { get; internal set; }
         public DateTimeOffset? ReceivedAt { get; internal set; }
+        public string Environment { get; internal set; }
 
         public Message(Topic topic, T body)
         {
