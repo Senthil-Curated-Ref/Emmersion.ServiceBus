@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EL.ServiceBus.UnitTests", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EL.ServiceBus.IntegrationTests", "EL.ServiceBus.IntegrationTests\EL.ServiceBus.IntegrationTests.csproj", "{96CB243F-A156-48F0-88A6-577DEF72FFB6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AdHocs", "AdHocs\AdHocs.csproj", "{758E69EB-D1AC-46BD-945F-7F34908928AD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -58,5 +60,17 @@ Global
 		{96CB243F-A156-48F0-88A6-577DEF72FFB6}.Release|x64.Build.0 = Release|Any CPU
 		{96CB243F-A156-48F0-88A6-577DEF72FFB6}.Release|x86.ActiveCfg = Release|Any CPU
 		{96CB243F-A156-48F0-88A6-577DEF72FFB6}.Release|x86.Build.0 = Release|Any CPU
+		{758E69EB-D1AC-46BD-945F-7F34908928AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{758E69EB-D1AC-46BD-945F-7F34908928AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{758E69EB-D1AC-46BD-945F-7F34908928AD}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{758E69EB-D1AC-46BD-945F-7F34908928AD}.Debug|x64.Build.0 = Debug|Any CPU
+		{758E69EB-D1AC-46BD-945F-7F34908928AD}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{758E69EB-D1AC-46BD-945F-7F34908928AD}.Debug|x86.Build.0 = Debug|Any CPU
+		{758E69EB-D1AC-46BD-945F-7F34908928AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{758E69EB-D1AC-46BD-945F-7F34908928AD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{758E69EB-D1AC-46BD-945F-7F34908928AD}.Release|x64.ActiveCfg = Release|Any CPU
+		{758E69EB-D1AC-46BD-945F-7F34908928AD}.Release|x64.Build.0 = Release|Any CPU
+		{758E69EB-D1AC-46BD-945F-7F34908928AD}.Release|x86.ActiveCfg = Release|Any CPU
+		{758E69EB-D1AC-46BD-945F-7F34908928AD}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
