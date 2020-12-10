@@ -7,6 +7,7 @@ trigger:
     exclude:
       - .gitignore
       - README.md
+      - AdHocs/*
 
 pr: none
 
