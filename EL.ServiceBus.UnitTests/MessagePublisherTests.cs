@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using EL.Testing;
 using NUnit.Framework;
 
 namespace EL.ServiceBus.UnitTests
@@ -43,14 +44,14 @@ namespace EL.ServiceBus.UnitTests
                 .Returns(GetMock<ITopicClientWrapper>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToServiceBusMessage(message)).Returns(serviceBusMessage);
             GetMock<ITopicClientWrapper>()
-                .Setup(x => x.SendAsync(Any<Microsoft.Azure.ServiceBus.Message>()))
+                .Setup(x => x.SendAsync(IsAny<Microsoft.Azure.ServiceBus.Message>()))
                 .Returns(Task.Run(() => Thread.Sleep(150)));
 
             ClassUnderTest.OnMessagePublished += (object sender, MessagePublishedArgs args) => receivedTimings.Add(args); 
             ClassUnderTest.Publish(message);
 
             Assert.That(receivedTimings.Count, Is.EqualTo(1));
-            Assert.That(receivedTimings[0].ElapsedMilliseconds, Is.GreaterThanOrEqualTo(150));
+            Assert.That(receivedTimings[0].ElapsedMilliseconds, Is.GreaterThanOrEqualTo(100));
             Assert.That(receivedTimings[0].ElapsedMilliseconds, Is.LessThan(1000));
         }
 
@@ -91,7 +92,7 @@ namespace EL.ServiceBus.UnitTests
                 .Returns(GetMock<ITopicClientWrapper>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToServiceBusMessage(message)).Returns(serviceBusMessage);
             GetMock<ITopicClientWrapper>()
-                .Setup(x => x.ScheduleMessageAsync(Any<Microsoft.Azure.ServiceBus.Message>(), Any<DateTimeOffset>()))
+                .Setup(x => x.ScheduleMessageAsync(IsAny<Microsoft.Azure.ServiceBus.Message>(), IsAny<DateTimeOffset>()))
                 .Returns(Task.Run(() => Thread.Sleep(150)));
 
             ClassUnderTest.OnMessagePublished += (object sender, MessagePublishedArgs args) => receivedTimings.Add(args); 
@@ -113,11 +114,11 @@ namespace EL.ServiceBus.UnitTests
                 .Setup(x => x.GetForSingleTopic())
                 .Returns(GetMock<ITopicClientWrapper>().Object);
             GetMock<IMessageMapper>()
-                .Setup(x => x.FromMessageEnvelope(Any<MessageEnvelope<TestData>>()))
+                .Setup(x => x.FromMessageEnvelope(IsAny<MessageEnvelope<TestData>>()))
                 .Callback<MessageEnvelope<TestData>>(x => envelope = x)
                 .Returns(serviceBusMessage);
             GetMock<ITopicClientWrapper>()
-                .Setup(x => x.SendAsync(Any<Microsoft.Azure.ServiceBus.Message>()))
+                .Setup(x => x.SendAsync(IsAny<Microsoft.Azure.ServiceBus.Message>()))
                 .Returns(Task.CompletedTask);
 
             ClassUnderTest.Publish(messageEvent, message);
@@ -139,14 +140,14 @@ namespace EL.ServiceBus.UnitTests
                 .Setup(x => x.GetForSingleTopic())
                 .Returns(GetMock<ITopicClientWrapper>().Object);
             GetMock<ITopicClientWrapper>()
-                .Setup(x => x.SendAsync(Any<Microsoft.Azure.ServiceBus.Message>()))
+                .Setup(x => x.SendAsync(IsAny<Microsoft.Azure.ServiceBus.Message>()))
                 .Returns(Task.Run(() => Thread.Sleep(150)));
 
             ClassUnderTest.OnMessagePublished += (object sender, MessagePublishedArgs args) => receivedTimings.Add(args); 
             ClassUnderTest.Publish(messageEvent, message);
 
             Assert.That(receivedTimings.Count, Is.EqualTo(1));
-            Assert.That(receivedTimings[0].ElapsedMilliseconds, Is.GreaterThanOrEqualTo(150));
+            Assert.That(receivedTimings[0].ElapsedMilliseconds, Is.GreaterThanOrEqualTo(100));
             Assert.That(receivedTimings[0].ElapsedMilliseconds, Is.LessThan(1000));
         }
     }

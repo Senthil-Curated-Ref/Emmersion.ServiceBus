@@ -1,4 +1,5 @@
 using System;
+using EL.Testing;
 using Microsoft.Azure.ServiceBus.Management;
 using Moq;
 using NUnit.Framework;
@@ -26,7 +27,7 @@ namespace EL.ServiceBus.UnitTests
             
             ClassUnderTest.CreateSubscriptionIfNecessary(subscription).Wait();
 
-            GetMock<IManagementClientWrapper>().Verify(x => x.CreateSubscription(Any<SubscriptionDescription>()), Times.Never);
+            GetMock<IManagementClientWrapper>().VerifyNever(x => x.CreateSubscription(IsAny<SubscriptionDescription>()));
         }
 
         [Test]
@@ -42,7 +43,7 @@ namespace EL.ServiceBus.UnitTests
             var exception = Assert.Catch(() => ClassUnderTest.CreateSubscriptionIfNecessary(subscription).Wait());
 
             Assert.That(exception.Message.Contains($"Topic {subscription.Topic} does not exist"));
-            GetMock<IManagementClientWrapper>().Verify(x => x.CreateSubscription(Any<SubscriptionDescription>()), Times.Never);
+            GetMock<IManagementClientWrapper>().VerifyNever(x => x.CreateSubscription(IsAny<SubscriptionDescription>()));
         }
 
         [Test]
@@ -56,7 +57,7 @@ namespace EL.ServiceBus.UnitTests
                 .Setup(x => x.DoesTopicExist(subscription.Topic.ToString()))
                 .ReturnsAsync(true);
                 GetMock<IManagementClientWrapper>()
-                    .Setup(x => x.CreateSubscription(Any<SubscriptionDescription>()))
+                    .Setup(x => x.CreateSubscription(IsAny<SubscriptionDescription>()))
                     .Callback<SubscriptionDescription>(x => description = x);
             
             ClassUnderTest.CreateSubscriptionIfNecessary(subscription).Wait();
@@ -84,7 +85,7 @@ namespace EL.ServiceBus.UnitTests
                 .Setup(x => x.DoesTopicExist(subscription.Topic.ToString()))
                 .ReturnsAsync(true);
                 GetMock<IManagementClientWrapper>()
-                    .Setup(x => x.CreateSubscription(Any<SubscriptionDescription>()))
+                    .Setup(x => x.CreateSubscription(IsAny<SubscriptionDescription>()))
                     .Callback<SubscriptionDescription>(x => description = x);
             
             ClassUnderTest.CreateSubscriptionIfNecessary(subscription).Wait();

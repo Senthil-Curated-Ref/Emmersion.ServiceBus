@@ -1,4 +1,5 @@
 using System;
+using EL.Testing;
 using NUnit.Framework;
 
 namespace EL.ServiceBus.UnitTests

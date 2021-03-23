@@ -1,3 +1,4 @@
+using EL.Testing;
 using Moq;
 using NUnit.Framework;
 
@@ -34,7 +35,7 @@ namespace EL.ServiceBus.UnitTests
             var result = Assert.Catch(() => ClassUnderTest.GetClient(subscription));
 
             Assert.That(result.Message, Does.Contain(subscription.ToString()));
-            GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessary(Any<Subscription>()), Times.Once);
+            GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessary(IsAny<Subscription>()), Times.Once);
         }
 
         [Test]
@@ -84,7 +85,7 @@ namespace EL.ServiceBus.UnitTests
             var result = Assert.Catch(() => ClassUnderTest.GetDeadLetterClient(subscription));
 
             Assert.That(result.Message, Does.Contain(subscription.ToString()));
-            GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessary(Any<Subscription>()), Times.Once);
+            GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessary(IsAny<Subscription>()), Times.Once);
         }
 
         [Test]

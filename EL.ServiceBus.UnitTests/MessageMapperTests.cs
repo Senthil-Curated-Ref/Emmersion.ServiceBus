@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using EL.Testing;
 using NUnit.Framework;
 
 namespace EL.ServiceBus.UnitTests
@@ -21,7 +22,7 @@ namespace EL.ServiceBus.UnitTests
             var serializedData = "serialized-data";
             Payload<TestData> payload = null;
             GetMock<IMessageSerializer>()
-                .Setup(x => x.Serialize(Any<Payload<TestData>>()))
+                .Setup(x => x.Serialize(IsAny<Payload<TestData>>()))
                 .Callback((Payload<TestData> x) => payload = x)
                 .Returns(serializedData);
 
@@ -42,7 +43,7 @@ namespace EL.ServiceBus.UnitTests
             var serializedBody = "serialized-data";
             var bodyBytes = Encoding.UTF8.GetBytes(serializedBody);
             var message = new Microsoft.Azure.ServiceBus.Message(bodyBytes);
-            message.MessageId = Guid.NewGuid().ToString();
+            message.MessageId = RandomString();
             message.CorrelationId = "correlation-id";
             var topic = new Topic("el-service-bus", "test-event", 1);
             var deserialized = new Payload<TestData> {
@@ -73,8 +74,8 @@ namespace EL.ServiceBus.UnitTests
             var bodyBytes = Encoding.UTF8.GetBytes(serializedBody);
             var message = new Microsoft.Azure.ServiceBus.Message(bodyBytes)
             {
-                MessageId = Guid.NewGuid().ToString(),
-                CorrelationId = Guid.NewGuid().ToString()
+                MessageId = RandomString(),
+                CorrelationId = RandomString()
             };
 
             var result = ClassUnderTest.GetDeadLetter(message);

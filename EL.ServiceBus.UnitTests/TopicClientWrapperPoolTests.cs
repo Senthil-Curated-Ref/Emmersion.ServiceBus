@@ -1,3 +1,4 @@
+using EL.Testing;
 using Moq;
 using NUnit.Framework;
 
@@ -33,7 +34,7 @@ namespace EL.ServiceBus.UnitTests
 
             Assert.That(result1, Is.SameAs(mockWrapper.Object));
             Assert.That(result2, Is.SameAs(mockWrapper.Object));
-            GetMock<ITopicClientWrapperCreator>().Verify(x => x.Create(Any<string>(), Any<string>()), Times.Once);
+            GetMock<ITopicClientWrapperCreator>().Verify(x => x.Create(IsAny<string>(), IsAny<string>()), Times.Once);
         }
 
         [Test]
@@ -114,7 +115,7 @@ namespace EL.ServiceBus.UnitTests
 
             Assert.That(result1, Is.SameAs(mockWrapper.Object));
             Assert.That(result2, Is.SameAs(mockWrapper.Object));
-            GetMock<ITopicClientWrapperCreator>().Verify(x => x.Create(Any<string>(), Any<string>()), Times.Once);
+            GetMock<ITopicClientWrapperCreator>().Verify(x => x.Create(IsAny<string>(), IsAny<string>()), Times.Once);
         }
     }
 }
