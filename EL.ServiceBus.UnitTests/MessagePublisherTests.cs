@@ -99,7 +99,7 @@ namespace EL.ServiceBus.UnitTests
             ClassUnderTest.PublishScheduled(message, enqueueAt);
 
             Assert.That(receivedTimings.Count, Is.EqualTo(1));
-            Assert.That(receivedTimings[0].ElapsedMilliseconds, Is.GreaterThanOrEqualTo(150));
+            Assert.That(receivedTimings[0].ElapsedMilliseconds, Is.GreaterThanOrEqualTo(100));
             Assert.That(receivedTimings[0].ElapsedMilliseconds, Is.LessThan(1000));
         }
 
