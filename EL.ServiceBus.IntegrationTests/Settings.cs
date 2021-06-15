@@ -16,26 +16,26 @@ namespace EL.ServiceBus.IntegrationTests
 
         static Settings()
         {
-            var configurationBuilder = new ConfigurationBuilder()
+            configuration = new ConfigurationBuilder()
                 .SetBasePath(Path.Combine(AppContext.BaseDirectory))
-                .AddJsonFile("appsettings.json", optional: false);
-            configuration = configurationBuilder.Build();
+                .AddJsonFile("appsettings.json", optional: false)
+                .AddUserSecrets<Settings>().Build();
         }
 
         public IPublisherConfig PublisherConfig => new TestPublisherConfig
         {
-            ConnectionString = configuration.GetValue<string>("ConnectionString"),
-            SingleTopicConnectionString = configuration.GetValue<string>("SingleTopicConnectionString"),
-            SingleTopicName = configuration.GetValue<string>("SingleTopicName"),
-            Environment = "el.servicebus.integration-tests"
+            ConnectionString = configuration.GetValue<string>("ServiceBus:ConnectionString"),
+            SingleTopicConnectionString = configuration.GetValue<string>("ServiceBus:SingleTopicConnectionString"),
+            SingleTopicName = configuration.GetValue<string>("ServiceBus:SingleTopicName"),
+            Environment = "emmersion.servicebus.integration-tests"
         };
 
         public ISubscriptionConfig SubscriptionConfig => new TestSubscriptionConfig
         {
-            ConnectionString = configuration.GetValue<string>("ConnectionString"),
-            SingleTopicConnectionString = configuration.GetValue<string>("SingleTopicConnectionString"),
-            SingleTopicName = configuration.GetValue<string>("SingleTopicName"),
-            SingleTopicSubscriptionName = configuration.GetValue<string>("SingleTopicSubscriptionName")
+            ConnectionString = configuration.GetValue<string>("ServiceBus:ConnectionString"),
+            SingleTopicConnectionString = configuration.GetValue<string>("ServiceBus:SingleTopicConnectionString"),
+            SingleTopicName = configuration.GetValue<string>("ServiceBus:SingleTopicName"),
+            SingleTopicSubscriptionName = configuration.GetValue<string>("ServiceBus:SingleTopicSubscriptionName")
         };
     }
 }

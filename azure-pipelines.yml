@@ -15,9 +15,7 @@ pool:
   vmImage: 'windows-2019'
 
 variables:
-  solution: '**/*.sln'
-  buildPlatform: 'Any CPU'
-  buildConfiguration: 'Release'
+  - group: ServiceBus.IntegrationTests
 
 name: 3.0$(Rev:.r)
 
