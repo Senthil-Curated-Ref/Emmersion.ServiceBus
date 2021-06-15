@@ -30,6 +30,13 @@ steps:
     feedsToUse: 'select'
     vstsFeed: '2ee1cde5-9787-4e91-b498-e30a43c5d914'
 
+- task: FileTransform@1
+  displayName: 'Integration test file transform'
+  inputs:
+    folderPath: '$(System.DefaultWorkingDirectory)/EL.ServiceBus.IntegrationTests'
+    fileType: json
+    targetFiles: appsettings.json
+
 - task: DotNetCoreCLI@2
   displayName: 'Test'
   inputs:
