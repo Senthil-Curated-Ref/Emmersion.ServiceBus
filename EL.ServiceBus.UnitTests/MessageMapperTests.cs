@@ -1,6 +1,6 @@
 using System;
 using System.Text;
-using EL.Testing;
+using Emmersion.Testing;
 using NUnit.Framework;
 
 namespace EL.ServiceBus.UnitTests

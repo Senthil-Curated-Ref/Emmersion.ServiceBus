@@ -1,5 +1,5 @@
 using System;
-using EL.Testing;
+using Emmersion.Testing;
 using Microsoft.Azure.ServiceBus.Management;
 using Moq;
 using NUnit.Framework;

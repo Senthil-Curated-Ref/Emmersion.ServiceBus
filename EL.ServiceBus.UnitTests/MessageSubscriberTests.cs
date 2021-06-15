@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using EL.Testing;
+using Emmersion.Testing;
 using Moq;
 using NUnit.Framework;
 using ExceptionReceivedEventArgs = Microsoft.Azure.ServiceBus.ExceptionReceivedEventArgs;
