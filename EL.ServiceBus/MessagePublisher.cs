@@ -6,9 +6,21 @@ namespace EL.ServiceBus
 {
     public interface IMessagePublisher
     {
+        [Obsolete("Use PublishAsync instead")]
         void Publish<T>(Message<T> message);
+        
+        Task PublishAsync<T>(Message<T> message);
+        
+        [Obsolete("Use PublishScheduledAsync instead")]
         void PublishScheduled<T>(Message<T> message, DateTimeOffset enqueueAt);
+        
+        Task PublishScheduledAsync<T>(Message<T> message, DateTimeOffset enqueueAt);
+        
+        [Obsolete("Use PublishAsync instead")]
         void Publish<T>(MessageEvent messageEvent, T message);
+        
+        Task PublishAsync<T>(MessageEvent messageEvent, T message);
+        
         event OnMessagePublished OnMessagePublished;
     }
 
@@ -31,19 +43,29 @@ namespace EL.ServiceBus
 
         public void Publish<T>(Message<T> message)
         {
-            Publish(message, null, (client, data) => client.SendAsync(data));
+            PublishAsync(message).Wait();
+        }
+        
+        public async Task PublishAsync<T>(Message<T> message)
+        {
+            await Publish(message, null, (client, data) => client.SendAsync(data));
         }
 
         public void PublishScheduled<T>(Message<T> message, DateTimeOffset enqueueAt)
         {
-            Publish(message, enqueueAt, (client, data) => client.ScheduleMessageAsync(data, enqueueAt));
+            PublishScheduledAsync(message, enqueueAt).Wait();
+        }
+        
+        public async Task PublishScheduledAsync<T>(Message<T> message, DateTimeOffset enqueueAt)
+        {
+            await Publish(message, enqueueAt, (client, data) => client.ScheduleMessageAsync(data, enqueueAt));
         }
 
-        private void Publish<T>(Message<T> message, DateTimeOffset? enqueueAt, Func<ITopicClientWrapper, Microsoft.Azure.ServiceBus.Message, Task> action)
+        private async Task Publish<T>(Message<T> message, DateTimeOffset? enqueueAt, Func<ITopicClientWrapper, Microsoft.Azure.ServiceBus.Message, Task> sendTask)
         {
             var client = pool.GetForTopic(message.Topic);
             var stopwatch = Stopwatch.StartNew();
-            action(client, PrepareMessage(message, enqueueAt)).Wait();
+            await sendTask(client, PrepareMessage(message, enqueueAt));
             OnMessagePublished?.Invoke(this, new MessagePublishedArgs(stopwatch.ElapsedMilliseconds));
         }
 
@@ -57,9 +79,14 @@ namespace EL.ServiceBus
 
         public void Publish<T>(MessageEvent messageEvent, T message)
         {
+            PublishAsync(messageEvent, message).Wait();
+        }
+        
+        public async Task PublishAsync<T>(MessageEvent messageEvent, T message)
+        {
             var client = pool.GetForSingleTopic();
             var stopwatch = Stopwatch.StartNew();
-            client.SendAsync(PrepareMessage(messageEvent, message)).Wait();
+            await client.SendAsync(PrepareMessage(messageEvent, message));
             OnMessagePublished?.Invoke(this, new MessagePublishedArgs(stopwatch.ElapsedMilliseconds));
         }
 

@@ -33,7 +33,7 @@ namespace EL.ServiceBus.IntegrationTests
         }
 
         [Test]
-        public void RoundTripTest()
+        public async Task RoundTripTest()
         {
             var topicA1 = new Topic("el-service-bus", "integration-test-a", 1);
             var topicA2 = new Topic("el-service-bus", "integration-test-a", 2);
@@ -88,13 +88,13 @@ namespace EL.ServiceBus.IntegrationTests
                 messagePublishDurations.Add(args.ElapsedMilliseconds);
             };
 
-            publisher.Publish(a1Message1);
-            publisher.Publish(a1Message2);
-            publisher.Publish(a2Message1);
-            publisher.Publish(a2Message2);
-            publisher.Publish(a2Message3);
-            publisher.Publish(b1Message1);
-            publisher.Publish(b1Message2);
+            await publisher.PublishAsync(a1Message1);
+            await publisher.PublishAsync(a1Message2);
+            await publisher.PublishAsync(a2Message1);
+            await publisher.PublishAsync(a2Message2);
+            await publisher.PublishAsync(a2Message3);
+            await publisher.PublishAsync(b1Message1);
+            await publisher.PublishAsync(b1Message2);
 
             var waited = 0;
             var expectedMessageCount = 7;
@@ -131,7 +131,7 @@ namespace EL.ServiceBus.IntegrationTests
         }
 
         [Test]
-        public void ScheduledRoundTripTests()
+        public async Task ScheduledRoundTripTests()
         {
             var topic = new Topic("el-service-bus", "integration-test-scheduled", 1);
             var subscription = new Subscription(topic, "el-service-bus", RandomAutoDeletingProcess());
@@ -165,7 +165,7 @@ namespace EL.ServiceBus.IntegrationTests
                 messagePublishDurations.Add(args.ElapsedMilliseconds);
             };
 
-            publisher.PublishScheduled(message, DateTimeOffset.UtcNow.AddSeconds(2));
+            await publisher.PublishScheduledAsync(message, DateTimeOffset.UtcNow.AddSeconds(2));
             
             var waited = 0;
             var expectedMessageCount = 1;
@@ -192,7 +192,7 @@ namespace EL.ServiceBus.IntegrationTests
         }
 
         [Test]
-        public void DeadLetterQueueTest()
+        public async Task DeadLetterQueueTest()
         {
             var topic = new Topic("el-service-bus", "integration-test-deadletter", 1);
             var subscription = new Subscription(topic, "el-service-bus", RandomAutoDeletingProcess());
@@ -209,7 +209,7 @@ namespace EL.ServiceBus.IntegrationTests
 
             var message = new Message<string>(topic, $"hello-{Guid.NewGuid()}");
 
-            publisher.Publish(message);
+            await publisher.PublishAsync(message);
             
             var waited = 0;
             var expectedDeadLetterCount = 1;
@@ -233,7 +233,7 @@ namespace EL.ServiceBus.IntegrationTests
         public void WhenPublishingToANonExistantTopic()
         {
             var topic = new Topic("el-service-bus", "fake", 1);
-            Assert.Catch(() => publisher.Publish(new Message<string>(topic, "hello")));
+            Assert.CatchAsync(() => publisher.PublishAsync(new Message<string>(topic, "hello")));
         }
 
         [Test]
