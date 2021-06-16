@@ -8,32 +8,32 @@ namespace EL.ServiceBus
     public interface IMessageSubscriber
     {
         [Obsolete("Use SubscribeAsync instead")]
-        void Subscribe<T>(Subscription subscription, Func<Message<T>, Task> action);
+        void Subscribe<T>(Subscription subscription, Func<Message<T>, Task> messageHandler);
         
         [Obsolete("Use SubscribeAsync instead")]
-        void Subscribe<T>(Subscription subscription, Action<Message<T>> action);
+        void Subscribe<T>(Subscription subscription, Action<Message<T>> messageHandler);
         
-        Task SubscribeAsync<T>(Subscription subscription, Func<Message<T>, Task> action);
+        Task SubscribeAsync<T>(Subscription subscription, Func<Message<T>, Task> messageHandler);
         
-        Task SubscribeAsync<T>(Subscription subscription, Action<Message<T>> action);
+        Task SubscribeAsync<T>(Subscription subscription, Action<Message<T>> messageHandler);
         
-        void Subscribe<T>(MessageEvent messageEvent, Action<T> action);
+        void Subscribe<T>(MessageEvent messageEvent, Action<T> messageHandler);
         
-        void Subscribe<T>(MessageEvent messageEvent, Func<T, Task> action);
+        void Subscribe<T>(MessageEvent messageEvent, Func<T, Task> messageHandler);
         
         event OnMessageReceived OnMessageReceived;
         
         event OnException OnException;
         
         [Obsolete("Use SubscribeToDeadLettersAsync instead")]
-        void SubscribeToDeadLetters(Subscription subscription, Func<DeadLetter, Task> action);
+        void SubscribeToDeadLetters(Subscription subscription, Func<DeadLetter, Task> messageHandler);
         
         [Obsolete("Use SubscribeToDeadLettersAsync instead")]
-        void SubscribeToDeadLetters(Subscription subscription, Action<DeadLetter> action);
+        void SubscribeToDeadLetters(Subscription subscription, Action<DeadLetter> messageHandler);
         
-        Task SubscribeToDeadLettersAsync(Subscription subscription, Func<DeadLetter, Task> action);
+        Task SubscribeToDeadLettersAsync(Subscription subscription, Func<DeadLetter, Task> messageHandler);
         
-        Task SubscribeToDeadLettersAsync(Subscription subscription, Action<DeadLetter> action);
+        Task SubscribeToDeadLettersAsync(Subscription subscription, Action<DeadLetter> messageHandler);
     }
 
     internal class MessageSubscriber : IMessageSubscriber
@@ -56,31 +56,31 @@ namespace EL.ServiceBus
         }
 
         [Obsolete("Use SubscribeAsync instead")]
-        public void Subscribe<T>(Subscription subscription, Action<Message<T>> action)
+        public void Subscribe<T>(Subscription subscription, Action<Message<T>> messageHandler)
         {
             Subscribe(subscription, (Message<T> message) =>
             {
-                action(message);
+                messageHandler(message);
                 return Task.CompletedTask;
             });
         }
 
         [Obsolete("Use SubscribeAsync instead")]
-        public void Subscribe<T>(Subscription subscription, Func<Message<T>, Task> action)
+        public void Subscribe<T>(Subscription subscription, Func<Message<T>, Task> messageHandler)
         {
-            SubscribeAsync(subscription, action).Wait();
+            SubscribeAsync(subscription, messageHandler).Wait();
         }
         
-        public async Task SubscribeAsync<T>(Subscription subscription, Action<Message<T>> action)
+        public async Task SubscribeAsync<T>(Subscription subscription, Action<Message<T>> messageHandler)
         {
             await SubscribeAsync(subscription, (Message<T> message) =>
             {
-                action(message);
+                messageHandler(message);
                 return Task.CompletedTask;
             });
         }
         
-        public async Task SubscribeAsync<T>(Subscription subscription, Func<Message<T>, Task> action)
+        public async Task SubscribeAsync<T>(Subscription subscription, Func<Message<T>, Task> messageHandler)
         {
             var filteringDisabled = string.IsNullOrEmpty(config.EnvironmentFilter);
             var client = await subscriptionClientWrapperPool.GetClient(subscription);
@@ -94,7 +94,7 @@ namespace EL.ServiceBus
                     enqueuedAt = message.EnqueuedAt;
                     if (filteringDisabled || message.Environment == config.EnvironmentFilter)
                     {
-                        await action(message);
+                        await messageHandler(message);
                     }
                 }
                 finally
@@ -112,57 +112,57 @@ namespace EL.ServiceBus
         }
 
         [Obsolete("Use SubscribeToDeadLetters instead")]
-        public void SubscribeToDeadLetters(Subscription subscription, Action<DeadLetter> action)
+        public void SubscribeToDeadLetters(Subscription subscription, Action<DeadLetter> messageHandler)
         {
             SubscribeToDeadLetters(subscription, (message) =>
             {
-                action(message);
+                messageHandler(message);
                 return Task.CompletedTask;
             });
         }
 
         [Obsolete("Use SubscribeToDeadLetters instead")]
-        public void SubscribeToDeadLetters(Subscription subscription, Func<DeadLetter, Task> action)
+        public void SubscribeToDeadLetters(Subscription subscription, Func<DeadLetter, Task> messageHandler)
         {
-            SubscribeToDeadLettersAsync(subscription, action).Wait();
+            SubscribeToDeadLettersAsync(subscription, messageHandler).Wait();
         }
 
-        public Task SubscribeToDeadLettersAsync(Subscription subscription, Action<DeadLetter> action)
+        public Task SubscribeToDeadLettersAsync(Subscription subscription, Action<DeadLetter> messageHandler)
         {
             return SubscribeToDeadLettersAsync(subscription, (message) =>
             {
-                action(message);
+                messageHandler(message);
                 return Task.CompletedTask;
             });
         }
         
-        public async Task SubscribeToDeadLettersAsync(Subscription subscription, Func<DeadLetter, Task> action)
+        public async Task SubscribeToDeadLettersAsync(Subscription subscription, Func<DeadLetter, Task> messageHandler)
         {
             var client = await subscriptionClientWrapperPool.GetDeadLetterClient(subscription);
             client.RegisterMessageHandler(
-                (serviceBusMessage) => action(messageMapper.GetDeadLetter(serviceBusMessage)),
+                (serviceBusMessage) => messageHandler(messageMapper.GetDeadLetter(serviceBusMessage)),
                 (args) => OnException?.Invoke(this, new ExceptionArgs(subscription, args)));
         }
 
-        public void Subscribe<T>(MessageEvent messageEvent, Action<T> action)
+        public void Subscribe<T>(MessageEvent messageEvent, Action<T> messageHandler)
         {
             Subscribe(messageEvent, (T data) =>
             {
-                action(data);
+                messageHandler(data);
                 return Task.CompletedTask;
             });
         }
         
-        public void Subscribe<T>(MessageEvent messageEvent, Func<T, Task> action)
+        public void Subscribe<T>(MessageEvent messageEvent, Func<T, Task> messageHandler)
         {
             InitializeSingleTopicClient();
             routes.Add(new Route
             {
                 MessageEvent = messageEvent.ToString(),
-                Action = (serviceBusMessage) =>
+                MessageHandler = (serviceBusMessage) =>
                 {
                     var envelope = messageMapper.ToMessageEnvelope<T>(serviceBusMessage);
-                    return action(envelope.Payload);
+                    return messageHandler(envelope.Payload);
                 }
             });
         }
@@ -183,7 +183,7 @@ namespace EL.ServiceBus
             {
                 foreach (var x in recipients)
                 {
-                    await x.Action(serviceBusMessage);
+                    await x.MessageHandler(serviceBusMessage);
                 }
             }
             finally
@@ -202,6 +202,6 @@ namespace EL.ServiceBus
     internal class Route
     {
         public string MessageEvent { get; set; }
-        public Func<Microsoft.Azure.ServiceBus.Message, Task> Action { get; set; }
+        public Func<Microsoft.Azure.ServiceBus.Message, Task> MessageHandler { get; set; }
     }
 }
