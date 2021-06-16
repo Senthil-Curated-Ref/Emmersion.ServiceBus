@@ -156,14 +156,14 @@ namespace EL.ServiceBus.UnitTests
                 .Returns(message);
 
             ClassUnderTest.OnMessageReceived += (object sender, MessageReceivedArgs args) => eventArgs.Add(args);
-            ClassUnderTest.Subscribe(subscription, (Message<TestData> message) =>
+            ClassUnderTest.Subscribe(subscription, async (Message<TestData> message) =>
             {
                 receivedMessages.Add(message);
-                Thread.Sleep(150);
+                await Task.Delay(150);
                 throw testException;
             });
             var before = DateTimeOffset.UtcNow;
-            var caught = Assert.Catch(() => messageHandler(serviceBusMessage).Wait());
+            var caught = Assert.CatchAsync(() => messageHandler(serviceBusMessage));
             var after = DateTimeOffset.UtcNow;
             var duration = after - before;
 
@@ -179,7 +179,7 @@ namespace EL.ServiceBus.UnitTests
             Assert.That(eventArgs[0].ReceivedAt, Is.EqualTo(before).Within(TimeSpan.FromMilliseconds(10)));
             Assert.That(eventArgs[0].ProcessingTime, Is.EqualTo(duration).Within(TimeSpan.FromMilliseconds(10)));
 
-            Assert.That(caught.InnerException, Is.SameAs(testException));
+            Assert.That(caught, Is.SameAs(testException));
         }
 
         [Test]
@@ -360,7 +360,7 @@ namespace EL.ServiceBus.UnitTests
 
             ClassUnderTest.OnMessageReceived += (object sender, MessageReceivedArgs args) => eventArgs.Add(args);
             var before = DateTimeOffset.UtcNow;
-            Assert.Catch<Exception>(() => ClassUnderTest.RouteMessage(serviceBusMessage).Wait());
+            Assert.CatchAsync<Exception>(() => ClassUnderTest.RouteMessage(serviceBusMessage));
             var duration = DateTimeOffset.UtcNow - before;
 
             Assert.That(eventArgs.Count, Is.EqualTo(1));

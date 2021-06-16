@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Emmersion.Testing;
 using Microsoft.Azure.ServiceBus.Management;
 using Moq;
@@ -19,13 +20,13 @@ namespace EL.ServiceBus.UnitTests
         }
 
         [Test]
-        public void When_creating_a_subscription_and_it_already_exists()
+        public async Task When_creating_a_subscription_and_it_already_exists()
         {
             GetMock<IManagementClientWrapper>()
                 .Setup(x => x.DoesSubscriptionExist(subscription.Topic.ToString(), subscription.SubscriptionName))
                 .ReturnsAsync(true);
             
-            ClassUnderTest.CreateSubscriptionIfNecessary(subscription).Wait();
+            await ClassUnderTest.CreateSubscriptionIfNecessary(subscription);
 
             GetMock<IManagementClientWrapper>().VerifyNever(x => x.CreateSubscription(IsAny<SubscriptionDescription>()));
         }
@@ -40,14 +41,14 @@ namespace EL.ServiceBus.UnitTests
                 .Setup(x => x.DoesTopicExist(subscription.Topic.ToString()))
                 .ReturnsAsync(false);
             
-            var exception = Assert.Catch(() => ClassUnderTest.CreateSubscriptionIfNecessary(subscription).Wait());
+            var exception = Assert.CatchAsync(() => ClassUnderTest.CreateSubscriptionIfNecessary(subscription));
 
             Assert.That(exception.Message.Contains($"Topic {subscription.Topic} does not exist"));
             GetMock<IManagementClientWrapper>().VerifyNever(x => x.CreateSubscription(IsAny<SubscriptionDescription>()));
         }
 
         [Test]
-        public void When_creating_a_subscription_successfully()
+        public async Task When_creating_a_subscription_successfully()
         {
             SubscriptionDescription description = null;
             GetMock<IManagementClientWrapper>()
@@ -60,7 +61,7 @@ namespace EL.ServiceBus.UnitTests
                     .Setup(x => x.CreateSubscription(IsAny<SubscriptionDescription>()))
                     .Callback<SubscriptionDescription>(x => description = x);
             
-            ClassUnderTest.CreateSubscriptionIfNecessary(subscription).Wait();
+            await ClassUnderTest.CreateSubscriptionIfNecessary(subscription);
 
             GetMock<IManagementClientWrapper>().Verify(x => x.CreateSubscription(description));
             Assert.That(description.TopicPath, Is.EqualTo(subscription.Topic.ToString()));
@@ -74,7 +75,7 @@ namespace EL.ServiceBus.UnitTests
         }
 
         [Test]
-        public void When_creating_a_subscription_that_has_auto_delete_in_the_name()
+        public async Task When_creating_a_subscription_that_has_auto_delete_in_the_name()
         {
             subscription = new Subscription(subscription.Topic, "unit-tests", "auto-delete-soon");
             SubscriptionDescription description = null;
@@ -88,7 +89,7 @@ namespace EL.ServiceBus.UnitTests
                     .Setup(x => x.CreateSubscription(IsAny<SubscriptionDescription>()))
                     .Callback<SubscriptionDescription>(x => description = x);
             
-            ClassUnderTest.CreateSubscriptionIfNecessary(subscription).Wait();
+            await ClassUnderTest.CreateSubscriptionIfNecessary(subscription);
 
             GetMock<IManagementClientWrapper>().Verify(x => x.CreateSubscription(description));
             Assert.That(description.TopicPath, Is.EqualTo(subscription.Topic.ToString()));
