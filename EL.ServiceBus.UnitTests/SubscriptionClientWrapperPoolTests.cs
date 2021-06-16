@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Emmersion.Testing;
 using Moq;
 using NUnit.Framework;
@@ -10,14 +11,14 @@ namespace EL.ServiceBus.UnitTests
         private Subscription otherSubscription = new Subscription(new Topic("el-service-bus", "other-test-event", 2), "el-service-bus", "listener");
 
         [Test]
-        public void When_getting_client_the_first_time()
+        public async Task When_getting_client_the_first_time()
         {
             var mockSubscriptionClientWrapper = new Mock<ISubscriptionClientWrapper>();
             GetMock<ISubscriptionClientWrapperCreator>()
                 .Setup(x => x.Create(subscription))
                 .Returns(mockSubscriptionClientWrapper.Object);
 
-            var result = ClassUnderTest.GetClient(subscription);
+            var result = await ClassUnderTest.GetClient(subscription);
 
             Assert.That(result, Is.SameAs(mockSubscriptionClientWrapper.Object));
             GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessary(subscription));
@@ -32,14 +33,14 @@ namespace EL.ServiceBus.UnitTests
                 .Returns(mockSubscriptionClientWrapper.Object);
 
             ClassUnderTest.GetClient(subscription);
-            var result = Assert.Catch(() => ClassUnderTest.GetClient(subscription));
+            var result = Assert.CatchAsync(() => ClassUnderTest.GetClient(subscription));
 
             Assert.That(result.Message, Does.Contain(subscription.ToString()));
             GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessary(IsAny<Subscription>()), Times.Once);
         }
 
         [Test]
-        public void When_getting_different_clients()
+        public async Task When_getting_different_clients()
         {
             var mockSubscriptionClientWrapper = new Mock<ISubscriptionClientWrapper>();
             GetMock<ISubscriptionClientWrapperCreator>()
@@ -50,8 +51,8 @@ namespace EL.ServiceBus.UnitTests
                 .Setup(x => x.Create(otherSubscription))
                 .Returns(otherMockSubscriptionClientWrapper.Object);
 
-            var result1 = ClassUnderTest.GetClient(subscription);
-            var result2 = ClassUnderTest.GetClient(otherSubscription);
+            var result1 = await ClassUnderTest.GetClient(subscription);
+            var result2 = await ClassUnderTest.GetClient(otherSubscription);
 
             Assert.That(result1, Is.SameAs(mockSubscriptionClientWrapper.Object));
             Assert.That(result2, Is.SameAs(otherMockSubscriptionClientWrapper.Object));
@@ -60,14 +61,14 @@ namespace EL.ServiceBus.UnitTests
         }
 
         [Test]
-        public void When_getting_a_dead_letter_client_the_first_time()
+        public async Task When_getting_a_dead_letter_client_the_first_time()
         {
             var mockSubscriptionClientWrapper = new Mock<ISubscriptionClientWrapper>();
             GetMock<ISubscriptionClientWrapperCreator>()
                 .Setup(x => x.CreateDeadLetter(subscription))
                 .Returns(mockSubscriptionClientWrapper.Object);
 
-            var result = ClassUnderTest.GetDeadLetterClient(subscription);
+            var result = await ClassUnderTest.GetDeadLetterClient(subscription);
 
             Assert.That(result, Is.SameAs(mockSubscriptionClientWrapper.Object));
             GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessary(subscription));
@@ -82,7 +83,7 @@ namespace EL.ServiceBus.UnitTests
                 .Returns(mockSubscriptionClientWrapper.Object);
 
             ClassUnderTest.GetDeadLetterClient(subscription);
-            var result = Assert.Catch(() => ClassUnderTest.GetDeadLetterClient(subscription));
+            var result = Assert.CatchAsync(() => ClassUnderTest.GetDeadLetterClient(subscription));
 
             Assert.That(result.Message, Does.Contain(subscription.ToString()));
             GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessary(IsAny<Subscription>()), Times.Once);

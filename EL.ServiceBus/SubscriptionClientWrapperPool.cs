@@ -1,21 +1,22 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace EL.ServiceBus
 {
     internal interface ISubscriptionClientWrapperPool : IDisposable
     {
-        ISubscriptionClientWrapper GetClient(Subscription subscription);
-        ISubscriptionClientWrapper GetDeadLetterClient(Subscription subscription);
+        Task<ISubscriptionClientWrapper> GetClient(Subscription subscription);
+        Task<ISubscriptionClientWrapper> GetDeadLetterClient(Subscription subscription);
         ISubscriptionClientWrapper GetSingleTopicClientIfFirstTime();
     }
 
     internal class SubscriptionClientWrapperPool : ISubscriptionClientWrapperPool
     {
         private Dictionary<string, ISubscriptionClientWrapper> clients = new Dictionary<string, ISubscriptionClientWrapper>();
-        private static object threadLock = new object();
+        static SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1,1);
         private readonly ISubscriptionClientWrapperCreator subscriptionClientWrapperCreator;
         private readonly ISubscriptionCreator subscriptionCreator;
 
@@ -26,19 +27,20 @@ namespace EL.ServiceBus
             this.subscriptionCreator = subscriptionCreator;
         }
 
-        public ISubscriptionClientWrapper GetClient(Subscription subscription)
+        public Task<ISubscriptionClientWrapper> GetClient(Subscription subscription)
         {
             return GetClient(subscription.ToString(), subscription, () => subscriptionClientWrapperCreator.Create(subscription));
         }
 
-        public ISubscriptionClientWrapper GetDeadLetterClient(Subscription subscription)
+        public Task<ISubscriptionClientWrapper> GetDeadLetterClient(Subscription subscription)
         {
             return GetClient(subscription.ToString() + "-dead-letter", subscription, () => subscriptionClientWrapperCreator.CreateDeadLetter(subscription));
         }
 
-        private ISubscriptionClientWrapper GetClient(string key, Subscription subscription, Func<ISubscriptionClientWrapper> createAction)
+        private async Task<ISubscriptionClientWrapper> GetClient(string key, Subscription subscription, Func<ISubscriptionClientWrapper> createAction)
         {
-            lock (threadLock)
+            await semaphoreSlim.WaitAsync();
+            try
             {
                 if (clients.ContainsKey(key))
                 {
@@ -49,11 +51,16 @@ namespace EL.ServiceBus
                 clients[key] = client;
                 return client;
             }
+            finally
+            {
+                semaphoreSlim.Release();
+            }
         }
 
         public ISubscriptionClientWrapper GetSingleTopicClientIfFirstTime()
         {
-            lock (threadLock)
+            semaphoreSlim.Wait();
+            try
             {
                 if (!clients.ContainsKey("single-topic"))
                 {
@@ -61,6 +68,10 @@ namespace EL.ServiceBus
                     return clients["single-topic"];
                 }
                 return null;
+            }
+            finally
+            {
+                semaphoreSlim.Release();
             }
         }
 

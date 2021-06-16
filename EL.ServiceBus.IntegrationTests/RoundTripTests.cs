@@ -57,17 +57,17 @@ namespace EL.ServiceBus.IntegrationTests
                 messageRoundTripDurations.Add(duration);
             };
             
-            subscriber.Subscribe(subscriptionA1, (Message<string> message) =>
+            await subscriber.SubscribeAsync(subscriptionA1, (Message<string> message) =>
             {
                 receivedA1Messages.Add(message);
                 receivedMessageCount++;
             });
-            subscriber.Subscribe<int>(subscriptionA2, (Message<int> message) =>
+            await subscriber.SubscribeAsync<int>(subscriptionA2, (Message<int> message) =>
             {
                 receivedA2Messages.Add(message);
                 receivedMessageCount++;
             });
-            subscriber.Subscribe(subscriptionB1, (Message<IntegrationTestData> message) =>
+            await subscriber.SubscribeAsync(subscriptionB1, (Message<IntegrationTestData> message) =>
             {
                 receivedB1Messages.Add(message);
                 receivedMessageCount++;
@@ -151,9 +151,9 @@ namespace EL.ServiceBus.IntegrationTests
                 messageQueueDurations.Add(queueDuration);
             };
             
-            subscriber.Subscribe(subscription, (Message<string> message) =>
+            await subscriber.SubscribeAsync(subscription, (Message<string> x) =>
             {
-                receivedMessages.Add(message);
+                receivedMessages.Add(x);
                 receivedMessageCount++;
             });
 
@@ -200,8 +200,8 @@ namespace EL.ServiceBus.IntegrationTests
             var receivedMessageCount = 0;
             var deadLetters = new List<DeadLetter>();
             
-            subscriber.SubscribeToDeadLetters(subscription, (DeadLetter deadLetter) => deadLetters.Add(deadLetter));
-            subscriber.Subscribe(subscription, (Message<string> message) =>
+            await subscriber.SubscribeToDeadLettersAsync(subscription, (DeadLetter deadLetter) => deadLetters.Add(deadLetter));
+            await subscriber.SubscribeAsync(subscription, (Message<string> message) =>
             {
                 receivedMessageCount++;
                 throw new Exception("Force deadletter exception");
@@ -242,7 +242,7 @@ namespace EL.ServiceBus.IntegrationTests
             var topic = new Topic("el-service-bus", "fake", 1);
             var subscription = new Subscription(topic, "el-service-bus", "integration-tests");
  
-            Assert.Catch(() => subscriber.Subscribe(subscription, (Message<string> message) => Task.CompletedTask));
+            Assert.CatchAsync(() => subscriber.SubscribeAsync(subscription, (Message<string> message) => Task.CompletedTask));
         }
 
         private string RandomAutoDeletingProcess()
