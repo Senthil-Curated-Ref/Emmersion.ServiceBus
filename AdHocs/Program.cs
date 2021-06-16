@@ -1,11 +1,13 @@
-﻿namespace AdHocs
+﻿using System.Threading.Tasks;
+
+namespace AdHocs
 {
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             var adhoc = new DeadLetterDrainer();
-            adhoc.Drain();
+            await adhoc.Drain();
         }
     }
 }
