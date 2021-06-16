@@ -46,7 +46,7 @@ namespace EL.ServiceBus
                 {
                     throw new Exception($"Connecting to the same subscription twice is not allowed: {subscription}");
                 }
-                subscriptionCreator.CreateSubscriptionIfNecessary(subscription).Wait();
+                await subscriptionCreator.CreateSubscriptionIfNecessary(subscription);
                 var client = createAction();
                 clients[key] = client;
                 return client;
