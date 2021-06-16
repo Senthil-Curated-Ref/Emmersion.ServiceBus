@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
@@ -70,6 +71,7 @@ namespace EL.ServiceBus.IntegrationTests
             {
                 receivedB1Messages.Add(message);
                 receivedMessageCount++;
+                return Task.CompletedTask;
             });
 
             var messagePublishDurations = new List<long>();
@@ -240,7 +242,7 @@ namespace EL.ServiceBus.IntegrationTests
             var topic = new Topic("el-service-bus", "fake", 1);
             var subscription = new Subscription(topic, "el-service-bus", "integration-tests");
  
-            Assert.Catch(() => subscriber.Subscribe(subscription, (Message<string> message) => {}));
+            Assert.Catch(() => subscriber.Subscribe(subscription, (Message<string> message) => Task.CompletedTask));
         }
 
         private string RandomAutoDeletingProcess()

@@ -6,7 +6,7 @@ namespace EL.ServiceBus
 {
     internal interface ISubscriptionClientWrapper
     {
-        void RegisterMessageHandler(Action<Microsoft.Azure.ServiceBus.Message> messageHandler, Action<ExceptionReceivedEventArgs> exceptionHandler);
+        void RegisterMessageHandler(Func<Microsoft.Azure.ServiceBus.Message, Task> messageHandler, Action<ExceptionReceivedEventArgs> exceptionHandler);
         Task CloseAsync();
     }
 
@@ -38,7 +38,7 @@ namespace EL.ServiceBus
             client = new SubscriptionClient(connectionString, topicName, subscriptionName);
         }
 
-        public void RegisterMessageHandler(Action<Microsoft.Azure.ServiceBus.Message> messageHandler, Action<ExceptionReceivedEventArgs> exceptionHandler)
+        public void RegisterMessageHandler(Func<Microsoft.Azure.ServiceBus.Message, Task> messageHandler, Action<ExceptionReceivedEventArgs> exceptionHandler)
         {
             var options = new MessageHandlerOptions(exceptionReceivedEventArgs => {
                 exceptionHandler(exceptionReceivedEventArgs);
@@ -49,7 +49,7 @@ namespace EL.ServiceBus
                 AutoComplete = false
             };
             client.RegisterMessageHandler(async (message, cancellationToken) => {
-                messageHandler(message);
+                await messageHandler(message);
                 if (!cancellationToken.IsCancellationRequested)
                 {
                     await client.CompleteAsync(message.SystemProperties.LockToken);

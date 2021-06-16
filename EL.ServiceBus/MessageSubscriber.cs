@@ -1,16 +1,20 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace EL.ServiceBus
 {
     public interface IMessageSubscriber
     {
+        void Subscribe<T>(Subscription subscription, Func<Message<T>, Task> action);
         void Subscribe<T>(Subscription subscription, Action<Message<T>> action);
-        void SubscribeToDeadLetters(Subscription subscription, Action<DeadLetter> action);
         void Subscribe<T>(MessageEvent messageEvent, Action<T> action);
+        void Subscribe<T>(MessageEvent messageEvent, Func<T, Task> action);
         event OnMessageReceived OnMessageReceived;
         event OnException OnException;
+        void SubscribeToDeadLetters(Subscription subscription, Func<DeadLetter, Task> action);
+        void SubscribeToDeadLetters(Subscription subscription, Action<DeadLetter> action);
     }
 
     internal class MessageSubscriber : IMessageSubscriber
@@ -34,9 +38,18 @@ namespace EL.ServiceBus
 
         public void Subscribe<T>(Subscription subscription, Action<Message<T>> action)
         {
+            Subscribe(subscription, (Message<T> message) =>
+            {
+                action(message);
+                return Task.CompletedTask;
+            });
+        }
+
+        public void Subscribe<T>(Subscription subscription, Func<Message<T>, Task> action)
+        {
             var filteringDisabled = string.IsNullOrEmpty(config.EnvironmentFilter);
             var client = subscriptionClientWrapperPool.GetClient(subscription);
-            client.RegisterMessageHandler((serviceBusMessage) => {
+            client.RegisterMessageHandler(async (serviceBusMessage) => {
                 var receivedAt = DateTimeOffset.UtcNow;
                 DateTimeOffset? publishedAt = null;
                 DateTimeOffset? enqueuedAt = null;
@@ -46,7 +59,7 @@ namespace EL.ServiceBus
                     enqueuedAt = message.EnqueuedAt;
                     if (filteringDisabled || message.Environment == config.EnvironmentFilter)
                     {
-                        action(message);
+                        await action(message);
                     }
                 }
                 finally
@@ -65,6 +78,15 @@ namespace EL.ServiceBus
 
         public void SubscribeToDeadLetters(Subscription subscription, Action<DeadLetter> action)
         {
+            SubscribeToDeadLetters(subscription, (message) =>
+            {
+                action(message);
+                return Task.CompletedTask;
+            });
+        }
+
+        public void SubscribeToDeadLetters(Subscription subscription, Func<DeadLetter, Task> action)
+        {
             var client = subscriptionClientWrapperPool.GetDeadLetterClient(subscription);
             client.RegisterMessageHandler(
                 (serviceBusMessage) => action(messageMapper.GetDeadLetter(serviceBusMessage)),
@@ -73,6 +95,15 @@ namespace EL.ServiceBus
 
         public void Subscribe<T>(MessageEvent messageEvent, Action<T> action)
         {
+            Subscribe(messageEvent, (T data) =>
+            {
+                action(data);
+                return Task.CompletedTask;
+            });
+        }
+        
+        public void Subscribe<T>(MessageEvent messageEvent, Func<T, Task> action)
+        {
             InitializeSingleTopicClient();
             routes.Add(new Route
             {
@@ -80,7 +111,7 @@ namespace EL.ServiceBus
                 Action = (serviceBusMessage) =>
                 {
                     var envelope = messageMapper.ToMessageEnvelope<T>(serviceBusMessage);
-                    action(envelope.Payload);
+                    return action(envelope.Payload);
                 }
             });
         }
@@ -92,14 +123,17 @@ namespace EL.ServiceBus
                 (args) => OnException?.Invoke(this, new ExceptionArgs(null, args)));
         }
 
-        internal void RouteMessage(Microsoft.Azure.ServiceBus.Message serviceBusMessage)
+        internal async Task RouteMessage(Microsoft.Azure.ServiceBus.Message serviceBusMessage)
         {
             var receivedAt = DateTimeOffset.UtcNow;
             var envelope = messageMapper.ToMessageEnvelope<object>(serviceBusMessage);
-            var recipients = routes.Where(x => x.MessageEvent == envelope.MessageEvent).ToList();
+            var recipients = routes.Where(x => x.MessageEvent == envelope.MessageEvent);
             try
             {
-                recipients.ForEach(x => x.Action(serviceBusMessage));
+                foreach (var x in recipients)
+                {
+                    await x.Action(serviceBusMessage);
+                }
             }
             finally
             {
@@ -117,6 +151,6 @@ namespace EL.ServiceBus
     internal class Route
     {
         public string MessageEvent { get; set; }
-        public Action<Microsoft.Azure.ServiceBus.Message> Action { get; set; }
+        public Func<Microsoft.Azure.ServiceBus.Message, Task> Action { get; set; }
     }
 }
