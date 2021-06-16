@@ -3,7 +3,7 @@
 This library makes it simple to interact with Azure ServiceBus to do messaging between product contexts according to our internal conventions.
 
 **Important:**
-This 3.0 version of the library is built to transition us from the older _single-topic_ strategy
+Starting at version 3.0, the library provides support to transition us from the older _single-topic_ strategy
 (where all event types are funneled through a single topic)
 to the new _multi-topic_ strategy (where each type of message has a separate topic).
 
@@ -47,11 +47,11 @@ var body = new UserAssessmentScored
     UserId = userId
 };
 var message = new Message<UserAssessmentScored>(topic, body);
-publisher.Publish(message);
+await publisher.PublishAsync(message);
 ```
 
-Version 3.0 also now provides a way to publish a scheduled message which ServiceBus will accept immediately,
-but not enqueue until the specified time.
+There is also an `PublishScheduledAsync` method which sends the message to ServiceBus immediately
+but is not enqueued until the specified time.
 
 To publish in the older, single-topic way:
 
@@ -62,7 +62,7 @@ var message = new UserAssessmentScored
     UserAssessmentId = userAssessmentId,
     UserId = userId
 };
-publisher.Publish(event, message);
+publisher.PublishAsync(event, message);
 ```
 
 To track metrics about all messages sent through the `IMessagePublisher`:
@@ -82,9 +82,9 @@ To subscribe to messages, use an injected `IMessageSubscriber`. Here is an examp
 ```csharp
 var topic = new Topic("assessments", "user-assessment-scored", 1);
 var subscription = new Subscription(topic, "monolith", "reporting-listener");
-subscriber.Subscribe(subscription, (Message<UserAssessmentScored> message) =>
+subscriber.Subscribe(subscription, async (Message<UserAssessmentScored> message) =>
 {
-    // Do something with the message.
+    await DoSomethingWith(message);
 });
 ```
 
@@ -93,7 +93,7 @@ Note that you are given the entire message object, which contains additional inf
 Calling `Subscribe` will create the topic subscription in Azure automatically (if it didn't already exist).
 If the name of the subscription contains the text `auto-delete` then it will delete itself after it is idle for 5 minutes.
 
-Version 3.0 also now provides a way to subscribe to the dead letter queue.
+The library also provides a way to subscribe to the dead letter queue.
 
 ```csharp
 subscriber.SubscribeToDeadLetters(subscription, (DeadLetter deadLetter) => {
@@ -108,9 +108,9 @@ You can also subscribe to messages in the older, single-topic way:
 
 ```csharp
 var event = new MessageEvent("user-assessment-scored", 1);
-subscriber.Subscribe(event, (UserAssessmentScored message) =>
+subscriber.Subscribe(event, async (UserAssessmentScored message) =>
 {
-    // Do something with the message.
+    await DoSomethingWith(message);
 });
 ```
 
@@ -133,18 +133,26 @@ subscriber.OnException += (object sender, ExceptionArgs args) =>
 ```
 
 
-### Filtering for Development
-In order to make local development easier when sharing a subscription,
-you can set the `Environment` and `EnvironmentFilter` configuration variables
-so that your message processor will only get messages meant for you.
+### Connection Loss
+Some initial testing shows that Microsoft's SDK handles reconnecting to ServiceBus in case of a network partition.
+This is true for both publishing and subscribing.
+The publishing `Task` will not complete until the message is delivered.
 
-You may wish to do this in conjunction with unique (per developer) subscription names
-so that you don't consume other's messages on a shared subscription.
+
+### Filtering for Development
+In order to make local development easier when sharing a topic
+(due to the cost of separate ServiceBus instances),
+you can set the `Environment` and `EnvironmentFilter` configuration variables
+so that your message processor will ignore non-matching messages.
+
+However, the non-matching messages will still be taken from the subscription queue.
+Therefore, you should also use unique (per developer) subscription names
+so that you don't consume others' messages on a shared subscription.
 
 
 ### Unit Testing
 When unit testing your subscription handler, you may at times wish to set fields that are normally inaccessible.
-In these cases, please use the `TestMessageBulider<T>` class.
+In these cases, please use the `TestMessageBuilder<T>` class.
 For example:
 
 ```csharp
@@ -160,13 +168,7 @@ var message = new TestMessageBuilder<UserAssessmentScored>()
 ```
 
 
-### Connection Loss
-Some initial testing shows that Microsoft's SDK handles reconnecting to ServiceBus in case of a network partition.
-This is true for both publishing and subscribing.
-Message publishing will block until the message is successfully delivered.
-
-
-## Integration Tests
+### Integration Testing
 To run the integration tests, provide user secrets for the connection strings:
 
 ```
@@ -177,6 +179,15 @@ dotnet user-secrets set 'ServiceBus:SingleTopicConnectionString' 'your-connectio
 
 
 ## Changes & Upgrading Info
+
+### v3.1
+Added `async..await` support:
+* You can now subscribe to messages with a message handler that returns a `Task`
+* `PublishAsync` and `PublishScheduledAsync` methods added.
+* Older `Publish` and `PublishScheduled` methods were deprecated because they utilize a `.Wait()`
+  which may not interact well with `async..await`
+  
+This version also cleaned up some mixing of synchronous and asynchronous code.
 
 ### v3.0
 In version 3.0, the major new feature is using separate topics, one per message type.
@@ -201,7 +212,7 @@ Other changes:
 * Ability to filter messages when subscribing
 
 ### v2.1
-* Added separate methods in `DependencyInjectionConfig` for configuring publishers and subscribers.
+Added separate methods in `DependencyInjectionConfig` for configuring publishers and subscribers.
 
 ### v2.0
 The major change in version 2.0 was using a `SubscriptionClient` instead of the `[ServiceBusTrigger]` annotation.
