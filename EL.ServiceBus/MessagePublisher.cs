@@ -41,6 +41,7 @@ namespace EL.ServiceBus
             this.config = config;
         }
 
+        [Obsolete("Use PublishAsync instead")]
         public void Publish<T>(Message<T> message)
         {
             PublishAsync(message).Wait();
@@ -51,6 +52,7 @@ namespace EL.ServiceBus
             await Publish(message, null, (client, data) => client.SendAsync(data));
         }
 
+        [Obsolete("Use PublishScheduledAsync instead")]
         public void PublishScheduled<T>(Message<T> message, DateTimeOffset enqueueAt)
         {
             PublishScheduledAsync(message, enqueueAt).Wait();
@@ -77,6 +79,7 @@ namespace EL.ServiceBus
             return messageMapper.ToServiceBusMessage(message);
         }
 
+        [Obsolete("Use PublishAsync instead")]
         public void Publish<T>(MessageEvent messageEvent, T message)
         {
             PublishAsync(messageEvent, message).Wait();
