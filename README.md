@@ -82,7 +82,7 @@ To subscribe to messages, use an injected `IMessageSubscriber`. Here is an examp
 ```csharp
 var topic = new Topic("assessments", "user-assessment-scored", 1);
 var subscription = new Subscription(topic, "monolith", "reporting-listener");
-subscriber.Subscribe(subscription, async (Message<UserAssessmentScored> message) =>
+await subscriber.SubscribeAsync(subscription, async (Message<UserAssessmentScored> message) =>
 {
     await DoSomethingWith(message);
 });
@@ -96,8 +96,8 @@ If the name of the subscription contains the text `auto-delete` then it will del
 The library also provides a way to subscribe to the dead letter queue.
 
 ```csharp
-subscriber.SubscribeToDeadLetters(subscription, (DeadLetter deadLetter) => {
-    // Do something with the deadLetter.
+await subscriber.SubscribeToDeadLettersAsync(subscription, async (DeadLetter deadLetter) => {
+    await DoSomethingWith(deadLetter);
 });
 ```
 
@@ -108,7 +108,7 @@ You can also subscribe to messages in the older, single-topic way:
 
 ```csharp
 var event = new MessageEvent("user-assessment-scored", 1);
-subscriber.Subscribe(event, async (UserAssessmentScored message) =>
+await subscriber.SubscribeAsync(event, async (UserAssessmentScored message) =>
 {
     await DoSomethingWith(message);
 });
@@ -183,10 +183,18 @@ dotnet user-secrets set 'ServiceBus:SingleTopicConnectionString' 'your-connectio
 ### v3.1
 Added `async..await` support:
 * You can now subscribe to messages with a message handler that returns a `Task`
-* `PublishAsync` and `PublishScheduledAsync` methods added.
-* Older `Publish` and `PublishScheduled` methods were deprecated because they utilize a `.Wait()`
-  which may not interact well with `async..await`
-  
+* New async methods added:
+    * `PublishAsync`
+    * `PublishScheduledAsync`
+    * `SubscribeAsync`
+    * `SubscribeToDeadLettersAsync`
+* Older  methods were deprecated because they utilize a `.Wait()`
+  which may not interact well with `async..await`:
+    * `Publish`
+    * `PublishScheduled`
+    * `Subscribe`
+    * `SubscribeToDeadLetters`
+
 This version also cleaned up some mixing of synchronous and asynchronous code.
 
 ### v3.0
