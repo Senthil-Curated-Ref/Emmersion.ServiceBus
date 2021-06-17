@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace EL.ServiceBus
 {
-    internal interface ITopicClientWrapperPool : IDisposable
+    internal interface ITopicClientWrapperPool : IAsyncDisposable
     {
         ITopicClientWrapper GetForTopic(Topic topic);
         ITopicClientWrapper GetForSingleTopic();
@@ -24,10 +24,11 @@ namespace EL.ServiceBus
             this.publisherConfig = publisherConfig;
             this.topicClientWrapperCreator = topicClientWrapperCreator;
         }
-
-        public void Dispose()
+        
+        public async ValueTask DisposeAsync()
         {
-            Task.WaitAll(pool.Select(x => x.Value.CloseAsync()).ToArray());
+            await Task.WhenAll(pool.Select(x => x.Value.CloseAsync()));
+            pool.Clear();
         }
 
         public ITopicClientWrapper GetForTopic(Topic topic)

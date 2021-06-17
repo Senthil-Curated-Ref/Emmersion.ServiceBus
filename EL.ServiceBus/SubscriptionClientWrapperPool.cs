@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EL.ServiceBus
 {
-    internal interface ISubscriptionClientWrapperPool : IDisposable
+    internal interface ISubscriptionClientWrapperPool : IAsyncDisposable
     {
         Task<ISubscriptionClientWrapper> GetClient(Subscription subscription);
         Task<ISubscriptionClientWrapper> GetDeadLetterClient(Subscription subscription);
@@ -75,9 +75,10 @@ namespace EL.ServiceBus
             }
         }
 
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
-            Task.WaitAll(clients.Select(x => x.Value.CloseAsync()).ToArray());
+            await Task.WhenAll(clients.Select(x => x.Value.CloseAsync()));
+            clients.Clear();
         }
     }
 }

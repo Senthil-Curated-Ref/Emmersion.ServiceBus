@@ -1,8 +1,9 @@
 using System;
+using System.Threading.Tasks;
 
 namespace EL.ServiceBus
 {
-    internal interface IManagementClientWrapperPool : IDisposable
+    internal interface IManagementClientWrapperPool : IAsyncDisposable
     {
         IManagementClientWrapper GetClient();
     }
@@ -38,6 +39,15 @@ namespace EL.ServiceBus
         public void Dispose()
         {
             client?.CloseAsync().Wait();
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            if (client != null)
+            {
+                await client.CloseAsync();
+                client = null;
+            }
         }
     }
 }

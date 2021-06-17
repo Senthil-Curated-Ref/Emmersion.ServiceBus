@@ -25,14 +25,14 @@ namespace EL.ServiceBus.UnitTests
         }
 
         [Test]
-        public void When_getting_client_after_the_first_time()
+        public async Task When_getting_client_after_the_first_time()
         {
             var mockSubscriptionClientWrapper = new Mock<ISubscriptionClientWrapper>();
             GetMock<ISubscriptionClientWrapperCreator>()
                 .Setup(x => x.Create(subscription))
                 .Returns(mockSubscriptionClientWrapper.Object);
 
-            ClassUnderTest.GetClient(subscription);
+            await ClassUnderTest.GetClient(subscription);
             var result = Assert.CatchAsync(() => ClassUnderTest.GetClient(subscription));
 
             Assert.That(result.Message, Does.Contain(subscription.ToString()));
@@ -75,14 +75,14 @@ namespace EL.ServiceBus.UnitTests
         }
 
         [Test]
-        public void When_getting_a_dead_letter_client_after_the_first_time()
+        public async Task When_getting_a_dead_letter_client_after_the_first_time()
         {
             var mockSubscriptionClientWrapper = new Mock<ISubscriptionClientWrapper>();
             GetMock<ISubscriptionClientWrapperCreator>()
                 .Setup(x => x.CreateDeadLetter(subscription))
                 .Returns(mockSubscriptionClientWrapper.Object);
 
-            ClassUnderTest.GetDeadLetterClient(subscription);
+            await ClassUnderTest.GetDeadLetterClient(subscription);
             var result = Assert.CatchAsync(() => ClassUnderTest.GetDeadLetterClient(subscription));
 
             Assert.That(result.Message, Does.Contain(subscription.ToString()));
@@ -118,7 +118,7 @@ namespace EL.ServiceBus.UnitTests
         }
 
         [Test]
-        public void When_disposing_and_there_are_subscriptions()
+        public async Task When_disposing_and_there_are_subscriptions()
         {
             var mockSubscriptionClientWrapper = new Mock<ISubscriptionClientWrapper>();
             GetMock<ISubscriptionClientWrapperCreator>()
@@ -129,18 +129,18 @@ namespace EL.ServiceBus.UnitTests
                 .Setup(x => x.Create(otherSubscription))
                 .Returns(otherMockSubscriptionClientWrapper.Object);
 
-            ClassUnderTest.GetClient(subscription);
-            ClassUnderTest.GetClient(otherSubscription);
-            ClassUnderTest.Dispose();
+            await ClassUnderTest.GetClient(subscription);
+            await ClassUnderTest.GetClient(otherSubscription);
+            await ClassUnderTest.DisposeAsync();
 
             mockSubscriptionClientWrapper.Verify(x => x.CloseAsync());
             otherMockSubscriptionClientWrapper.Verify(x => x.CloseAsync());
         }
 
         [Test]
-        public void When_disposing_and_there_are_no_subscriptions()
+        public async Task When_disposing_and_there_are_no_subscriptions()
         {
-            Assert.DoesNotThrow(() => ClassUnderTest.Dispose());
+            await ClassUnderTest.DisposeAsync();
         }
     }
 }
