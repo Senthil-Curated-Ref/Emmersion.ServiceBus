@@ -133,7 +133,7 @@ namespace EL.ServiceBus.UnitTests
         }
 
         [Test]
-        public async Task When_handling_a_message_timing_data_is_emitted_even_if_the_subscribed_action_throws()
+        public async Task When_handling_a_message_timing_data_is_emitted_even_if_the_subscribed_handler_throws()
         {
             Func<Microsoft.Azure.ServiceBus.Message, Task> messageHandler = null;
             var receivedMessages = new List<Message<TestData>>();

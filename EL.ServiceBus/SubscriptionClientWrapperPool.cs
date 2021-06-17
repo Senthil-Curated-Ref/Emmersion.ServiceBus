@@ -37,7 +37,7 @@ namespace EL.ServiceBus
             return GetClient(subscription.ToString() + "-dead-letter", subscription, () => subscriptionClientWrapperCreator.CreateDeadLetter(subscription));
         }
 
-        private async Task<ISubscriptionClientWrapper> GetClient(string key, Subscription subscription, Func<ISubscriptionClientWrapper> createAction)
+        private async Task<ISubscriptionClientWrapper> GetClient(string key, Subscription subscription, Func<ISubscriptionClientWrapper> createClient)
         {
             await semaphoreSlim.WaitAsync();
             try
@@ -47,7 +47,7 @@ namespace EL.ServiceBus
                     throw new Exception($"Connecting to the same subscription twice is not allowed: {subscription}");
                 }
                 await subscriptionCreator.CreateSubscriptionIfNecessary(subscription);
-                var client = createAction();
+                var client = createClient();
                 clients[key] = client;
                 return client;
             }
