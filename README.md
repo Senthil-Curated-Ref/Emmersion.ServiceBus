@@ -93,7 +93,7 @@ Note that you are given the entire message object, which contains additional inf
 Calling `Subscribe` will create the topic subscription in Azure automatically (if it didn't already exist).
 If the name of the subscription contains the text `auto-delete` then it will delete itself after it is idle for 5 minutes.
 
-The library also provides a way to subscribe to the dead letter queue.
+The library also provides a way to subscribe to the dead letter queue (multi-topic only).
 
 ```csharp
 await subscriber.SubscribeToDeadLettersAsync(subscription, async (DeadLetter deadLetter) => {
@@ -139,7 +139,7 @@ This is true for both publishing and subscribing.
 The publishing `Task` will not complete until the message is delivered.
 
 
-### Filtering for Development
+### Filtering for Development (Multi-topic only)
 In order to make local development easier when sharing a topic
 (due to the cost of separate ServiceBus instances),
 you can set the `Environment` and `EnvironmentFilter` configuration variables
