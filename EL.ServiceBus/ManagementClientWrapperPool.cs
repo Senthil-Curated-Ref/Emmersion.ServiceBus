@@ -36,11 +36,6 @@ namespace EL.ServiceBus
             return client;
         }
 
-        public void Dispose()
-        {
-            client?.CloseAsync().Wait();
-        }
-
         public async ValueTask DisposeAsync()
         {
             if (client != null)
