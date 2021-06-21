@@ -40,7 +40,7 @@ namespace AdHocs
             var timer = new Timer(WriteBuffer, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
 
             Console.WriteLine("Press ENTER to stop.");
-            Console.ReadLine();
+            await Console.In.ReadLineAsync();
 
             await client.CloseAsync();
             timer.Dispose();
