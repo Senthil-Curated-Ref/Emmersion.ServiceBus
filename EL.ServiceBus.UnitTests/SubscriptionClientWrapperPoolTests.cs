@@ -18,10 +18,10 @@ namespace EL.ServiceBus.UnitTests
                 .Setup(x => x.Create(subscription))
                 .Returns(mockSubscriptionClientWrapper.Object);
 
-            var result = await ClassUnderTest.GetClient(subscription);
+            var result = await ClassUnderTest.GetClientAsync(subscription);
 
             Assert.That(result, Is.SameAs(mockSubscriptionClientWrapper.Object));
-            GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessary(subscription));
+            GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessaryAsync(subscription));
         }
 
         [Test]
@@ -32,11 +32,11 @@ namespace EL.ServiceBus.UnitTests
                 .Setup(x => x.Create(subscription))
                 .Returns(mockSubscriptionClientWrapper.Object);
 
-            await ClassUnderTest.GetClient(subscription);
-            var result = Assert.CatchAsync(() => ClassUnderTest.GetClient(subscription));
+            await ClassUnderTest.GetClientAsync(subscription);
+            var result = Assert.CatchAsync(() => ClassUnderTest.GetClientAsync(subscription));
 
             Assert.That(result.Message, Does.Contain(subscription.ToString()));
-            GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessary(IsAny<Subscription>()), Times.Once);
+            GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessaryAsync(IsAny<Subscription>()), Times.Once);
         }
 
         [Test]
@@ -51,13 +51,13 @@ namespace EL.ServiceBus.UnitTests
                 .Setup(x => x.Create(otherSubscription))
                 .Returns(otherMockSubscriptionClientWrapper.Object);
 
-            var result1 = await ClassUnderTest.GetClient(subscription);
-            var result2 = await ClassUnderTest.GetClient(otherSubscription);
+            var result1 = await ClassUnderTest.GetClientAsync(subscription);
+            var result2 = await ClassUnderTest.GetClientAsync(otherSubscription);
 
             Assert.That(result1, Is.SameAs(mockSubscriptionClientWrapper.Object));
             Assert.That(result2, Is.SameAs(otherMockSubscriptionClientWrapper.Object));
-            GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessary(subscription));
-            GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessary(otherSubscription));
+            GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessaryAsync(subscription));
+            GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessaryAsync(otherSubscription));
         }
 
         [Test]
@@ -68,10 +68,10 @@ namespace EL.ServiceBus.UnitTests
                 .Setup(x => x.CreateDeadLetter(subscription))
                 .Returns(mockSubscriptionClientWrapper.Object);
 
-            var result = await ClassUnderTest.GetDeadLetterClient(subscription);
+            var result = await ClassUnderTest.GetDeadLetterClientAsync(subscription);
 
             Assert.That(result, Is.SameAs(mockSubscriptionClientWrapper.Object));
-            GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessary(subscription));
+            GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessaryAsync(subscription));
         }
 
         [Test]
@@ -82,11 +82,11 @@ namespace EL.ServiceBus.UnitTests
                 .Setup(x => x.CreateDeadLetter(subscription))
                 .Returns(mockSubscriptionClientWrapper.Object);
 
-            await ClassUnderTest.GetDeadLetterClient(subscription);
-            var result = Assert.CatchAsync(() => ClassUnderTest.GetDeadLetterClient(subscription));
+            await ClassUnderTest.GetDeadLetterClientAsync(subscription);
+            var result = Assert.CatchAsync(() => ClassUnderTest.GetDeadLetterClientAsync(subscription));
 
             Assert.That(result.Message, Does.Contain(subscription.ToString()));
-            GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessary(IsAny<Subscription>()), Times.Once);
+            GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessaryAsync(IsAny<Subscription>()), Times.Once);
         }
 
         [Test]
@@ -129,8 +129,8 @@ namespace EL.ServiceBus.UnitTests
                 .Setup(x => x.Create(otherSubscription))
                 .Returns(otherMockSubscriptionClientWrapper.Object);
 
-            await ClassUnderTest.GetClient(subscription);
-            await ClassUnderTest.GetClient(otherSubscription);
+            await ClassUnderTest.GetClientAsync(subscription);
+            await ClassUnderTest.GetClientAsync(otherSubscription);
             await ClassUnderTest.DisposeAsync();
 
             mockSubscriptionClientWrapper.Verify(x => x.CloseAsync());

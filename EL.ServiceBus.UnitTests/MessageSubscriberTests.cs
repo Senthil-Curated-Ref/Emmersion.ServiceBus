@@ -17,7 +17,7 @@ namespace EL.ServiceBus.UnitTests
         public async Task When_subscribing()
         {
             GetMock<ISubscriptionClientWrapperPool>()
-                .Setup(x => x.GetClient(subscription))
+                .Setup(x => x.GetClientAsync(subscription))
                 .ReturnsAsync(GetMock<ISubscriptionClientWrapper>().Object);
 
             await ClassUnderTest.SubscribeAsync(subscription, (Message<TestData> message) => {});
@@ -36,7 +36,7 @@ namespace EL.ServiceBus.UnitTests
             var message = new Message<TestData>(subscription.Topic, new TestData { Data = "test data"});
             var receivedAt = DateTimeOffset.MinValue;
             GetMock<ISubscriptionClientWrapperPool>()
-                .Setup(x => x.GetClient(subscription))
+                .Setup(x => x.GetClientAsync(subscription))
                 .ReturnsAsync(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
                 .Setup(x => x.RegisterMessageHandler(IsAny<Func<Microsoft.Azure.ServiceBus.Message, Task>>(), IsAny<Action<ExceptionReceivedEventArgs>>()))
@@ -68,7 +68,7 @@ namespace EL.ServiceBus.UnitTests
             };
             var eventArgs = new List<MessageReceivedArgs>();
             GetMock<ISubscriptionClientWrapperPool>()
-                .Setup(x => x.GetClient(subscription))
+                .Setup(x => x.GetClientAsync(subscription))
                 .ReturnsAsync(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
                 .Setup(x => x.RegisterMessageHandler(IsAny<Func<Microsoft.Azure.ServiceBus.Message, Task>>(), IsAny<Action<ExceptionReceivedEventArgs>>()))
@@ -111,7 +111,7 @@ namespace EL.ServiceBus.UnitTests
             var messageToReceive = new Message<TestData>(subscription.Topic, new TestData { Data = "test data"}) { Environment = "unit-tests" };
             var messageToFilterOut = new Message<TestData>(subscription.Topic, new TestData { Data = "test data"}) { Environment = "other-env"};
             GetMock<ISubscriptionClientWrapperPool>()
-                .Setup(x => x.GetClient(subscription))
+                .Setup(x => x.GetClientAsync(subscription))
                 .ReturnsAsync(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
                 .Setup(x => x.RegisterMessageHandler(IsAny<Func<Microsoft.Azure.ServiceBus.Message, Task>>(), IsAny<Action<ExceptionReceivedEventArgs>>()))
@@ -146,7 +146,7 @@ namespace EL.ServiceBus.UnitTests
             var eventArgs = new List<MessageReceivedArgs>();
             var testException = new Exception("test exception");
             GetMock<ISubscriptionClientWrapperPool>()
-                .Setup(x => x.GetClient(subscription))
+                .Setup(x => x.GetClientAsync(subscription))
                 .ReturnsAsync(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
                 .Setup(x => x.RegisterMessageHandler(IsAny<Func<Microsoft.Azure.ServiceBus.Message, Task>>(), IsAny<Action<ExceptionReceivedEventArgs>>()))
@@ -189,7 +189,7 @@ namespace EL.ServiceBus.UnitTests
             var exceptionArgs = new List<ExceptionArgs>();
             var serviceBusExceptionArgs = new ExceptionReceivedEventArgs(new Exception("test exception"), "action", "endpoint", "entity name", "client id");
             GetMock<ISubscriptionClientWrapperPool>()
-                .Setup(x => x.GetClient(subscription))
+                .Setup(x => x.GetClientAsync(subscription))
                 .ReturnsAsync(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
                 .Setup(x => x.RegisterMessageHandler(IsAny<Func<Microsoft.Azure.ServiceBus.Message, Task>>(), IsAny<Action<ExceptionReceivedEventArgs>>()))
@@ -216,7 +216,7 @@ namespace EL.ServiceBus.UnitTests
             var expectedDeadLetter = new DeadLetter();
             DeadLetter deadLetter = null;
             GetMock<ISubscriptionClientWrapperPool>()
-                .Setup(x => x.GetDeadLetterClient(subscription))
+                .Setup(x => x.GetDeadLetterClientAsync(subscription))
                 .ReturnsAsync(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
                 .Setup(x => x.RegisterMessageHandler(IsAny<Func<Microsoft.Azure.ServiceBus.Message, Task>>(), IsAny<Action<ExceptionReceivedEventArgs>>()))

@@ -83,7 +83,7 @@ namespace EL.ServiceBus
         public async Task SubscribeAsync<T>(Subscription subscription, Func<Message<T>, Task> messageHandler)
         {
             var filteringDisabled = string.IsNullOrEmpty(config.EnvironmentFilter);
-            var client = await subscriptionClientWrapperPool.GetClient(subscription);
+            var client = await subscriptionClientWrapperPool.GetClientAsync(subscription);
             client.RegisterMessageHandler(async (serviceBusMessage) => {
                 var receivedAt = DateTimeOffset.UtcNow;
                 DateTimeOffset? publishedAt = null;
@@ -138,7 +138,7 @@ namespace EL.ServiceBus
         
         public async Task SubscribeToDeadLettersAsync(Subscription subscription, Func<DeadLetter, Task> messageHandler)
         {
-            var client = await subscriptionClientWrapperPool.GetDeadLetterClient(subscription);
+            var client = await subscriptionClientWrapperPool.GetDeadLetterClientAsync(subscription);
             client.RegisterMessageHandler(
                 (serviceBusMessage) => messageHandler(messageMapper.GetDeadLetter(serviceBusMessage)),
                 (args) => OnException?.Invoke(this, new ExceptionArgs(subscription, args)));

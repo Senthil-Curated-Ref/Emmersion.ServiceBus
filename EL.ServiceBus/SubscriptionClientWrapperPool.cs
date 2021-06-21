@@ -8,8 +8,8 @@ namespace EL.ServiceBus
 {
     internal interface ISubscriptionClientWrapperPool : IAsyncDisposable
     {
-        Task<ISubscriptionClientWrapper> GetClient(Subscription subscription);
-        Task<ISubscriptionClientWrapper> GetDeadLetterClient(Subscription subscription);
+        Task<ISubscriptionClientWrapper> GetClientAsync(Subscription subscription);
+        Task<ISubscriptionClientWrapper> GetDeadLetterClientAsync(Subscription subscription);
         ISubscriptionClientWrapper GetSingleTopicClientIfFirstTime();
     }
 
@@ -27,12 +27,12 @@ namespace EL.ServiceBus
             this.subscriptionCreator = subscriptionCreator;
         }
 
-        public Task<ISubscriptionClientWrapper> GetClient(Subscription subscription)
+        public Task<ISubscriptionClientWrapper> GetClientAsync(Subscription subscription)
         {
             return GetClient(subscription.ToString(), subscription, () => subscriptionClientWrapperCreator.Create(subscription));
         }
 
-        public Task<ISubscriptionClientWrapper> GetDeadLetterClient(Subscription subscription)
+        public Task<ISubscriptionClientWrapper> GetDeadLetterClientAsync(Subscription subscription)
         {
             return GetClient(subscription.ToString() + "-dead-letter", subscription, () => subscriptionClientWrapperCreator.CreateDeadLetter(subscription));
         }
@@ -46,7 +46,7 @@ namespace EL.ServiceBus
                 {
                     throw new Exception($"Connecting to the same subscription twice is not allowed: {subscription}");
                 }
-                await subscriptionCreator.CreateSubscriptionIfNecessary(subscription);
+                await subscriptionCreator.CreateSubscriptionIfNecessaryAsync(subscription);
                 var client = createClient();
                 clients[key] = client;
                 return client;

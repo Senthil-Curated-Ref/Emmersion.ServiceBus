@@ -11,7 +11,7 @@ namespace EL.ServiceBus
     internal class ManagementClientWrapperPool : IManagementClientWrapperPool
     {
         private readonly ISubscriptionConfig config;
-        private ManagementClientWrapper client;
+        private IManagementClientWrapper client;
         private static object threadLock = new object();
 
         public ManagementClientWrapperPool(ISubscriptionConfig config)
