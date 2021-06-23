@@ -6,7 +6,7 @@ namespace EL.ServiceBus
 {
     internal interface ISubscriptionClientWrapper
     {
-        void RegisterMessageHandler(Func<Microsoft.Azure.ServiceBus.Message, Task> messageHandler, Action<ExceptionReceivedEventArgs> exceptionHandler);
+        void RegisterMessageHandler(Func<Microsoft.Azure.ServiceBus.Message, Task> messageHandler, Func<ExceptionReceivedEventArgs, Task> exceptionHandler);
         Task CloseAsync();
     }
 
@@ -38,7 +38,7 @@ namespace EL.ServiceBus
             client = new SubscriptionClient(connectionString, topicName, subscriptionName);
         }
 
-        public void RegisterMessageHandler(Func<Microsoft.Azure.ServiceBus.Message, Task> messageHandler, Action<ExceptionReceivedEventArgs> exceptionHandler)
+        public void RegisterMessageHandler(Func<Microsoft.Azure.ServiceBus.Message, Task> messageHandler, Func<ExceptionReceivedEventArgs, Task> exceptionHandler)
         {
             var options = new MessageHandlerOptions(exceptionReceivedEventArgs => {
                 exceptionHandler(exceptionReceivedEventArgs);

@@ -95,7 +95,11 @@ namespace EL.ServiceBus
                         processingTime
                     ));
                 }
-            }, (args) => OnException?.Invoke(this, new ExceptionArgs(subscription, args)));
+            }, (args) =>
+            {
+                OnException?.Invoke(this, new ExceptionArgs(subscription, args));
+                return Task.CompletedTask;
+            });
         }
 
         [Obsolete("Use SubscribeToDeadLetters instead")]
@@ -119,7 +123,11 @@ namespace EL.ServiceBus
             var client = await subscriptionClientWrapperPool.GetDeadLetterClientAsync(subscription);
             client.RegisterMessageHandler(
                 (serviceBusMessage) => messageHandler(messageMapper.GetDeadLetter(serviceBusMessage)),
-                (args) => OnException?.Invoke(this, new ExceptionArgs(subscription, args)));
+                (args) =>
+                {
+                    OnException?.Invoke(this, new ExceptionArgs(subscription, args));
+                    return Task.CompletedTask;
+                });
         }
 
         public void Subscribe<T>(MessageEvent messageEvent, Action<T> messageHandler)
@@ -149,7 +157,11 @@ namespace EL.ServiceBus
         {
             var client = subscriptionClientWrapperPool.GetSingleTopicClientIfFirstTime();
             client?.RegisterMessageHandler(RouteMessage,
-                (args) => OnException?.Invoke(this, new ExceptionArgs(null, args)));
+                (args) =>
+                {
+                    OnException?.Invoke(this, new ExceptionArgs(null, args));
+                    return Task.CompletedTask;
+                });
         }
 
         internal async Task RouteMessage(Microsoft.Azure.ServiceBus.Message serviceBusMessage)
