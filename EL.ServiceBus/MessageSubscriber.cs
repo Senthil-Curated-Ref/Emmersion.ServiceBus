@@ -12,11 +12,9 @@ namespace EL.ServiceBus
         
         [Obsolete("Use SubscribeAsync instead")]
         void Subscribe<T>(Subscription subscription, Action<Message<T>> messageHandler);
-        
+
         Task SubscribeAsync<T>(Subscription subscription, Func<Message<T>, Task> messageHandler);
-        
-        Task SubscribeAsync<T>(Subscription subscription, Action<Message<T>> messageHandler);
-        
+
         void Subscribe<T>(MessageEvent messageEvent, Action<T> messageHandler);
         
         void Subscribe<T>(MessageEvent messageEvent, Func<T, Task> messageHandler);
@@ -32,8 +30,6 @@ namespace EL.ServiceBus
         void SubscribeToDeadLetters(Subscription subscription, Action<DeadLetter> messageHandler);
         
         Task SubscribeToDeadLettersAsync(Subscription subscription, Func<DeadLetter, Task> messageHandler);
-        
-        Task SubscribeToDeadLettersAsync(Subscription subscription, Action<DeadLetter> messageHandler);
     }
 
     internal class MessageSubscriber : IMessageSubscriber
@@ -69,15 +65,6 @@ namespace EL.ServiceBus
         public void Subscribe<T>(Subscription subscription, Func<Message<T>, Task> messageHandler)
         {
             SubscribeAsync(subscription, messageHandler).Wait();
-        }
-        
-        public async Task SubscribeAsync<T>(Subscription subscription, Action<Message<T>> messageHandler)
-        {
-            await SubscribeAsync(subscription, (Message<T> message) =>
-            {
-                messageHandler(message);
-                return Task.CompletedTask;
-            });
         }
         
         public async Task SubscribeAsync<T>(Subscription subscription, Func<Message<T>, Task> messageHandler)
@@ -125,15 +112,6 @@ namespace EL.ServiceBus
         public void SubscribeToDeadLetters(Subscription subscription, Func<DeadLetter, Task> messageHandler)
         {
             SubscribeToDeadLettersAsync(subscription, messageHandler).Wait();
-        }
-
-        public Task SubscribeToDeadLettersAsync(Subscription subscription, Action<DeadLetter> messageHandler)
-        {
-            return SubscribeToDeadLettersAsync(subscription, (message) =>
-            {
-                messageHandler(message);
-                return Task.CompletedTask;
-            });
         }
         
         public async Task SubscribeToDeadLettersAsync(Subscription subscription, Func<DeadLetter, Task> messageHandler)

@@ -61,11 +61,13 @@ namespace EL.ServiceBus.IntegrationTests
             {
                 receivedA1Messages.Add(message);
                 receivedMessageCount++;
+                return Task.CompletedTask;
             });
             await subscriber.SubscribeAsync<int>(subscriptionA2, (Message<int> message) =>
             {
                 receivedA2Messages.Add(message);
                 receivedMessageCount++;
+                return Task.CompletedTask;
             });
             await subscriber.SubscribeAsync(subscriptionB1, (Message<IntegrationTestData> message) =>
             {
@@ -155,6 +157,7 @@ namespace EL.ServiceBus.IntegrationTests
             {
                 receivedMessages.Add(x);
                 receivedMessageCount++;
+                return Task.CompletedTask;
             });
 
             var messagePublishDurations = new List<long>();
@@ -200,7 +203,11 @@ namespace EL.ServiceBus.IntegrationTests
             var receivedMessageCount = 0;
             var deadLetters = new List<DeadLetter>();
             
-            await subscriber.SubscribeToDeadLettersAsync(subscription, (DeadLetter deadLetter) => deadLetters.Add(deadLetter));
+            await subscriber.SubscribeToDeadLettersAsync(subscription, (DeadLetter deadLetter) =>
+            {
+                deadLetters.Add(deadLetter);
+                return Task.CompletedTask;
+            });
             await subscriber.SubscribeAsync(subscription, (Message<string> message) =>
             {
                 receivedMessageCount++;

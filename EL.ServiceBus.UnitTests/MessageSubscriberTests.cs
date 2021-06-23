@@ -20,7 +20,7 @@ namespace EL.ServiceBus.UnitTests
                 .Setup(x => x.GetClientAsync(subscription))
                 .ReturnsAsync(GetMock<ISubscriptionClientWrapper>().Object);
 
-            await ClassUnderTest.SubscribeAsync(subscription, (Message<TestData> message) => {});
+            await ClassUnderTest.SubscribeAsync(subscription, (Message<TestData> message) => Task.CompletedTask);
 
             GetMock<ISubscriptionClientWrapper>().Verify(x => x.RegisterMessageHandler(
                 IsAny<Func<Microsoft.Azure.ServiceBus.Message, Task>>(),
@@ -46,7 +46,11 @@ namespace EL.ServiceBus.UnitTests
                 .Callback<Topic, Microsoft.Azure.ServiceBus.Message, DateTimeOffset>((x, y, z) => receivedAt = z)
                 .Returns(message);
 
-            await ClassUnderTest.SubscribeAsync(subscription, (Message<TestData> message) => receivedMessages.Add(message));
+            await ClassUnderTest.SubscribeAsync(subscription, (Message<TestData> message) =>
+            {
+                receivedMessages.Add(message);
+                return Task.CompletedTask;
+            });
             var before = DateTimeOffset.UtcNow;
             await messageHandler(serviceBusMessage);
 
@@ -82,6 +86,7 @@ namespace EL.ServiceBus.UnitTests
             {
                 receivedMessages.Add(message);
                 Thread.Sleep(150);
+                return Task.CompletedTask;
             });
             var before = DateTimeOffset.UtcNow;
             await messageHandler(serviceBusMessage);
@@ -124,7 +129,11 @@ namespace EL.ServiceBus.UnitTests
                 .Returns(messageToFilterOut);
             GetMock<ISubscriptionConfig>().Setup(x => x.EnvironmentFilter).Returns("unit-tests");
 
-            await ClassUnderTest.SubscribeAsync(subscription, (Message<TestData> message) => receivedMessages.Add(message));
+            await ClassUnderTest.SubscribeAsync(subscription, (Message<TestData> message) =>
+            {
+                receivedMessages.Add(message);
+                return Task.CompletedTask;
+            });
             await messageHandler(serviceBusMessageToReceive);
             await messageHandler(serviceBusMessageToFilterOut);
 
@@ -196,7 +205,7 @@ namespace EL.ServiceBus.UnitTests
                 .Callback<Func<Microsoft.Azure.ServiceBus.Message, Task>, Action<ExceptionReceivedEventArgs>>((_, handler) => exceptionHandler = handler);
 
             ClassUnderTest.OnException += (object sender, ExceptionArgs args) => exceptionArgs.Add(args);
-            await ClassUnderTest.SubscribeAsync(subscription, (Message<TestData> message) => {});
+            await ClassUnderTest.SubscribeAsync(subscription, (Message<TestData> message) => Task.CompletedTask);
             exceptionHandler(serviceBusExceptionArgs);
             
             Assert.That(exceptionArgs.Count, Is.EqualTo(1));
@@ -223,7 +232,11 @@ namespace EL.ServiceBus.UnitTests
                 .Callback<Func<Microsoft.Azure.ServiceBus.Message, Task>, Action<ExceptionReceivedEventArgs>>((handler, _) => messageHandler = handler);
             GetMock<IMessageMapper>().Setup(x => x.GetDeadLetter(testMessage)).Returns(expectedDeadLetter);
 
-            await ClassUnderTest.SubscribeToDeadLettersAsync(subscription, (DeadLetter x) => deadLetter = x);
+            await ClassUnderTest.SubscribeToDeadLettersAsync(subscription, (DeadLetter x) =>
+            {
+                deadLetter = x;
+                return Task.CompletedTask;
+            });
             await messageHandler(testMessage);
             
             Assert.That(deadLetter, Is.EqualTo(expectedDeadLetter));
