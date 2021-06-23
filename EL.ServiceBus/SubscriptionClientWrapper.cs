@@ -40,10 +40,7 @@ namespace EL.ServiceBus
 
         public void RegisterMessageHandler(Func<Microsoft.Azure.ServiceBus.Message, Task> messageHandler, Func<ExceptionReceivedEventArgs, Task> exceptionHandler)
         {
-            var options = new MessageHandlerOptions(exceptionReceivedEventArgs => {
-                exceptionHandler(exceptionReceivedEventArgs);
-                return Task.CompletedTask;
-            })
+            var options = new MessageHandlerOptions(exceptionHandler)
             {
                 MaxConcurrentCalls = maxConcurrentMessages,
                 AutoComplete = false
