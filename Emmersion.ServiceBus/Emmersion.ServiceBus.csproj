@@ -2,7 +2,17 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <Company>Emmersion</Company>
+    <Description>A library to make it easy to use Azure ServiceBus according to Emmersion conventions.</Description>
+    <Copyright>Copyright (c) 2021 Emmersion</Copyright>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageProjectUrl>https://github.com/emmersion/Emmersion.ServiceBus</PackageProjectUrl>
+    <PackageTags>pubsub;Azure;ServiceBus;messaging</PackageTags>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../LICENSE" Pack="true" PackagePath=""/>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.ServiceBus" Version="5.0.0" />

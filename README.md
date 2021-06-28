@@ -2,6 +2,9 @@
 
 This library makes it simple to interact with Azure ServiceBus to do messaging between product contexts according to our internal conventions.
 
+This has been [open sourced](https://github.com/emmersion/engineering-at-emmersion#open-source)
+under the [MIT License](./LICENSE).
+
 **Important:**
 Starting at version 3.0, the library provides support to transition us from the older _single-topic_ strategy
 (where all event types are funneled through a single topic)
