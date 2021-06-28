@@ -10,7 +10,7 @@ namespace EL.ServiceBus.UnitTests
     internal class MessagePublisherTests : With_an_automocked<MessagePublisher>
     {
         [Test]
-        public void When_publishing_a_message()
+        public async Task When_publishing_a_message()
         {
             var topic = new Topic("el-service-bus", "test-event", 1);
             var body = new TestData { Data = "test-data" };
@@ -23,7 +23,7 @@ namespace EL.ServiceBus.UnitTests
             GetMock<IPublisherConfig>().Setup(x => x.Environment).Returns("unit-tests");
 
             var before = DateTimeOffset.UtcNow;
-            ClassUnderTest.Publish(message);
+            await ClassUnderTest.PublishAsync(message);
 
             Assert.That(message.PublishedAt, Is.EqualTo(before).Within(TimeSpan.FromMilliseconds(10)), "Incorrect PublishedAt");
             Assert.That(message.EnqueuedAt, Is.EqualTo(message.PublishedAt), "Incorrect EnqueuedAt");
@@ -32,7 +32,7 @@ namespace EL.ServiceBus.UnitTests
         }
 
         [Test]
-        public void When_publishing_a_message_timing_data_is_emitted()
+        public async Task When_publishing_a_message_timing_data_is_emitted()
         {
             var topic = new Topic("el-service-bus", "test-event", 1);
             var body = new TestData { Data = "test-data" };
@@ -48,7 +48,7 @@ namespace EL.ServiceBus.UnitTests
                 .Returns(Task.Run(() => Thread.Sleep(150)));
 
             ClassUnderTest.OnMessagePublished += (object sender, MessagePublishedArgs args) => receivedTimings.Add(args); 
-            ClassUnderTest.Publish(message);
+            await ClassUnderTest.PublishAsync(message);
 
             Assert.That(receivedTimings.Count, Is.EqualTo(1));
             Assert.That(receivedTimings[0].ElapsedMilliseconds, Is.GreaterThanOrEqualTo(100));
@@ -56,7 +56,7 @@ namespace EL.ServiceBus.UnitTests
         }
 
         [Test]
-        public void When_publishing_a_scheduled_message()
+        public async Task When_publishing_a_scheduled_message()
         {
             var topic = new Topic("el-service-bus", "test-event", 1);
             var body = new TestData { Data = "test-data" };
@@ -70,7 +70,7 @@ namespace EL.ServiceBus.UnitTests
             GetMock<IPublisherConfig>().Setup(x => x.Environment).Returns("unit-tests");
 
             var before = DateTimeOffset.UtcNow;
-            ClassUnderTest.PublishScheduled(message, enqueueAt);
+            await ClassUnderTest.PublishScheduledAsync(message, enqueueAt);
 
             Assert.That(message.PublishedAt, Is.EqualTo(before).Within(TimeSpan.FromMilliseconds(10)), "Incorrect PublishedAt");
             Assert.That(message.EnqueuedAt, Is.EqualTo(enqueueAt), "Incorrect EnqueuedAt");
@@ -79,7 +79,7 @@ namespace EL.ServiceBus.UnitTests
         }
 
         [Test]
-        public void When_publishing_a_scheduled_message_timing_data_is_emitted()
+        public async Task When_publishing_a_scheduled_message_timing_data_is_emitted()
         {
             var topic = new Topic("el-service-bus", "test-event", 1);
             var body = new TestData { Data = "test-data" };
@@ -96,7 +96,7 @@ namespace EL.ServiceBus.UnitTests
                 .Returns(Task.Run(() => Thread.Sleep(150)));
 
             ClassUnderTest.OnMessagePublished += (object sender, MessagePublishedArgs args) => receivedTimings.Add(args); 
-            ClassUnderTest.PublishScheduled(message, enqueueAt);
+            await ClassUnderTest.PublishScheduledAsync(message, enqueueAt);
 
             Assert.That(receivedTimings.Count, Is.EqualTo(1));
             Assert.That(receivedTimings[0].ElapsedMilliseconds, Is.GreaterThanOrEqualTo(100));
@@ -104,7 +104,7 @@ namespace EL.ServiceBus.UnitTests
         }
 
         [Test]
-        public void When_publishing_a_message_to_the_single_topic()
+        public async Task When_publishing_a_message_to_the_single_topic()
         {
             var messageEvent = new MessageEvent("test-event", 5);
             var message = new TestData { Data = "I am the very model of a modern major test message." };
@@ -121,7 +121,7 @@ namespace EL.ServiceBus.UnitTests
                 .Setup(x => x.SendAsync(IsAny<Microsoft.Azure.ServiceBus.Message>()))
                 .Returns(Task.CompletedTask);
 
-            ClassUnderTest.Publish(messageEvent, message);
+            await ClassUnderTest.PublishAsync(messageEvent, message);
 
             Assert.That(envelope.MessageEvent, Is.EqualTo(messageEvent.ToString()));
             Assert.That(envelope.PublishedAt, Is.EqualTo(DateTimeOffset.UtcNow).Within(TimeSpan.FromSeconds(1)));
@@ -131,7 +131,7 @@ namespace EL.ServiceBus.UnitTests
         }
 
         [Test]
-        public void When_publishing_a_message_to_the_single_topic_timing_data_is_returned()
+        public async Task When_publishing_a_message_to_the_single_topic_timing_data_is_returned()
         {
             var messageEvent = new MessageEvent("test-event", 13);
             var message = new TestData { Data = "I am the very model of a modern major test message." };
@@ -144,7 +144,7 @@ namespace EL.ServiceBus.UnitTests
                 .Returns(Task.Run(() => Thread.Sleep(150)));
 
             ClassUnderTest.OnMessagePublished += (object sender, MessagePublishedArgs args) => receivedTimings.Add(args); 
-            ClassUnderTest.Publish(messageEvent, message);
+            await ClassUnderTest.PublishAsync(messageEvent, message);
 
             Assert.That(receivedTimings.Count, Is.EqualTo(1));
             Assert.That(receivedTimings[0].ElapsedMilliseconds, Is.GreaterThanOrEqualTo(100));

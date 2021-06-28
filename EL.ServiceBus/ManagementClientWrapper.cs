@@ -5,9 +5,9 @@ namespace EL.ServiceBus
 {
     internal interface IManagementClientWrapper
     {
-        Task<bool> DoesTopicExist(string topicName);
-        Task<bool> DoesSubscriptionExist(string topicName, string subscriptionName);
-        Task CreateSubscription(SubscriptionDescription description);
+        Task<bool> DoesTopicExistAsync(string topicName);
+        Task<bool> DoesSubscriptionExistAsync(string topicName, string subscriptionName);
+        Task CreateSubscriptionAsync(SubscriptionDescription description);
         Task CloseAsync();
     }
 
@@ -20,17 +20,17 @@ namespace EL.ServiceBus
             client = new ManagementClient(connectionString);
         }
 
-        public Task<bool> DoesTopicExist(string topicName)
+        public Task<bool> DoesTopicExistAsync(string topicName)
         {
             return client.TopicExistsAsync(topicName);
         }
 
-        public Task<bool> DoesSubscriptionExist(string topicName, string subscriptionName)
+        public Task<bool> DoesSubscriptionExistAsync(string topicName, string subscriptionName)
         {
             return client.SubscriptionExistsAsync(topicName, subscriptionName);
         }
 
-        public Task CreateSubscription(SubscriptionDescription description)
+        public Task CreateSubscriptionAsync(SubscriptionDescription description)
         {
             return client.CreateSubscriptionAsync(description);
         }

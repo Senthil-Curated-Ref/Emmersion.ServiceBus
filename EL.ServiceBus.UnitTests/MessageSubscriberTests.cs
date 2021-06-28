@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using Emmersion.Testing;
 using Moq;
 using NUnit.Framework;
@@ -13,41 +14,45 @@ namespace EL.ServiceBus.UnitTests
         private Subscription subscription = new Subscription(new Topic("el-service-bus", "test-event", 1), "el-service-bus", "listener");
 
         [Test]
-        public void When_subscribing()
+        public async Task When_subscribing()
         {
             GetMock<ISubscriptionClientWrapperPool>()
-                .Setup(x => x.GetClient(subscription))
-                .Returns(GetMock<ISubscriptionClientWrapper>().Object);
+                .Setup(x => x.GetClientAsync(subscription))
+                .ReturnsAsync(GetMock<ISubscriptionClientWrapper>().Object);
 
-            ClassUnderTest.Subscribe(subscription, (Message<TestData> message) => {});
+            await ClassUnderTest.SubscribeAsync(subscription, (Message<TestData> message) => Task.CompletedTask);
 
             GetMock<ISubscriptionClientWrapper>().Verify(x => x.RegisterMessageHandler(
-                IsAny<Action<Microsoft.Azure.ServiceBus.Message>>(),
-                IsAny<Action<ExceptionReceivedEventArgs>>()));
+                IsAny<Func<Microsoft.Azure.ServiceBus.Message, Task>>(),
+                IsAny<Func<ExceptionReceivedEventArgs, Task>>()));
         }
 
         [Test]
-        public void When_handling_a_message()
+        public async Task When_handling_a_message()
         {
-            Action<Microsoft.Azure.ServiceBus.Message> messageHandler = null;
+            Func<Microsoft.Azure.ServiceBus.Message, Task> messageHandler = null;
             var receivedMessages = new List<Message<TestData>>();
             var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
             var message = new Message<TestData>(subscription.Topic, new TestData { Data = "test data"});
             var receivedAt = DateTimeOffset.MinValue;
             GetMock<ISubscriptionClientWrapperPool>()
-                .Setup(x => x.GetClient(subscription))
-                .Returns(GetMock<ISubscriptionClientWrapper>().Object);
+                .Setup(x => x.GetClientAsync(subscription))
+                .ReturnsAsync(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
-                .Setup(x => x.RegisterMessageHandler(IsAny<Action<Microsoft.Azure.ServiceBus.Message>>(), IsAny<Action<ExceptionReceivedEventArgs>>()))
-                .Callback<Action<Microsoft.Azure.ServiceBus.Message>, Action<ExceptionReceivedEventArgs>>((handler, _) => messageHandler = handler);
+                .Setup(x => x.RegisterMessageHandler(IsAny<Func<Microsoft.Azure.ServiceBus.Message, Task>>(), IsAny<Func<ExceptionReceivedEventArgs, Task>>()))
+                .Callback<Func<Microsoft.Azure.ServiceBus.Message, Task>, Func<ExceptionReceivedEventArgs, Task>>((handler, _) => messageHandler = handler);
             GetMock<IMessageMapper>()
                 .Setup(x => x.FromServiceBusMessage<TestData>(subscription.Topic, serviceBusMessage, IsAny<DateTimeOffset>()))
                 .Callback<Topic, Microsoft.Azure.ServiceBus.Message, DateTimeOffset>((x, y, z) => receivedAt = z)
                 .Returns(message);
 
-            ClassUnderTest.Subscribe(subscription, (Message<TestData> message) => receivedMessages.Add(message));
+            await ClassUnderTest.SubscribeAsync(subscription, (Message<TestData> message) =>
+            {
+                receivedMessages.Add(message);
+                return Task.CompletedTask;
+            });
             var before = DateTimeOffset.UtcNow;
-            messageHandler(serviceBusMessage);
+            await messageHandler(serviceBusMessage);
 
             Assert.That(receivedMessages.Count, Is.EqualTo(1));
             Assert.That(receivedMessages[0], Is.SameAs(message));
@@ -55,9 +60,9 @@ namespace EL.ServiceBus.UnitTests
         }
 
         [Test]
-        public void When_handling_a_message_timing_data_is_emitted()
+        public async Task When_handling_a_message_timing_data_is_emitted()
         {
-            Action<Microsoft.Azure.ServiceBus.Message> messageHandler = null;
+            Func<Microsoft.Azure.ServiceBus.Message, Task> messageHandler = null;
             var receivedMessages = new List<Message<TestData>>();
             var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
             var message = new Message<TestData>(subscription.Topic, new TestData { Data = "test data"})
@@ -67,23 +72,24 @@ namespace EL.ServiceBus.UnitTests
             };
             var eventArgs = new List<MessageReceivedArgs>();
             GetMock<ISubscriptionClientWrapperPool>()
-                .Setup(x => x.GetClient(subscription))
-                .Returns(GetMock<ISubscriptionClientWrapper>().Object);
+                .Setup(x => x.GetClientAsync(subscription))
+                .ReturnsAsync(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
-                .Setup(x => x.RegisterMessageHandler(IsAny<Action<Microsoft.Azure.ServiceBus.Message>>(), IsAny<Action<ExceptionReceivedEventArgs>>()))
-                .Callback<Action<Microsoft.Azure.ServiceBus.Message>, Action<ExceptionReceivedEventArgs>>((handler, _) => messageHandler = handler);
+                .Setup(x => x.RegisterMessageHandler(IsAny<Func<Microsoft.Azure.ServiceBus.Message, Task>>(), IsAny<Func<ExceptionReceivedEventArgs, Task>>()))
+                .Callback<Func<Microsoft.Azure.ServiceBus.Message, Task>, Func<ExceptionReceivedEventArgs, Task>>((handler, _) => messageHandler = handler);
             GetMock<IMessageMapper>()
                 .Setup(x => x.FromServiceBusMessage<TestData>(subscription.Topic, serviceBusMessage, IsAny<DateTimeOffset>()))
                 .Returns(message);
 
             ClassUnderTest.OnMessageReceived += (object sender, MessageReceivedArgs args) => eventArgs.Add(args);
-            ClassUnderTest.Subscribe(subscription, (Message<TestData> message) =>
+            await ClassUnderTest.SubscribeAsync(subscription, (Message<TestData> message) =>
             {
                 receivedMessages.Add(message);
                 Thread.Sleep(150);
+                return Task.CompletedTask;
             });
             var before = DateTimeOffset.UtcNow;
-            messageHandler(serviceBusMessage);
+            await messageHandler(serviceBusMessage);
             var after = DateTimeOffset.UtcNow;
             var duration = after - before;
 
@@ -101,20 +107,20 @@ namespace EL.ServiceBus.UnitTests
         }
         
         [Test]
-        public void When_handling_a_message_that_should_be_filtered_out()
+        public async Task When_handling_a_message_that_should_be_filtered_out()
         {
-            Action<Microsoft.Azure.ServiceBus.Message> messageHandler = null;
+            Func<Microsoft.Azure.ServiceBus.Message, Task> messageHandler = null;
             var receivedMessages = new List<Message<TestData>>();
             var serviceBusMessageToReceive = new Microsoft.Azure.ServiceBus.Message();
             var serviceBusMessageToFilterOut = new Microsoft.Azure.ServiceBus.Message();
             var messageToReceive = new Message<TestData>(subscription.Topic, new TestData { Data = "test data"}) { Environment = "unit-tests" };
             var messageToFilterOut = new Message<TestData>(subscription.Topic, new TestData { Data = "test data"}) { Environment = "other-env"};
             GetMock<ISubscriptionClientWrapperPool>()
-                .Setup(x => x.GetClient(subscription))
-                .Returns(GetMock<ISubscriptionClientWrapper>().Object);
+                .Setup(x => x.GetClientAsync(subscription))
+                .ReturnsAsync(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
-                .Setup(x => x.RegisterMessageHandler(IsAny<Action<Microsoft.Azure.ServiceBus.Message>>(), IsAny<Action<ExceptionReceivedEventArgs>>()))
-                .Callback<Action<Microsoft.Azure.ServiceBus.Message>, Action<ExceptionReceivedEventArgs>>((handler, _) => messageHandler = handler);
+                .Setup(x => x.RegisterMessageHandler(IsAny<Func<Microsoft.Azure.ServiceBus.Message, Task>>(), IsAny<Func<ExceptionReceivedEventArgs, Task>>()))
+                .Callback<Func<Microsoft.Azure.ServiceBus.Message, Task>, Func<ExceptionReceivedEventArgs, Task>>((handler, _) => messageHandler = handler);
             GetMock<IMessageMapper>()
                 .Setup(x => x.FromServiceBusMessage<TestData>(subscription.Topic, serviceBusMessageToReceive, IsAny<DateTimeOffset>()))
                 .Returns(messageToReceive);
@@ -123,18 +129,22 @@ namespace EL.ServiceBus.UnitTests
                 .Returns(messageToFilterOut);
             GetMock<ISubscriptionConfig>().Setup(x => x.EnvironmentFilter).Returns("unit-tests");
 
-            ClassUnderTest.Subscribe(subscription, (Message<TestData> message) => receivedMessages.Add(message));
-            messageHandler(serviceBusMessageToReceive);
-            messageHandler(serviceBusMessageToFilterOut);
+            await ClassUnderTest.SubscribeAsync(subscription, (Message<TestData> message) =>
+            {
+                receivedMessages.Add(message);
+                return Task.CompletedTask;
+            });
+            await messageHandler(serviceBusMessageToReceive);
+            await messageHandler(serviceBusMessageToFilterOut);
 
             Assert.That(receivedMessages.Count, Is.EqualTo(1));
             Assert.That(receivedMessages[0], Is.SameAs(messageToReceive));
         }
 
         [Test]
-        public void When_handling_a_message_timing_data_is_emitted_even_if_the_subscribed_action_throws()
+        public async Task When_handling_a_message_timing_data_is_emitted_even_if_the_subscribed_handler_throws()
         {
-            Action<Microsoft.Azure.ServiceBus.Message> messageHandler = null;
+            Func<Microsoft.Azure.ServiceBus.Message, Task> messageHandler = null;
             var receivedMessages = new List<Message<TestData>>();
             var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
             var message = new Message<TestData>(subscription.Topic, new TestData { Data = "test data"})
@@ -145,24 +155,24 @@ namespace EL.ServiceBus.UnitTests
             var eventArgs = new List<MessageReceivedArgs>();
             var testException = new Exception("test exception");
             GetMock<ISubscriptionClientWrapperPool>()
-                .Setup(x => x.GetClient(subscription))
-                .Returns(GetMock<ISubscriptionClientWrapper>().Object);
+                .Setup(x => x.GetClientAsync(subscription))
+                .ReturnsAsync(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
-                .Setup(x => x.RegisterMessageHandler(IsAny<Action<Microsoft.Azure.ServiceBus.Message>>(), IsAny<Action<ExceptionReceivedEventArgs>>()))
-                .Callback<Action<Microsoft.Azure.ServiceBus.Message>, Action<ExceptionReceivedEventArgs>>((handler, _) => messageHandler = handler);
+                .Setup(x => x.RegisterMessageHandler(IsAny<Func<Microsoft.Azure.ServiceBus.Message, Task>>(), IsAny<Func<ExceptionReceivedEventArgs, Task>>()))
+                .Callback<Func<Microsoft.Azure.ServiceBus.Message, Task>, Func<ExceptionReceivedEventArgs, Task>>((handler, _) => messageHandler = handler);
             GetMock<IMessageMapper>()
                 .Setup(x => x.FromServiceBusMessage<TestData>(subscription.Topic, serviceBusMessage, IsAny<DateTimeOffset>()))
                 .Returns(message);
 
             ClassUnderTest.OnMessageReceived += (object sender, MessageReceivedArgs args) => eventArgs.Add(args);
-            ClassUnderTest.Subscribe(subscription, (Message<TestData> message) =>
+            await ClassUnderTest.SubscribeAsync(subscription, async (Message<TestData> x) =>
             {
-                receivedMessages.Add(message);
-                Thread.Sleep(150);
+                receivedMessages.Add(x);
+                await Task.Delay(150);
                 throw testException;
             });
             var before = DateTimeOffset.UtcNow;
-            var caught = Assert.Catch(() => messageHandler(serviceBusMessage));
+            var caught = Assert.CatchAsync(() => messageHandler(serviceBusMessage));
             var after = DateTimeOffset.UtcNow;
             var duration = after - before;
 
@@ -182,21 +192,21 @@ namespace EL.ServiceBus.UnitTests
         }
 
         [Test]
-        public void When_handling_exceptions()
+        public async Task When_handling_exceptions()
         {
-            Action<ExceptionReceivedEventArgs> exceptionHandler = null;
+            Func<ExceptionReceivedEventArgs, Task> exceptionHandler = null;
             var exceptionArgs = new List<ExceptionArgs>();
             var serviceBusExceptionArgs = new ExceptionReceivedEventArgs(new Exception("test exception"), "action", "endpoint", "entity name", "client id");
             GetMock<ISubscriptionClientWrapperPool>()
-                .Setup(x => x.GetClient(subscription))
-                .Returns(GetMock<ISubscriptionClientWrapper>().Object);
+                .Setup(x => x.GetClientAsync(subscription))
+                .ReturnsAsync(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
-                .Setup(x => x.RegisterMessageHandler(IsAny<Action<Microsoft.Azure.ServiceBus.Message>>(), IsAny<Action<ExceptionReceivedEventArgs>>()))
-                .Callback<Action<Microsoft.Azure.ServiceBus.Message>, Action<ExceptionReceivedEventArgs>>((_, handler) => exceptionHandler = handler);
+                .Setup(x => x.RegisterMessageHandler(IsAny<Func<Microsoft.Azure.ServiceBus.Message, Task>>(), IsAny<Func<ExceptionReceivedEventArgs, Task>>()))
+                .Callback<Func<Microsoft.Azure.ServiceBus.Message, Task>, Func<ExceptionReceivedEventArgs, Task>>((_, handler) => exceptionHandler = handler);
 
             ClassUnderTest.OnException += (object sender, ExceptionArgs args) => exceptionArgs.Add(args);
-            ClassUnderTest.Subscribe(subscription, (Message<TestData> message) => {});
-            exceptionHandler(serviceBusExceptionArgs);
+            await ClassUnderTest.SubscribeAsync(subscription, (Message<TestData> message) => Task.CompletedTask);
+            await exceptionHandler(serviceBusExceptionArgs);
             
             Assert.That(exceptionArgs.Count, Is.EqualTo(1));
             Assert.That(exceptionArgs[0].Subscription, Is.SameAs(subscription));
@@ -208,22 +218,26 @@ namespace EL.ServiceBus.UnitTests
         }
 
         [Test]
-        public void When_subscribing_to_the_dead_letter_queue()
+        public async Task When_subscribing_to_the_dead_letter_queue()
         {
-            Action<Microsoft.Azure.ServiceBus.Message> messageHandler = null;
+            Func<Microsoft.Azure.ServiceBus.Message, Task> messageHandler = null;
             var testMessage = new Microsoft.Azure.ServiceBus.Message();
             var expectedDeadLetter = new DeadLetter();
             DeadLetter deadLetter = null;
             GetMock<ISubscriptionClientWrapperPool>()
-                .Setup(x => x.GetDeadLetterClient(subscription))
-                .Returns(GetMock<ISubscriptionClientWrapper>().Object);
+                .Setup(x => x.GetDeadLetterClientAsync(subscription))
+                .ReturnsAsync(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
-                .Setup(x => x.RegisterMessageHandler(IsAny<Action<Microsoft.Azure.ServiceBus.Message>>(), IsAny<Action<ExceptionReceivedEventArgs>>()))
-                .Callback<Action<Microsoft.Azure.ServiceBus.Message>, Action<ExceptionReceivedEventArgs>>((handler, _) => messageHandler = handler);
+                .Setup(x => x.RegisterMessageHandler(IsAny<Func<Microsoft.Azure.ServiceBus.Message, Task>>(), IsAny<Func<ExceptionReceivedEventArgs, Task>>()))
+                .Callback<Func<Microsoft.Azure.ServiceBus.Message, Task>, Func<ExceptionReceivedEventArgs, Task>>((handler, _) => messageHandler = handler);
             GetMock<IMessageMapper>().Setup(x => x.GetDeadLetter(testMessage)).Returns(expectedDeadLetter);
 
-            ClassUnderTest.SubscribeToDeadLetters(subscription, (DeadLetter x) => deadLetter = x);
-            messageHandler(testMessage);
+            await ClassUnderTest.SubscribeToDeadLettersAsync(subscription, (DeadLetter x) =>
+            {
+                deadLetter = x;
+                return Task.CompletedTask;
+            });
+            await messageHandler(testMessage);
             
             Assert.That(deadLetter, Is.EqualTo(expectedDeadLetter));
         }
@@ -237,7 +251,7 @@ namespace EL.ServiceBus.UnitTests
 
             ClassUnderTest.Subscribe(new MessageEvent("test-event", 1), (TestData message) => {});
 
-            GetMock<ISubscriptionClientWrapper>().Verify(x => x.RegisterMessageHandler(ClassUnderTest.RouteMessage, IsAny<Action<ExceptionReceivedEventArgs>>()));
+            GetMock<ISubscriptionClientWrapper>().Verify(x => x.RegisterMessageHandler(ClassUnderTest.RouteMessage, IsAny<Func<ExceptionReceivedEventArgs, Task>>()));
         }
 
         [Test]
@@ -251,7 +265,7 @@ namespace EL.ServiceBus.UnitTests
             ClassUnderTest.Subscribe(new MessageEvent("test-event", 1), (TestData message) => {});
             ClassUnderTest.Subscribe(new MessageEvent("test-event", 2), (TestData message) => {});
 
-            GetMock<ISubscriptionClientWrapper>().Verify(x => x.RegisterMessageHandler(ClassUnderTest.RouteMessage, IsAny<Action<ExceptionReceivedEventArgs>>()), Times.Once);
+            GetMock<ISubscriptionClientWrapper>().Verify(x => x.RegisterMessageHandler(ClassUnderTest.RouteMessage, IsAny<Func<ExceptionReceivedEventArgs, Task>>()), Times.Once);
         }
 
         [Test]
@@ -359,7 +373,7 @@ namespace EL.ServiceBus.UnitTests
 
             ClassUnderTest.OnMessageReceived += (object sender, MessageReceivedArgs args) => eventArgs.Add(args);
             var before = DateTimeOffset.UtcNow;
-            Assert.Catch<Exception>(() => ClassUnderTest.RouteMessage(serviceBusMessage));
+            Assert.CatchAsync<Exception>(() => ClassUnderTest.RouteMessage(serviceBusMessage));
             var duration = DateTimeOffset.UtcNow - before;
 
             Assert.That(eventArgs.Count, Is.EqualTo(1));
@@ -376,13 +390,13 @@ namespace EL.ServiceBus.UnitTests
         {
             var serviceBusArgs = new ExceptionReceivedEventArgs(new Exception("test exception"), "action", "endpoint", "entity name", "client id");
             var eventArgs = new List<ExceptionArgs>();
-            Action<ExceptionReceivedEventArgs> exceptionHandler = null;
+            Func<ExceptionReceivedEventArgs, Task> exceptionHandler = null;
             GetMock<ISubscriptionClientWrapperPool>()
                 .Setup(x => x.GetSingleTopicClientIfFirstTime())
                 .Returns(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
-                .Setup(x => x.RegisterMessageHandler(ClassUnderTest.RouteMessage, IsAny<Action<ExceptionReceivedEventArgs>>()))
-                .Callback<Action<Microsoft.Azure.ServiceBus.Message>, Action<ExceptionReceivedEventArgs>>((_, handler) => exceptionHandler = handler);
+                .Setup(x => x.RegisterMessageHandler(ClassUnderTest.RouteMessage, IsAny<Func<ExceptionReceivedEventArgs, Task>>()))
+                .Callback<Func<Microsoft.Azure.ServiceBus.Message, Task>, Func<ExceptionReceivedEventArgs, Task>>((_, handler) => exceptionHandler = handler);
 
             ClassUnderTest.OnException += (_, args) => eventArgs.Add(args);
             ClassUnderTest.Subscribe(new MessageEvent("test-event", 1), (TestData message) => {});

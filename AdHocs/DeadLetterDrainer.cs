@@ -13,19 +13,18 @@ namespace AdHocs
     {
         static int Count = 0;
         static ConcurrentBag<string> MessageBuffer = new ConcurrentBag<string>();
-        static object LockObject = new object();
+        static SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1,1);
         static string Filename;
 
-        public void Drain()
+        public async Task Drain()
         {
-            var overridesPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "truenorth-overrides/El.ServiceBus", "AdHoc-appsettings.json");
             var config = new ConfigurationBuilder()
                 .AddJsonFile("appsettings.json", optional: false)
-                .AddJsonFile(overridesPath, optional: true)
+                .AddUserSecrets<DeadLetterDrainer>()
                 .Build();
-            var connectionString = config.GetValue<string>("ConnectionString");
-            var topic = config.GetValue<string>("TopicName");
-            var subscription = config.GetValue<string>("SubscriptionName");
+            var connectionString = config.GetValue<string>("ServiceBus:ConnectionString");
+            var topic = config.GetValue<string>("ServiceBus:TopicName");
+            var subscription = config.GetValue<string>("ServiceBus:SubscriptionName");
             var deadLetterSubscription = subscription + "/$DeadLetterQueue";
             Filename = $"{topic}-{subscription}-dead-letters.txt";
 
@@ -41,27 +40,24 @@ namespace AdHocs
             var timer = new Timer(WriteBuffer, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
 
             Console.WriteLine("Press ENTER to stop.");
-            Console.ReadLine();
+            await Console.In.ReadLineAsync();
 
-            client.CloseAsync().Wait();
+            await client.CloseAsync();
             timer.Dispose();
             WriteBuffer(null);
             Console.WriteLine("Stopped.");
         }
 
-        private static void WriteBuffer(object state)
+        private static async void WriteBuffer(object state)
         {
             if (MessageBuffer.Count > 0)
             {
-                lock(LockObject)
+                await semaphoreSlim.WaitAsync();
+                if (MessageBuffer.Count > 0)
                 {
-                    if (MessageBuffer.Count > 0)
-                    {
-                        File.AppendAllLinesAsync(Filename, MessageBuffer.ToArray()).Wait();
-                        MessageBuffer.Clear();
-                    }
+                    await File.AppendAllLinesAsync(Filename, MessageBuffer.ToArray());
+                    MessageBuffer.Clear();
                 }
-                
             }
         }
 

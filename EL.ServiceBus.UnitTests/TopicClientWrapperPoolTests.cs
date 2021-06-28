@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Emmersion.Testing;
 using Moq;
 using NUnit.Framework;
@@ -56,13 +57,13 @@ namespace EL.ServiceBus.UnitTests
         }
 
         [Test]
-        public void When_disposing_and_there_are_no_topics()
+        public async Task When_disposing_and_there_are_no_topics()
         {
-            Assert.DoesNotThrow(() => ClassUnderTest.Dispose());
+            await ClassUnderTest.DisposeAsync();
         }
 
         [Test]
-        public void When_disposing_and_there_are_topics()
+        public async Task When_disposing_and_there_are_topics()
         {
             var connectionString = "connection-string";
             var topicA = new Topic("example", "event-a", 1);
@@ -75,7 +76,7 @@ namespace EL.ServiceBus.UnitTests
             ClassUnderTest.GetForTopic(topicA);
             ClassUnderTest.GetForTopic(topicB);
 
-            ClassUnderTest.Dispose();
+            await ClassUnderTest.DisposeAsync();
 
             mockWrapperA.Verify(x => x.CloseAsync(), Times.Once);
             mockWrapperB.Verify(x => x.CloseAsync(), Times.Once);

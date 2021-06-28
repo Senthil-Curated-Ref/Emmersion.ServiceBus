@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
@@ -30,7 +31,7 @@ namespace EL.ServiceBus.IntegrationTests
         }
 
         [Test]
-        public void SingleTopicRoundTripTest()
+        public async Task SingleTopicRoundTripTest()
         {
             var eventA1 = new MessageEvent("event-a", 1);
             var eventA2 = new MessageEvent("event-a", 2);
@@ -91,14 +92,14 @@ namespace EL.ServiceBus.IntegrationTests
                 messagePublishDurations.Add(args.ElapsedMilliseconds);
             };
 
-            publisher.Publish(eventA1, a11Message);
-            publisher.Publish(eventA2, a21Message);
-            publisher.Publish(eventB1, b11Message);
-            publisher.Publish(eventA1, a12Message);
-            publisher.Publish(stringEvent, "first");
-            publisher.Publish(intEvent, 1);
-            publisher.Publish(stringEvent, "second");
-            publisher.Publish(intEvent, 2);
+            await publisher.PublishAsync(eventA1, a11Message);
+            await publisher.PublishAsync(eventA2, a21Message);
+            await publisher.PublishAsync(eventB1, b11Message);
+            await publisher.PublishAsync(eventA1, a12Message);
+            await publisher.PublishAsync(stringEvent, "first");
+            await publisher.PublishAsync(intEvent, 1);
+            await publisher.PublishAsync(stringEvent, "second");
+            await publisher.PublishAsync(intEvent, 2);
 
             var waited = 0;
             var expectedMessageCount = 8;

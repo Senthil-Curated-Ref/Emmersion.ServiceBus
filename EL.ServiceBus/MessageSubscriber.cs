@@ -1,16 +1,35 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace EL.ServiceBus
 {
     public interface IMessageSubscriber
     {
-        void Subscribe<T>(Subscription subscription, Action<Message<T>> action);
-        void SubscribeToDeadLetters(Subscription subscription, Action<DeadLetter> action);
-        void Subscribe<T>(MessageEvent messageEvent, Action<T> action);
+        [Obsolete("Use SubscribeAsync instead")]
+        void Subscribe<T>(Subscription subscription, Func<Message<T>, Task> messageHandler);
+        
+        [Obsolete("Use SubscribeAsync instead")]
+        void Subscribe<T>(Subscription subscription, Action<Message<T>> messageHandler);
+
+        Task SubscribeAsync<T>(Subscription subscription, Func<Message<T>, Task> messageHandler);
+
+        void Subscribe<T>(MessageEvent messageEvent, Action<T> messageHandler);
+        
+        void Subscribe<T>(MessageEvent messageEvent, Func<T, Task> messageHandler);
+        
         event OnMessageReceived OnMessageReceived;
+        
         event OnException OnException;
+        
+        [Obsolete("Use SubscribeToDeadLettersAsync instead")]
+        void SubscribeToDeadLetters(Subscription subscription, Func<DeadLetter, Task> messageHandler);
+        
+        [Obsolete("Use SubscribeToDeadLettersAsync instead")]
+        void SubscribeToDeadLetters(Subscription subscription, Action<DeadLetter> messageHandler);
+        
+        Task SubscribeToDeadLettersAsync(Subscription subscription, Func<DeadLetter, Task> messageHandler);
     }
 
     internal class MessageSubscriber : IMessageSubscriber
@@ -32,11 +51,27 @@ namespace EL.ServiceBus
             this.config = config;
         }
 
-        public void Subscribe<T>(Subscription subscription, Action<Message<T>> action)
+        [Obsolete("Use SubscribeAsync instead")]
+        public void Subscribe<T>(Subscription subscription, Action<Message<T>> messageHandler)
+        {
+            Subscribe(subscription, (Message<T> message) =>
+            {
+                messageHandler(message);
+                return Task.CompletedTask;
+            });
+        }
+
+        [Obsolete("Use SubscribeAsync instead")]
+        public void Subscribe<T>(Subscription subscription, Func<Message<T>, Task> messageHandler)
+        {
+            SubscribeAsync(subscription, messageHandler).Wait();
+        }
+        
+        public async Task SubscribeAsync<T>(Subscription subscription, Func<Message<T>, Task> messageHandler)
         {
             var filteringDisabled = string.IsNullOrEmpty(config.EnvironmentFilter);
-            var client = subscriptionClientWrapperPool.GetClient(subscription);
-            client.RegisterMessageHandler((serviceBusMessage) => {
+            var client = await subscriptionClientWrapperPool.GetClientAsync(subscription);
+            client.RegisterMessageHandler(async (serviceBusMessage) => {
                 var receivedAt = DateTimeOffset.UtcNow;
                 DateTimeOffset? publishedAt = null;
                 DateTimeOffset? enqueuedAt = null;
@@ -46,7 +81,7 @@ namespace EL.ServiceBus
                     enqueuedAt = message.EnqueuedAt;
                     if (filteringDisabled || message.Environment == config.EnvironmentFilter)
                     {
-                        action(message);
+                        await messageHandler(message);
                     }
                 }
                 finally
@@ -60,27 +95,60 @@ namespace EL.ServiceBus
                         processingTime
                     ));
                 }
-            }, (args) => OnException?.Invoke(this, new ExceptionArgs(subscription, args)));
+            }, (args) =>
+            {
+                OnException?.Invoke(this, new ExceptionArgs(subscription, args));
+                return Task.CompletedTask;
+            });
         }
 
-        public void SubscribeToDeadLetters(Subscription subscription, Action<DeadLetter> action)
+        [Obsolete("Use SubscribeToDeadLetters instead")]
+        public void SubscribeToDeadLetters(Subscription subscription, Action<DeadLetter> messageHandler)
         {
-            var client = subscriptionClientWrapperPool.GetDeadLetterClient(subscription);
-            client.RegisterMessageHandler(
-                (serviceBusMessage) => action(messageMapper.GetDeadLetter(serviceBusMessage)),
-                (args) => OnException?.Invoke(this, new ExceptionArgs(subscription, args)));
+            SubscribeToDeadLetters(subscription, (message) =>
+            {
+                messageHandler(message);
+                return Task.CompletedTask;
+            });
         }
 
-        public void Subscribe<T>(MessageEvent messageEvent, Action<T> action)
+        [Obsolete("Use SubscribeToDeadLetters instead")]
+        public void SubscribeToDeadLetters(Subscription subscription, Func<DeadLetter, Task> messageHandler)
+        {
+            SubscribeToDeadLettersAsync(subscription, messageHandler).Wait();
+        }
+        
+        public async Task SubscribeToDeadLettersAsync(Subscription subscription, Func<DeadLetter, Task> messageHandler)
+        {
+            var client = await subscriptionClientWrapperPool.GetDeadLetterClientAsync(subscription);
+            client.RegisterMessageHandler(
+                (serviceBusMessage) => messageHandler(messageMapper.GetDeadLetter(serviceBusMessage)),
+                (args) =>
+                {
+                    OnException?.Invoke(this, new ExceptionArgs(subscription, args));
+                    return Task.CompletedTask;
+                });
+        }
+
+        public void Subscribe<T>(MessageEvent messageEvent, Action<T> messageHandler)
+        {
+            Subscribe(messageEvent, (T data) =>
+            {
+                messageHandler(data);
+                return Task.CompletedTask;
+            });
+        }
+        
+        public void Subscribe<T>(MessageEvent messageEvent, Func<T, Task> messageHandler)
         {
             InitializeSingleTopicClient();
             routes.Add(new Route
             {
                 MessageEvent = messageEvent.ToString(),
-                Action = (serviceBusMessage) =>
+                MessageHandler = (serviceBusMessage) =>
                 {
                     var envelope = messageMapper.ToMessageEnvelope<T>(serviceBusMessage);
-                    action(envelope.Payload);
+                    return messageHandler(envelope.Payload);
                 }
             });
         }
@@ -89,17 +157,24 @@ namespace EL.ServiceBus
         {
             var client = subscriptionClientWrapperPool.GetSingleTopicClientIfFirstTime();
             client?.RegisterMessageHandler(RouteMessage,
-                (args) => OnException?.Invoke(this, new ExceptionArgs(null, args)));
+                (args) =>
+                {
+                    OnException?.Invoke(this, new ExceptionArgs(null, args));
+                    return Task.CompletedTask;
+                });
         }
 
-        internal void RouteMessage(Microsoft.Azure.ServiceBus.Message serviceBusMessage)
+        internal async Task RouteMessage(Microsoft.Azure.ServiceBus.Message serviceBusMessage)
         {
             var receivedAt = DateTimeOffset.UtcNow;
             var envelope = messageMapper.ToMessageEnvelope<object>(serviceBusMessage);
-            var recipients = routes.Where(x => x.MessageEvent == envelope.MessageEvent).ToList();
+            var recipients = routes.Where(x => x.MessageEvent == envelope.MessageEvent);
             try
             {
-                recipients.ForEach(x => x.Action(serviceBusMessage));
+                foreach (var x in recipients)
+                {
+                    await x.MessageHandler(serviceBusMessage);
+                }
             }
             finally
             {
@@ -117,6 +192,6 @@ namespace EL.ServiceBus
     internal class Route
     {
         public string MessageEvent { get; set; }
-        public Action<Microsoft.Azure.ServiceBus.Message> Action { get; set; }
+        public Func<Microsoft.Azure.ServiceBus.Message, Task> MessageHandler { get; set; }
     }
 }

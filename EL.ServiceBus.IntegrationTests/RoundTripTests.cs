@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
@@ -32,7 +33,7 @@ namespace EL.ServiceBus.IntegrationTests
         }
 
         [Test]
-        public void RoundTripTest()
+        public async Task RoundTripTest()
         {
             var topicA1 = new Topic("el-service-bus", "integration-test-a", 1);
             var topicA2 = new Topic("el-service-bus", "integration-test-a", 2);
@@ -56,20 +57,23 @@ namespace EL.ServiceBus.IntegrationTests
                 messageRoundTripDurations.Add(duration);
             };
             
-            subscriber.Subscribe(subscriptionA1, (Message<string> message) =>
+            await subscriber.SubscribeAsync(subscriptionA1, (Message<string> message) =>
             {
                 receivedA1Messages.Add(message);
                 receivedMessageCount++;
+                return Task.CompletedTask;
             });
-            subscriber.Subscribe<int>(subscriptionA2, (Message<int> message) =>
+            await subscriber.SubscribeAsync<int>(subscriptionA2, (Message<int> message) =>
             {
                 receivedA2Messages.Add(message);
                 receivedMessageCount++;
+                return Task.CompletedTask;
             });
-            subscriber.Subscribe(subscriptionB1, (Message<IntegrationTestData> message) =>
+            await subscriber.SubscribeAsync(subscriptionB1, (Message<IntegrationTestData> message) =>
             {
                 receivedB1Messages.Add(message);
                 receivedMessageCount++;
+                return Task.CompletedTask;
             });
 
             var messagePublishDurations = new List<long>();
@@ -86,13 +90,13 @@ namespace EL.ServiceBus.IntegrationTests
                 messagePublishDurations.Add(args.ElapsedMilliseconds);
             };
 
-            publisher.Publish(a1Message1);
-            publisher.Publish(a1Message2);
-            publisher.Publish(a2Message1);
-            publisher.Publish(a2Message2);
-            publisher.Publish(a2Message3);
-            publisher.Publish(b1Message1);
-            publisher.Publish(b1Message2);
+            await publisher.PublishAsync(a1Message1);
+            await publisher.PublishAsync(a1Message2);
+            await publisher.PublishAsync(a2Message1);
+            await publisher.PublishAsync(a2Message2);
+            await publisher.PublishAsync(a2Message3);
+            await publisher.PublishAsync(b1Message1);
+            await publisher.PublishAsync(b1Message2);
 
             var waited = 0;
             var expectedMessageCount = 7;
@@ -129,7 +133,7 @@ namespace EL.ServiceBus.IntegrationTests
         }
 
         [Test]
-        public void ScheduledRoundTripTests()
+        public async Task ScheduledRoundTripTests()
         {
             var topic = new Topic("el-service-bus", "integration-test-scheduled", 1);
             var subscription = new Subscription(topic, "el-service-bus", RandomAutoDeletingProcess());
@@ -149,10 +153,11 @@ namespace EL.ServiceBus.IntegrationTests
                 messageQueueDurations.Add(queueDuration);
             };
             
-            subscriber.Subscribe(subscription, (Message<string> message) =>
+            await subscriber.SubscribeAsync(subscription, (Message<string> x) =>
             {
-                receivedMessages.Add(message);
+                receivedMessages.Add(x);
                 receivedMessageCount++;
+                return Task.CompletedTask;
             });
 
             var messagePublishDurations = new List<long>();
@@ -163,7 +168,7 @@ namespace EL.ServiceBus.IntegrationTests
                 messagePublishDurations.Add(args.ElapsedMilliseconds);
             };
 
-            publisher.PublishScheduled(message, DateTimeOffset.UtcNow.AddSeconds(2));
+            await publisher.PublishScheduledAsync(message, DateTimeOffset.UtcNow.AddSeconds(2));
             
             var waited = 0;
             var expectedMessageCount = 1;
@@ -190,7 +195,7 @@ namespace EL.ServiceBus.IntegrationTests
         }
 
         [Test]
-        public void DeadLetterQueueTest()
+        public async Task DeadLetterQueueTest()
         {
             var topic = new Topic("el-service-bus", "integration-test-deadletter", 1);
             var subscription = new Subscription(topic, "el-service-bus", RandomAutoDeletingProcess());
@@ -198,8 +203,12 @@ namespace EL.ServiceBus.IntegrationTests
             var receivedMessageCount = 0;
             var deadLetters = new List<DeadLetter>();
             
-            subscriber.SubscribeToDeadLetters(subscription, (DeadLetter deadLetter) => deadLetters.Add(deadLetter));
-            subscriber.Subscribe(subscription, (Message<string> message) =>
+            await subscriber.SubscribeToDeadLettersAsync(subscription, (DeadLetter deadLetter) =>
+            {
+                deadLetters.Add(deadLetter);
+                return Task.CompletedTask;
+            });
+            await subscriber.SubscribeAsync(subscription, (Message<string> message) =>
             {
                 receivedMessageCount++;
                 throw new Exception("Force deadletter exception");
@@ -207,7 +216,7 @@ namespace EL.ServiceBus.IntegrationTests
 
             var message = new Message<string>(topic, $"hello-{Guid.NewGuid()}");
 
-            publisher.Publish(message);
+            await publisher.PublishAsync(message);
             
             var waited = 0;
             var expectedDeadLetterCount = 1;
@@ -231,7 +240,7 @@ namespace EL.ServiceBus.IntegrationTests
         public void WhenPublishingToANonExistantTopic()
         {
             var topic = new Topic("el-service-bus", "fake", 1);
-            Assert.Catch(() => publisher.Publish(new Message<string>(topic, "hello")));
+            Assert.CatchAsync(() => publisher.PublishAsync(new Message<string>(topic, "hello")));
         }
 
         [Test]
@@ -240,7 +249,7 @@ namespace EL.ServiceBus.IntegrationTests
             var topic = new Topic("el-service-bus", "fake", 1);
             var subscription = new Subscription(topic, "el-service-bus", "integration-tests");
  
-            Assert.Catch(() => subscriber.Subscribe(subscription, (Message<string> message) => {}));
+            Assert.CatchAsync(() => subscriber.SubscribeAsync(subscription, (Message<string> message) => Task.CompletedTask));
         }
 
         private string RandomAutoDeletingProcess()

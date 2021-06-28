@@ -6,7 +6,7 @@ namespace EL.ServiceBus
 {
     internal interface ISubscriptionCreator
     {
-        Task CreateSubscriptionIfNecessary(Subscription subscription);
+        Task CreateSubscriptionIfNecessaryAsync(Subscription subscription);
     }
 
     internal class SubscriptionCreator : ISubscriptionCreator
@@ -18,18 +18,18 @@ namespace EL.ServiceBus
             this.managementClientWrapperPool = managementClientWrapperPool;
         }
 
-        public async Task CreateSubscriptionIfNecessary(Subscription subscription)
+        public async Task CreateSubscriptionIfNecessaryAsync(Subscription subscription)
         {   
             var client = managementClientWrapperPool.GetClient();
             var topicName = subscription.Topic.ToString();
             var subscriptionName = subscription.SubscriptionName;
-            var subscriptionExists = await client.DoesSubscriptionExist(topicName, subscriptionName);
+            var subscriptionExists = await client.DoesSubscriptionExistAsync(topicName, subscriptionName);
             if (subscriptionExists)
             {
                 return;
             }
 
-            var topicExists = await client.DoesTopicExist(topicName);
+            var topicExists = await client.DoesTopicExistAsync(topicName);
             if (!topicExists)
             {
                 throw new Exception($"Topic {topicName} does not exist");
@@ -44,7 +44,7 @@ namespace EL.ServiceBus
                 EnableDeadLetteringOnMessageExpiration = true,
                 LockDuration = TimeSpan.FromSeconds(30)
             };
-            await client.CreateSubscription(description);
+            await client.CreateSubscriptionAsync(description);
         }
     }
 }

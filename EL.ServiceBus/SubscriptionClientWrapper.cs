@@ -6,7 +6,7 @@ namespace EL.ServiceBus
 {
     internal interface ISubscriptionClientWrapper
     {
-        void RegisterMessageHandler(Action<Microsoft.Azure.ServiceBus.Message> messageHandler, Action<ExceptionReceivedEventArgs> exceptionHandler);
+        void RegisterMessageHandler(Func<Microsoft.Azure.ServiceBus.Message, Task> messageHandler, Func<ExceptionReceivedEventArgs, Task> exceptionHandler);
         Task CloseAsync();
     }
 
@@ -38,18 +38,15 @@ namespace EL.ServiceBus
             client = new SubscriptionClient(connectionString, topicName, subscriptionName);
         }
 
-        public void RegisterMessageHandler(Action<Microsoft.Azure.ServiceBus.Message> messageHandler, Action<ExceptionReceivedEventArgs> exceptionHandler)
+        public void RegisterMessageHandler(Func<Microsoft.Azure.ServiceBus.Message, Task> messageHandler, Func<ExceptionReceivedEventArgs, Task> exceptionHandler)
         {
-            var options = new MessageHandlerOptions(exceptionReceivedEventArgs => {
-                exceptionHandler(exceptionReceivedEventArgs);
-                return Task.CompletedTask;
-            })
+            var options = new MessageHandlerOptions(exceptionHandler)
             {
                 MaxConcurrentCalls = maxConcurrentMessages,
                 AutoComplete = false
             };
             client.RegisterMessageHandler(async (message, cancellationToken) => {
-                messageHandler(message);
+                await messageHandler(message);
                 if (!cancellationToken.IsCancellationRequested)
                 {
                     await client.CompleteAsync(message.SystemProperties.LockToken);

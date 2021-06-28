@@ -1,8 +1,9 @@
 using System;
+using System.Threading.Tasks;
 
 namespace EL.ServiceBus
 {
-    internal interface IManagementClientWrapperPool : IDisposable
+    internal interface IManagementClientWrapperPool : IAsyncDisposable
     {
         IManagementClientWrapper GetClient();
     }
@@ -10,7 +11,7 @@ namespace EL.ServiceBus
     internal class ManagementClientWrapperPool : IManagementClientWrapperPool
     {
         private readonly ISubscriptionConfig config;
-        private ManagementClientWrapper client;
+        private IManagementClientWrapper client;
         private static object threadLock = new object();
 
         public ManagementClientWrapperPool(ISubscriptionConfig config)
@@ -35,9 +36,13 @@ namespace EL.ServiceBus
             return client;
         }
 
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
-            client?.CloseAsync().Wait();
+            if (client != null)
+            {
+                await client.CloseAsync();
+                client = null;
+            }
         }
     }
 }

@@ -1,21 +1,22 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace EL.ServiceBus
 {
-    internal interface ISubscriptionClientWrapperPool : IDisposable
+    internal interface ISubscriptionClientWrapperPool : IAsyncDisposable
     {
-        ISubscriptionClientWrapper GetClient(Subscription subscription);
-        ISubscriptionClientWrapper GetDeadLetterClient(Subscription subscription);
+        Task<ISubscriptionClientWrapper> GetClientAsync(Subscription subscription);
+        Task<ISubscriptionClientWrapper> GetDeadLetterClientAsync(Subscription subscription);
         ISubscriptionClientWrapper GetSingleTopicClientIfFirstTime();
     }
 
     internal class SubscriptionClientWrapperPool : ISubscriptionClientWrapperPool
     {
         private Dictionary<string, ISubscriptionClientWrapper> clients = new Dictionary<string, ISubscriptionClientWrapper>();
-        private static object threadLock = new object();
+        static SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1,1);
         private readonly ISubscriptionClientWrapperCreator subscriptionClientWrapperCreator;
         private readonly ISubscriptionCreator subscriptionCreator;
 
@@ -26,34 +27,40 @@ namespace EL.ServiceBus
             this.subscriptionCreator = subscriptionCreator;
         }
 
-        public ISubscriptionClientWrapper GetClient(Subscription subscription)
+        public Task<ISubscriptionClientWrapper> GetClientAsync(Subscription subscription)
         {
             return GetClient(subscription.ToString(), subscription, () => subscriptionClientWrapperCreator.Create(subscription));
         }
 
-        public ISubscriptionClientWrapper GetDeadLetterClient(Subscription subscription)
+        public Task<ISubscriptionClientWrapper> GetDeadLetterClientAsync(Subscription subscription)
         {
             return GetClient(subscription.ToString() + "-dead-letter", subscription, () => subscriptionClientWrapperCreator.CreateDeadLetter(subscription));
         }
 
-        private ISubscriptionClientWrapper GetClient(string key, Subscription subscription, Func<ISubscriptionClientWrapper> createAction)
+        private async Task<ISubscriptionClientWrapper> GetClient(string key, Subscription subscription, Func<ISubscriptionClientWrapper> createClient)
         {
-            lock (threadLock)
+            await semaphoreSlim.WaitAsync();
+            try
             {
                 if (clients.ContainsKey(key))
                 {
                     throw new Exception($"Connecting to the same subscription twice is not allowed: {subscription}");
                 }
-                subscriptionCreator.CreateSubscriptionIfNecessary(subscription).Wait();
-                var client = createAction();
+                await subscriptionCreator.CreateSubscriptionIfNecessaryAsync(subscription);
+                var client = createClient();
                 clients[key] = client;
                 return client;
+            }
+            finally
+            {
+                semaphoreSlim.Release();
             }
         }
 
         public ISubscriptionClientWrapper GetSingleTopicClientIfFirstTime()
         {
-            lock (threadLock)
+            semaphoreSlim.Wait();
+            try
             {
                 if (!clients.ContainsKey("single-topic"))
                 {
@@ -62,11 +69,16 @@ namespace EL.ServiceBus
                 }
                 return null;
             }
+            finally
+            {
+                semaphoreSlim.Release();
+            }
         }
 
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
-            Task.WaitAll(clients.Select(x => x.Value.CloseAsync()).ToArray());
+            await Task.WhenAll(clients.Select(x => x.Value.CloseAsync()));
+            clients.Clear();
         }
     }
 }
