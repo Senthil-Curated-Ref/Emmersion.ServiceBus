@@ -46,9 +46,9 @@ namespace Emmersion.ServiceBus.UnitTests
                 .Callback<Topic, Microsoft.Azure.ServiceBus.Message, DateTimeOffset>((x, y, z) => receivedAt = z)
                 .Returns(message);
 
-            await ClassUnderTest.SubscribeAsync(subscription, (Message<TestData> message) =>
+            await ClassUnderTest.SubscribeAsync(subscription, (Message<TestData> m) =>
             {
-                receivedMessages.Add(message);
+                receivedMessages.Add(m);
                 return Task.CompletedTask;
             });
             var before = DateTimeOffset.UtcNow;
@@ -81,10 +81,10 @@ namespace Emmersion.ServiceBus.UnitTests
                 .Setup(x => x.FromServiceBusMessage<TestData>(subscription.Topic, serviceBusMessage, IsAny<DateTimeOffset>()))
                 .Returns(message);
 
-            ClassUnderTest.OnMessageReceived += (object sender, MessageReceivedArgs args) => eventArgs.Add(args);
-            await ClassUnderTest.SubscribeAsync(subscription, (Message<TestData> message) =>
+            ClassUnderTest.OnMessageReceived += (sender, args) => eventArgs.Add(args);
+            await ClassUnderTest.SubscribeAsync(subscription, (Message<TestData> m) =>
             {
-                receivedMessages.Add(message);
+                receivedMessages.Add(m);
                 Thread.Sleep(150);
                 return Task.CompletedTask;
             });
@@ -164,7 +164,7 @@ namespace Emmersion.ServiceBus.UnitTests
                 .Setup(x => x.FromServiceBusMessage<TestData>(subscription.Topic, serviceBusMessage, IsAny<DateTimeOffset>()))
                 .Returns(message);
 
-            ClassUnderTest.OnMessageReceived += (object sender, MessageReceivedArgs args) => eventArgs.Add(args);
+            ClassUnderTest.OnMessageReceived += (sender, args) => eventArgs.Add(args);
             await ClassUnderTest.SubscribeAsync(subscription, async (Message<TestData> x) =>
             {
                 receivedMessages.Add(x);
@@ -204,7 +204,7 @@ namespace Emmersion.ServiceBus.UnitTests
                 .Setup(x => x.RegisterMessageHandler(IsAny<Func<Microsoft.Azure.ServiceBus.Message, Task>>(), IsAny<Func<ExceptionReceivedEventArgs, Task>>()))
                 .Callback<Func<Microsoft.Azure.ServiceBus.Message, Task>, Func<ExceptionReceivedEventArgs, Task>>((_, handler) => exceptionHandler = handler);
 
-            ClassUnderTest.OnException += (object sender, ExceptionArgs args) => exceptionArgs.Add(args);
+            ClassUnderTest.OnException += (sender, args) => exceptionArgs.Add(args);
             await ClassUnderTest.SubscribeAsync(subscription, (Message<TestData> message) => Task.CompletedTask);
             await exceptionHandler(serviceBusExceptionArgs);
             
@@ -232,7 +232,7 @@ namespace Emmersion.ServiceBus.UnitTests
                 .Callback<Func<Microsoft.Azure.ServiceBus.Message, Task>, Func<ExceptionReceivedEventArgs, Task>>((handler, _) => messageHandler = handler);
             GetMock<IMessageMapper>().Setup(x => x.GetDeadLetter(testMessage)).Returns(expectedDeadLetter);
 
-            await ClassUnderTest.SubscribeToDeadLettersAsync(subscription, (DeadLetter x) =>
+            await ClassUnderTest.SubscribeToDeadLettersAsync(subscription, x =>
             {
                 deadLetter = x;
                 return Task.CompletedTask;
@@ -269,7 +269,7 @@ namespace Emmersion.ServiceBus.UnitTests
         }
 
         [Test]
-        public void When_routing_a_message_it_should_only_reach_the_matching_subscriber()
+        public async Task When_routing_a_message_it_should_only_reach_the_matching_subscriber()
         {
             var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
             var deserializedObject = new MessageEnvelope<object> { MessageEvent = "test-event.v1", };
@@ -287,7 +287,7 @@ namespace Emmersion.ServiceBus.UnitTests
             ClassUnderTest.Subscribe(new MessageEvent("test-event", 2), (TestData message) => testEventV1Messages.Add(message));
             ClassUnderTest.Subscribe(new MessageEvent("other-event", 1), (TestData message) => testEventV1Messages.Add(message));
 
-            ClassUnderTest.RouteMessage(serviceBusMessage);
+            await ClassUnderTest.RouteMessage(serviceBusMessage);
 
             Assert.That(testEventV1Messages.Count, Is.EqualTo(1));
             Assert.That(testEventV1Messages[0], Is.SameAs(deserializedMessage.Payload));
@@ -296,7 +296,7 @@ namespace Emmersion.ServiceBus.UnitTests
         }
 
         [Test]
-        public void When_routing_a_message_and_there_are_multiple_subscribers()
+        public async Task When_routing_a_message_and_there_are_multiple_subscribers()
         {
             var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
             var deserializedObject = new MessageEnvelope<object> { MessageEvent = "test-event.v3" };
@@ -312,7 +312,7 @@ namespace Emmersion.ServiceBus.UnitTests
             ClassUnderTest.Subscribe(new MessageEvent("test-event", 3), (TestData message) => subscriber1Messages.Add(message));
             ClassUnderTest.Subscribe(new MessageEvent("test-event", 3), (TestData message) => subscriber2Messages.Add(message));
 
-            ClassUnderTest.RouteMessage(serviceBusMessage);
+            await ClassUnderTest.RouteMessage(serviceBusMessage);
 
             Assert.That(subscriber1Messages.Count, Is.EqualTo(1), "Message missing from subscriber 1");
             Assert.That(subscriber1Messages[0], Is.SameAs(deserializedMessage.Payload));
@@ -321,7 +321,7 @@ namespace Emmersion.ServiceBus.UnitTests
         }
 
         [Test]
-        public void When_routing_a_message_you_get_timing_data()
+        public async Task When_routing_a_message_you_get_timing_data()
         {
             var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
             var deserializedObject = new MessageEnvelope<object> { MessageEvent = "test-event.v3" };
@@ -331,9 +331,9 @@ namespace Emmersion.ServiceBus.UnitTests
                 .Returns(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToMessageEnvelope<object>(serviceBusMessage)).Returns(deserializedObject);
 
-            ClassUnderTest.OnMessageReceived += (object sender, MessageReceivedArgs args) => eventArgs.Add(args);
+            ClassUnderTest.OnMessageReceived += (sender, args) => eventArgs.Add(args);
             var before = DateTimeOffset.UtcNow;
-            ClassUnderTest.RouteMessage(serviceBusMessage);
+            await ClassUnderTest.RouteMessage(serviceBusMessage);
             var duration = DateTimeOffset.UtcNow - before;
 
             Assert.That(eventArgs.Count, Is.EqualTo(1));
@@ -347,7 +347,7 @@ namespace Emmersion.ServiceBus.UnitTests
 
             ClassUnderTest.Subscribe(new MessageEvent("test-event", 3), (object _) => { Thread.Sleep(25); });
             ClassUnderTest.Subscribe(new MessageEvent("test-event", 3), (object _) => { Thread.Sleep(25); });
-            ClassUnderTest.RouteMessage(serviceBusMessage);
+            await ClassUnderTest.RouteMessage(serviceBusMessage);
 
             Assert.That(eventArgs.Count, Is.EqualTo(2));
             Assert.That(eventArgs[1].ProcessingTime.TotalMilliseconds, Is.EqualTo(50).Within(20));
@@ -371,7 +371,7 @@ namespace Emmersion.ServiceBus.UnitTests
                 throw new Exception("Test exception!");
             });
 
-            ClassUnderTest.OnMessageReceived += (object sender, MessageReceivedArgs args) => eventArgs.Add(args);
+            ClassUnderTest.OnMessageReceived += (sender, args) => eventArgs.Add(args);
             var before = DateTimeOffset.UtcNow;
             Assert.CatchAsync<Exception>(() => ClassUnderTest.RouteMessage(serviceBusMessage));
             var duration = DateTimeOffset.UtcNow - before;
