@@ -1,4 +1,4 @@
-# EL.ServiceBus
+# Emmersion.ServiceBus
 
 This library makes it simple to interact with Azure ServiceBus to do messaging between product contexts according to our internal conventions.
 
@@ -12,8 +12,8 @@ to the new _multi-topic_ strategy (where each type of message has a separate top
 
 Before you can use the library, you will need to call one or both of:
 ```csharp
-EL.ServiceBus.DependencyInjectionConfig.ConfigureSubscriberServices(services);
-EL.ServiceBus.DependencyInjectionConfig.ConfigurePublisherServices(services);
+Emmersion.ServiceBus.DependencyInjectionConfig.ConfigureSubscriberServices(services);
+Emmersion.ServiceBus.DependencyInjectionConfig.ConfigurePublisherServices(services);
 ```
 
 You will also need to provide an `ISubscriptionConfig` and/or `IPublisherConfig` respectively.
@@ -179,6 +179,9 @@ dotnet user-secrets set 'ServiceBus:SingleTopicConnectionString' 'your-connectio
 
 
 ## Changes & Upgrading Info
+
+### v4.0
+Changed namespace from `EL.` to `Emmersion.`
 
 ### v3.1
 Added `async..await` support:
