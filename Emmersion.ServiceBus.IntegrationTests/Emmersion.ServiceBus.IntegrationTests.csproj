@@ -16,7 +16,7 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.0.1" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\EL.ServiceBus\El.ServiceBus.csproj" />
+    <ProjectReference Include="..\Emmersion.ServiceBus\Emmersion.ServiceBus.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="appsettings.json">

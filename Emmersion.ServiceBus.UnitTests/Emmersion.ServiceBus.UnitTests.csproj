@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\EL.ServiceBus\El.ServiceBus.csproj" />
+    <ProjectReference Include="..\Emmersion.ServiceBus\Emmersion.ServiceBus.csproj" />
   </ItemGroup>
 
 </Project>
