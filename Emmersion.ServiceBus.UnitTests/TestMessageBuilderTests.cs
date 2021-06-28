@@ -1,7 +1,7 @@
 using System;
 using NUnit.Framework;
 
-namespace EL.ServiceBus.UnitTests
+namespace Emmersion.ServiceBus.UnitTests
 {
     public class TestMessageBuilderTests
     {

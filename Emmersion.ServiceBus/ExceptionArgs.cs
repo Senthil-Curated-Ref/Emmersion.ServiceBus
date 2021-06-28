@@ -1,7 +1,7 @@
 using System;
 using Microsoft.Azure.ServiceBus;
 
-namespace EL.ServiceBus
+namespace Emmersion.ServiceBus
 {
     public delegate void OnException(object source, ExceptionArgs args);
 

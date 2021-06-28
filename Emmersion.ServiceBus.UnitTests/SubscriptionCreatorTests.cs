@@ -5,7 +5,7 @@ using Microsoft.Azure.ServiceBus.Management;
 using Moq;
 using NUnit.Framework;
 
-namespace EL.ServiceBus.UnitTests
+namespace Emmersion.ServiceBus.UnitTests
 {
     internal class SubscriptionCreatorTests : With_an_automocked<SubscriptionCreator>
     {

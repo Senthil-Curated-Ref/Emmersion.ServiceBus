@@ -1,7 +1,7 @@
 using System;
 using System.Text;
 
-namespace EL.ServiceBus
+namespace Emmersion.ServiceBus
 {
     internal interface IMessageMapper
     {

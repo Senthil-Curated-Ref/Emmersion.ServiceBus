@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Threading.Tasks;
 
-namespace EL.ServiceBus
+namespace Emmersion.ServiceBus
 {
     public interface IMessagePublisher
     {

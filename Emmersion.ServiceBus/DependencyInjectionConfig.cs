@@ -1,10 +1,10 @@
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 
-[assembly: InternalsVisibleTo("EL.ServiceBus.UnitTests")]
+[assembly: InternalsVisibleTo("Emmersion.ServiceBus.UnitTests")]
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
 
-namespace EL.ServiceBus
+namespace Emmersion.ServiceBus
 {
     public class DependencyInjectionConfig
     {

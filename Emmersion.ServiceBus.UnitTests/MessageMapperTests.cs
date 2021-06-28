@@ -3,7 +3,7 @@ using System.Text;
 using Emmersion.Testing;
 using NUnit.Framework;
 
-namespace EL.ServiceBus.UnitTests
+namespace Emmersion.ServiceBus.UnitTests
 {
     internal class MessageMapperTests : With_an_automocked<MessageMapper>
     {

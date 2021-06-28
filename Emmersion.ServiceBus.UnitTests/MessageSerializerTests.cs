@@ -2,7 +2,7 @@ using System;
 using Emmersion.Testing;
 using NUnit.Framework;
 
-namespace EL.ServiceBus.UnitTests
+namespace Emmersion.ServiceBus.UnitTests
 {
     internal class MessageSerializerTests : With_an_automocked<MessageSerializer>
     {

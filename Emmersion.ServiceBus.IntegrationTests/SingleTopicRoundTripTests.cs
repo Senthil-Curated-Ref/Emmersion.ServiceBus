@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
-namespace EL.ServiceBus.IntegrationTests
+namespace Emmersion.ServiceBus.IntegrationTests
 {
     public class SingleTopicRoundTripTests
     {

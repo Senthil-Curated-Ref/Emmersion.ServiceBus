@@ -1,6 +1,6 @@
 using System;
 
-namespace EL.ServiceBus
+namespace Emmersion.ServiceBus
 {
     public delegate void OnMessagePublished(object source, MessagePublishedArgs e);
 

@@ -7,7 +7,7 @@ using Moq;
 using NUnit.Framework;
 using ExceptionReceivedEventArgs = Microsoft.Azure.ServiceBus.ExceptionReceivedEventArgs;
 
-namespace EL.ServiceBus.UnitTests
+namespace Emmersion.ServiceBus.UnitTests
 {
     internal class MessageSubscriberTests : With_an_automocked<MessageSubscriber>
     {

@@ -1,7 +1,7 @@
 using System;
 using System.Text.RegularExpressions;
 
-namespace EL.ServiceBus
+namespace Emmersion.ServiceBus
 {
     public class MessageEvent
     {

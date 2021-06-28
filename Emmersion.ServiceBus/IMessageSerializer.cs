@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace EL.ServiceBus
+namespace Emmersion.ServiceBus
 {
     public interface IMessageSerializer
     {

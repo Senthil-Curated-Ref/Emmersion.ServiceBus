@@ -1,4 +1,4 @@
-namespace EL.ServiceBus.UnitTests
+namespace Emmersion.ServiceBus.UnitTests
 {
     internal class TestData
     {

@@ -1,4 +1,4 @@
-namespace EL.ServiceBus.IntegrationTests
+namespace Emmersion.ServiceBus.IntegrationTests
 {
     public class TestPublisherConfig : IPublisherConfig
     {

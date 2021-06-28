@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace EL.ServiceBus
+namespace Emmersion.ServiceBus
 {
     internal interface IManagementClientWrapperPool : IAsyncDisposable
     {

@@ -1,4 +1,4 @@
-namespace EL.ServiceBus
+namespace Emmersion.ServiceBus
 {
     public class DeadLetter
     {

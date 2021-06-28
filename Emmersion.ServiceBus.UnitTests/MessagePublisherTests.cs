@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Emmersion.Testing;
 using NUnit.Framework;
 
-namespace EL.ServiceBus.UnitTests
+namespace Emmersion.ServiceBus.UnitTests
 {
     internal class MessagePublisherTests : With_an_automocked<MessagePublisher>
     {

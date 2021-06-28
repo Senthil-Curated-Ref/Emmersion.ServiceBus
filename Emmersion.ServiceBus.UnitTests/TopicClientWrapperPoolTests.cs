@@ -3,7 +3,7 @@ using Emmersion.Testing;
 using Moq;
 using NUnit.Framework;
 
-namespace EL.ServiceBus.UnitTests
+namespace Emmersion.ServiceBus.UnitTests
 {
     internal class TopicClientWrapperPoolTests : With_an_automocked<TopicClientWrapperPool>
     {

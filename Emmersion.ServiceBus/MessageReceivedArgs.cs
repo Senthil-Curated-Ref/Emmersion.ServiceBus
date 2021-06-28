@@ -1,6 +1,6 @@
 using System;
 
-namespace EL.ServiceBus
+namespace Emmersion.ServiceBus
 {
     public delegate void OnMessageReceived(object source, MessageReceivedArgs args);
 

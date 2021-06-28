@@ -1,6 +1,6 @@
 using System;
 
-namespace EL.ServiceBus
+namespace Emmersion.ServiceBus
 {
     internal class MessageEnvelope<T>
     {
