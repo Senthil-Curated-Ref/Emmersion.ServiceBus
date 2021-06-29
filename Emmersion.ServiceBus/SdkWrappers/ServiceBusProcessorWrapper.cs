@@ -2,19 +2,19 @@ using System;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
 
-namespace Emmersion.ServiceBus
+namespace Emmersion.ServiceBus.SdkWrappers
 {
-    internal interface ISubscriptionClientWrapper
+    internal interface IServiceBusProcessor
     {
         Task RegisterMessageHandlerAsync(Func<ProcessMessageEventArgs, Task> messageHandler, Func<ProcessErrorEventArgs, Task> exceptionHandler);
         Task CloseAsync();
     }
 
-    internal class SubscriptionClientWrapper : ISubscriptionClientWrapper
+    internal class ServiceBusProcessorWrapper : IServiceBusProcessor
     {
         private readonly ServiceBusProcessor client;
 
-        public SubscriptionClientWrapper(ServiceBusProcessor client)
+        public ServiceBusProcessorWrapper(ServiceBusProcessor client)
         {
             this.client = client;
         }

@@ -1,11 +1,13 @@
 using System.Threading.Tasks;
+using Emmersion.ServiceBus.Pools;
+using Emmersion.ServiceBus.SdkWrappers;
 using Emmersion.Testing;
 using Moq;
 using NUnit.Framework;
 
-namespace Emmersion.ServiceBus.UnitTests
+namespace Emmersion.ServiceBus.UnitTests.Pools
 {
-    internal class SubscriptionClientWrapperPoolTests : With_an_automocked<SubscriptionClientWrapperPool>
+    internal class ServiceBusProcessorPoolTests : With_an_automocked<ServiceBusProcessorPool>
     {
         private Subscription subscription = new Subscription(new Topic("el-service-bus", "test-event", 1), "el-service-bus", "listener");
         private Subscription otherSubscription = new Subscription(new Topic("el-service-bus", "other-test-event", 2), "el-service-bus", "listener");
@@ -13,8 +15,8 @@ namespace Emmersion.ServiceBus.UnitTests
         [Test]
         public async Task When_getting_client_the_first_time()
         {
-            var mockSubscriptionClientWrapper = new Mock<ISubscriptionClientWrapper>();
-            GetMock<ISubscriptionClientWrapperCreator>()
+            var mockSubscriptionClientWrapper = new Mock<IServiceBusProcessor>();
+            GetMock<IServiceBusProcessorCreator>()
                 .Setup(x => x.Create(subscription))
                 .Returns(mockSubscriptionClientWrapper.Object);
 
@@ -27,8 +29,8 @@ namespace Emmersion.ServiceBus.UnitTests
         [Test]
         public async Task When_getting_client_after_the_first_time()
         {
-            var mockSubscriptionClientWrapper = new Mock<ISubscriptionClientWrapper>();
-            GetMock<ISubscriptionClientWrapperCreator>()
+            var mockSubscriptionClientWrapper = new Mock<IServiceBusProcessor>();
+            GetMock<IServiceBusProcessorCreator>()
                 .Setup(x => x.Create(subscription))
                 .Returns(mockSubscriptionClientWrapper.Object);
 
@@ -42,12 +44,12 @@ namespace Emmersion.ServiceBus.UnitTests
         [Test]
         public async Task When_getting_different_clients()
         {
-            var mockSubscriptionClientWrapper = new Mock<ISubscriptionClientWrapper>();
-            GetMock<ISubscriptionClientWrapperCreator>()
+            var mockSubscriptionClientWrapper = new Mock<IServiceBusProcessor>();
+            GetMock<IServiceBusProcessorCreator>()
                 .Setup(x => x.Create(subscription))
                 .Returns(mockSubscriptionClientWrapper.Object);
-            var otherMockSubscriptionClientWrapper = new Mock<ISubscriptionClientWrapper>();
-            GetMock<ISubscriptionClientWrapperCreator>()
+            var otherMockSubscriptionClientWrapper = new Mock<IServiceBusProcessor>();
+            GetMock<IServiceBusProcessorCreator>()
                 .Setup(x => x.Create(otherSubscription))
                 .Returns(otherMockSubscriptionClientWrapper.Object);
 
@@ -63,8 +65,8 @@ namespace Emmersion.ServiceBus.UnitTests
         [Test]
         public async Task When_getting_a_dead_letter_client_the_first_time()
         {
-            var mockSubscriptionClientWrapper = new Mock<ISubscriptionClientWrapper>();
-            GetMock<ISubscriptionClientWrapperCreator>()
+            var mockSubscriptionClientWrapper = new Mock<IServiceBusProcessor>();
+            GetMock<IServiceBusProcessorCreator>()
                 .Setup(x => x.CreateDeadLetter(subscription))
                 .Returns(mockSubscriptionClientWrapper.Object);
 
@@ -77,8 +79,8 @@ namespace Emmersion.ServiceBus.UnitTests
         [Test]
         public async Task When_getting_a_dead_letter_client_after_the_first_time()
         {
-            var mockSubscriptionClientWrapper = new Mock<ISubscriptionClientWrapper>();
-            GetMock<ISubscriptionClientWrapperCreator>()
+            var mockSubscriptionClientWrapper = new Mock<IServiceBusProcessor>();
+            GetMock<IServiceBusProcessorCreator>()
                 .Setup(x => x.CreateDeadLetter(subscription))
                 .Returns(mockSubscriptionClientWrapper.Object);
 
@@ -92,8 +94,8 @@ namespace Emmersion.ServiceBus.UnitTests
         [Test]
         public void When_getting_the_single_topic_client_the_first_time()
         {
-            var mockSubscriptionClientWrapper = new Mock<ISubscriptionClientWrapper>();
-            GetMock<ISubscriptionClientWrapperCreator>()
+            var mockSubscriptionClientWrapper = new Mock<IServiceBusProcessor>();
+            GetMock<IServiceBusProcessorCreator>()
                 .Setup(x => x.CreateSingleTopic())
                 .Returns(mockSubscriptionClientWrapper.Object);
 
@@ -105,8 +107,8 @@ namespace Emmersion.ServiceBus.UnitTests
         [Test]
         public void When_getting_the_single_topic_client_after_the_first_time()
         {
-            var mockSubscriptionClientWrapper = new Mock<ISubscriptionClientWrapper>();
-            GetMock<ISubscriptionClientWrapperCreator>()
+            var mockSubscriptionClientWrapper = new Mock<IServiceBusProcessor>();
+            GetMock<IServiceBusProcessorCreator>()
                 .Setup(x => x.CreateSingleTopic())
                 .Returns(mockSubscriptionClientWrapper.Object);
 
@@ -120,12 +122,12 @@ namespace Emmersion.ServiceBus.UnitTests
         [Test]
         public async Task When_disposing_and_there_are_subscriptions()
         {
-            var mockSubscriptionClientWrapper = new Mock<ISubscriptionClientWrapper>();
-            GetMock<ISubscriptionClientWrapperCreator>()
+            var mockSubscriptionClientWrapper = new Mock<IServiceBusProcessor>();
+            GetMock<IServiceBusProcessorCreator>()
                 .Setup(x => x.Create(subscription))
                 .Returns(mockSubscriptionClientWrapper.Object);
-            var otherMockSubscriptionClientWrapper = new Mock<ISubscriptionClientWrapper>();
-            GetMock<ISubscriptionClientWrapperCreator>()
+            var otherMockSubscriptionClientWrapper = new Mock<IServiceBusProcessor>();
+            GetMock<IServiceBusProcessorCreator>()
                 .Setup(x => x.Create(otherSubscription))
                 .Returns(otherMockSubscriptionClientWrapper.Object);
 

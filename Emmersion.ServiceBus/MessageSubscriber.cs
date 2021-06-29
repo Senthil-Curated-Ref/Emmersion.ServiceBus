@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
+using Emmersion.ServiceBus.Pools;
 
 namespace Emmersion.ServiceBus
 {
@@ -35,7 +36,7 @@ namespace Emmersion.ServiceBus
 
     internal class MessageSubscriber : IMessageSubscriber
     {
-        private readonly ISubscriptionClientWrapperPool subscriptionClientWrapperPool;
+        private readonly IServiceBusProcessorPool serviceBusProcessorPool;
         private readonly IMessageMapper messageMapper;
         private readonly ISubscriptionConfig config;
         private readonly List<Route> routes = new List<Route>();
@@ -43,11 +44,11 @@ namespace Emmersion.ServiceBus
         public event OnMessageReceived OnMessageReceived;
         public event OnException OnException;
 
-        public MessageSubscriber(ISubscriptionClientWrapperPool subscriptionClientWrapperPool,
+        public MessageSubscriber(IServiceBusProcessorPool serviceBusProcessorPool,
             IMessageMapper messageMapper,
             ISubscriptionConfig config)
         {
-            this.subscriptionClientWrapperPool = subscriptionClientWrapperPool;
+            this.serviceBusProcessorPool = serviceBusProcessorPool;
             this.messageMapper = messageMapper;
             this.config = config;
         }
@@ -71,7 +72,7 @@ namespace Emmersion.ServiceBus
         public async Task SubscribeAsync<T>(Subscription subscription, Func<Message<T>, Task> messageHandler)
         {
             var filteringDisabled = string.IsNullOrEmpty(config.EnvironmentFilter);
-            var client = await subscriptionClientWrapperPool.GetClientAsync(subscription);
+            var client = await serviceBusProcessorPool.GetClientAsync(subscription);
             await client.RegisterMessageHandlerAsync(async (args) => {
                 var receivedAt = DateTimeOffset.UtcNow;
                 DateTimeOffset? publishedAt = null;
@@ -121,7 +122,7 @@ namespace Emmersion.ServiceBus
         
         public async Task SubscribeToDeadLettersAsync(Subscription subscription, Func<DeadLetter, Task> messageHandler)
         {
-            var client = await subscriptionClientWrapperPool.GetDeadLetterClientAsync(subscription);
+            var client = await serviceBusProcessorPool.GetDeadLetterClientAsync(subscription);
             await client.RegisterMessageHandlerAsync(
                 (args) => messageHandler(messageMapper.GetDeadLetter(args.Message)),
                 (args) =>
@@ -156,7 +157,7 @@ namespace Emmersion.ServiceBus
 
         private async Task InitializeSingleTopicClient()
         {
-            var client = subscriptionClientWrapperPool.GetSingleTopicClientIfFirstTime();
+            var client = serviceBusProcessorPool.GetSingleTopicClientIfFirstTime();
             if (client != null)
             {
                 await client.RegisterMessageHandlerAsync(RouteMessage,
