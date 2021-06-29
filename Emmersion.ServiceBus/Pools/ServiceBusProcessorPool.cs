@@ -9,9 +9,9 @@ namespace Emmersion.ServiceBus.Pools
 {
     internal interface IServiceBusProcessorPool : IAsyncDisposable
     {
-        Task<IServiceBusProcessor> GetClientAsync(Subscription subscription);
-        Task<IServiceBusProcessor> GetDeadLetterClientAsync(Subscription subscription);
-        IServiceBusProcessor GetSingleTopicClientIfFirstTime();
+        Task<IServiceBusProcessor> GetProcessorAsync(Subscription subscription);
+        Task<IServiceBusProcessor> GetDeadLetterProcessorAsync(Subscription subscription);
+        IServiceBusProcessor GetSingleTopicProcessorIfFirstTime();
     }
 
     internal class ServiceBusProcessorPool : IServiceBusProcessorPool
@@ -28,12 +28,12 @@ namespace Emmersion.ServiceBus.Pools
             this.subscriptionCreator = subscriptionCreator;
         }
 
-        public Task<IServiceBusProcessor> GetClientAsync(Subscription subscription)
+        public Task<IServiceBusProcessor> GetProcessorAsync(Subscription subscription)
         {
             return GetClient(subscription.ToString(), subscription, () => serviceBusProcessorCreator.Create(subscription));
         }
 
-        public Task<IServiceBusProcessor> GetDeadLetterClientAsync(Subscription subscription)
+        public Task<IServiceBusProcessor> GetDeadLetterProcessorAsync(Subscription subscription)
         {
             return GetClient(subscription.ToString() + "-dead-letter", subscription, () => serviceBusProcessorCreator.CreateDeadLetter(subscription));
         }
@@ -58,7 +58,7 @@ namespace Emmersion.ServiceBus.Pools
             }
         }
 
-        public IServiceBusProcessor GetSingleTopicClientIfFirstTime()
+        public IServiceBusProcessor GetSingleTopicProcessorIfFirstTime()
         {
             semaphoreSlim.Wait();
             try

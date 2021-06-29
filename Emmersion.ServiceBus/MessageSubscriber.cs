@@ -72,8 +72,8 @@ namespace Emmersion.ServiceBus
         public async Task SubscribeAsync<T>(Subscription subscription, Func<Message<T>, Task> messageHandler)
         {
             var filteringDisabled = string.IsNullOrEmpty(config.EnvironmentFilter);
-            var client = await serviceBusProcessorPool.GetClientAsync(subscription);
-            await client.RegisterMessageHandlerAsync(async (args) => {
+            var processor = await serviceBusProcessorPool.GetProcessorAsync(subscription);
+            await processor.RegisterMessageHandlerAsync(async (args) => {
                 var receivedAt = DateTimeOffset.UtcNow;
                 DateTimeOffset? publishedAt = null;
                 DateTimeOffset? enqueuedAt = null;
@@ -122,8 +122,8 @@ namespace Emmersion.ServiceBus
         
         public async Task SubscribeToDeadLettersAsync(Subscription subscription, Func<DeadLetter, Task> messageHandler)
         {
-            var client = await serviceBusProcessorPool.GetDeadLetterClientAsync(subscription);
-            await client.RegisterMessageHandlerAsync(
+            var processor = await serviceBusProcessorPool.GetDeadLetterProcessorAsync(subscription);
+            await processor.RegisterMessageHandlerAsync(
                 (args) => messageHandler(messageMapper.GetDeadLetter(args.Message)),
                 (args) =>
                 {
@@ -157,10 +157,10 @@ namespace Emmersion.ServiceBus
 
         private async Task InitializeSingleTopicClient()
         {
-            var client = serviceBusProcessorPool.GetSingleTopicClientIfFirstTime();
-            if (client != null)
+            var processor = serviceBusProcessorPool.GetSingleTopicProcessorIfFirstTime();
+            if (processor != null)
             {
-                await client.RegisterMessageHandlerAsync(RouteMessage,
+                await processor.RegisterMessageHandlerAsync(RouteMessage,
                     (args) =>
                     {
                         OnException?.Invoke(this, new ExceptionArgs(null, args));

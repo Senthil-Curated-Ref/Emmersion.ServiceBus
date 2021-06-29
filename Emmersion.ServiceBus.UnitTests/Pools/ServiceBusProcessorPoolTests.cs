@@ -20,7 +20,7 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
                 .Setup(x => x.Create(subscription))
                 .Returns(mockSubscriptionClientWrapper.Object);
 
-            var result = await ClassUnderTest.GetClientAsync(subscription);
+            var result = await ClassUnderTest.GetProcessorAsync(subscription);
 
             Assert.That(result, Is.SameAs(mockSubscriptionClientWrapper.Object));
             GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessaryAsync(subscription));
@@ -34,8 +34,8 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
                 .Setup(x => x.Create(subscription))
                 .Returns(mockSubscriptionClientWrapper.Object);
 
-            await ClassUnderTest.GetClientAsync(subscription);
-            var result = Assert.CatchAsync(() => ClassUnderTest.GetClientAsync(subscription));
+            await ClassUnderTest.GetProcessorAsync(subscription);
+            var result = Assert.CatchAsync(() => ClassUnderTest.GetProcessorAsync(subscription));
 
             Assert.That(result.Message, Does.Contain(subscription.ToString()));
             GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessaryAsync(IsAny<Subscription>()), Times.Once);
@@ -53,8 +53,8 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
                 .Setup(x => x.Create(otherSubscription))
                 .Returns(otherMockSubscriptionClientWrapper.Object);
 
-            var result1 = await ClassUnderTest.GetClientAsync(subscription);
-            var result2 = await ClassUnderTest.GetClientAsync(otherSubscription);
+            var result1 = await ClassUnderTest.GetProcessorAsync(subscription);
+            var result2 = await ClassUnderTest.GetProcessorAsync(otherSubscription);
 
             Assert.That(result1, Is.SameAs(mockSubscriptionClientWrapper.Object));
             Assert.That(result2, Is.SameAs(otherMockSubscriptionClientWrapper.Object));
@@ -70,7 +70,7 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
                 .Setup(x => x.CreateDeadLetter(subscription))
                 .Returns(mockSubscriptionClientWrapper.Object);
 
-            var result = await ClassUnderTest.GetDeadLetterClientAsync(subscription);
+            var result = await ClassUnderTest.GetDeadLetterProcessorAsync(subscription);
 
             Assert.That(result, Is.SameAs(mockSubscriptionClientWrapper.Object));
             GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessaryAsync(subscription));
@@ -84,8 +84,8 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
                 .Setup(x => x.CreateDeadLetter(subscription))
                 .Returns(mockSubscriptionClientWrapper.Object);
 
-            await ClassUnderTest.GetDeadLetterClientAsync(subscription);
-            var result = Assert.CatchAsync(() => ClassUnderTest.GetDeadLetterClientAsync(subscription));
+            await ClassUnderTest.GetDeadLetterProcessorAsync(subscription);
+            var result = Assert.CatchAsync(() => ClassUnderTest.GetDeadLetterProcessorAsync(subscription));
 
             Assert.That(result.Message, Does.Contain(subscription.ToString()));
             GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessaryAsync(IsAny<Subscription>()), Times.Once);
@@ -99,7 +99,7 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
                 .Setup(x => x.CreateSingleTopic())
                 .Returns(mockSubscriptionClientWrapper.Object);
 
-            var result = ClassUnderTest.GetSingleTopicClientIfFirstTime();
+            var result = ClassUnderTest.GetSingleTopicProcessorIfFirstTime();
 
             Assert.That(result, Is.SameAs(mockSubscriptionClientWrapper.Object));
         }
@@ -112,8 +112,8 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
                 .Setup(x => x.CreateSingleTopic())
                 .Returns(mockSubscriptionClientWrapper.Object);
 
-            var result1 = ClassUnderTest.GetSingleTopicClientIfFirstTime();
-            var result2 = ClassUnderTest.GetSingleTopicClientIfFirstTime();
+            var result1 = ClassUnderTest.GetSingleTopicProcessorIfFirstTime();
+            var result2 = ClassUnderTest.GetSingleTopicProcessorIfFirstTime();
 
             Assert.That(result1, Is.SameAs(mockSubscriptionClientWrapper.Object));
             Assert.That(result2, Is.Null);
@@ -131,8 +131,8 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
                 .Setup(x => x.Create(otherSubscription))
                 .Returns(otherMockSubscriptionClientWrapper.Object);
 
-            await ClassUnderTest.GetClientAsync(subscription);
-            await ClassUnderTest.GetClientAsync(otherSubscription);
+            await ClassUnderTest.GetProcessorAsync(subscription);
+            await ClassUnderTest.GetProcessorAsync(otherSubscription);
             await ClassUnderTest.DisposeAsync();
 
             mockSubscriptionClientWrapper.Verify(x => x.CloseAsync());
