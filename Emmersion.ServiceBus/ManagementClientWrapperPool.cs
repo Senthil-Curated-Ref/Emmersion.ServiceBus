@@ -1,14 +1,16 @@
+using Emmersion.ServiceBus.SdkWrappers;
+
 namespace Emmersion.ServiceBus
 {
     internal interface IManagementClientWrapperPool
     {
-        IManagementClientWrapper GetClient();
+        IServiceBusAdministrationClient GetClient();
     }
 
     internal class ManagementClientWrapperPool : IManagementClientWrapperPool
     {
         private readonly ISubscriptionConfig config;
-        private IManagementClientWrapper client;
+        private IServiceBusAdministrationClient client;
         private static object threadLock = new object();
 
         public ManagementClientWrapperPool(ISubscriptionConfig config)
@@ -16,7 +18,7 @@ namespace Emmersion.ServiceBus
             this.config = config;
         }
 
-        public IManagementClientWrapper GetClient()
+        public IServiceBusAdministrationClient GetClient()
         {
             if (client != null)
             {
@@ -27,7 +29,7 @@ namespace Emmersion.ServiceBus
             {
                 if (client == null)
                 {
-                    client = new ManagementClientWrapper(config.ConnectionString);
+                    client = new ServiceBusAdministrationClient(config.ConnectionString);
                 }
             }
             return client;

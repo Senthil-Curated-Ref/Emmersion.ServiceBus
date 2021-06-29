@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus.Administration;
+using Emmersion.ServiceBus.SdkWrappers;
 using Emmersion.Testing;
 using Moq;
 using NUnit.Framework;
@@ -16,54 +17,54 @@ namespace Emmersion.ServiceBus.UnitTests
         {
             GetMock<IManagementClientWrapperPool>()
                 .Setup(x => x.GetClient())
-                .Returns(GetMock<IManagementClientWrapper>().Object);
+                .Returns(GetMock<IServiceBusAdministrationClient>().Object);
         }
 
         [Test]
         public async Task When_creating_a_subscription_and_it_already_exists()
         {
-            GetMock<IManagementClientWrapper>()
+            GetMock<IServiceBusAdministrationClient>()
                 .Setup(x => x.DoesSubscriptionExistAsync(subscription.Topic.ToString(), subscription.SubscriptionName))
                 .ReturnsAsync(true);
             
             await ClassUnderTest.CreateSubscriptionIfNecessaryAsync(subscription);
 
-            GetMock<IManagementClientWrapper>().VerifyNever(x => x.CreateSubscriptionAsync(IsAny<CreateSubscriptionOptions>()));
+            GetMock<IServiceBusAdministrationClient>().VerifyNever(x => x.CreateSubscriptionAsync(IsAny<CreateSubscriptionOptions>()));
         }
 
         [Test]
         public void When_creating_a_subscription_and_the_topic_does_not_exist()
         {
-            GetMock<IManagementClientWrapper>()
+            GetMock<IServiceBusAdministrationClient>()
                 .Setup(x => x.DoesSubscriptionExistAsync(subscription.Topic.ToString(), subscription.SubscriptionName))
                 .ReturnsAsync(false);
-            GetMock<IManagementClientWrapper>()
+            GetMock<IServiceBusAdministrationClient>()
                 .Setup(x => x.DoesTopicExistAsync(subscription.Topic.ToString()))
                 .ReturnsAsync(false);
             
             var exception = Assert.CatchAsync(() => ClassUnderTest.CreateSubscriptionIfNecessaryAsync(subscription));
 
             Assert.That(exception.Message.Contains($"Topic {subscription.Topic} does not exist"));
-            GetMock<IManagementClientWrapper>().VerifyNever(x => x.CreateSubscriptionAsync(IsAny<CreateSubscriptionOptions>()));
+            GetMock<IServiceBusAdministrationClient>().VerifyNever(x => x.CreateSubscriptionAsync(IsAny<CreateSubscriptionOptions>()));
         }
 
         [Test]
         public async Task When_creating_a_subscription_successfully()
         {
             CreateSubscriptionOptions options = null;
-            GetMock<IManagementClientWrapper>()
+            GetMock<IServiceBusAdministrationClient>()
                 .Setup(x => x.DoesSubscriptionExistAsync(subscription.Topic.ToString(), subscription.SubscriptionName))
                 .ReturnsAsync(false);
-            GetMock<IManagementClientWrapper>()
+            GetMock<IServiceBusAdministrationClient>()
                 .Setup(x => x.DoesTopicExistAsync(subscription.Topic.ToString()))
                 .ReturnsAsync(true);
-                GetMock<IManagementClientWrapper>()
+                GetMock<IServiceBusAdministrationClient>()
                     .Setup(x => x.CreateSubscriptionAsync(IsAny<CreateSubscriptionOptions>()))
                     .Callback<CreateSubscriptionOptions>(x => options = x);
             
             await ClassUnderTest.CreateSubscriptionIfNecessaryAsync(subscription);
 
-            GetMock<IManagementClientWrapper>().Verify(x => x.CreateSubscriptionAsync(options));
+            GetMock<IServiceBusAdministrationClient>().Verify(x => x.CreateSubscriptionAsync(options));
             Assert.That(options.TopicName, Is.EqualTo(subscription.Topic.ToString()));
             Assert.That(options.SubscriptionName, Is.EqualTo(subscription.SubscriptionName));
             Assert.That(options.MaxDeliveryCount, Is.EqualTo(10));
@@ -79,19 +80,19 @@ namespace Emmersion.ServiceBus.UnitTests
         {
             subscription = new Subscription(subscription.Topic, "unit-tests", "auto-delete-soon");
             CreateSubscriptionOptions options = null;
-            GetMock<IManagementClientWrapper>()
+            GetMock<IServiceBusAdministrationClient>()
                 .Setup(x => x.DoesSubscriptionExistAsync(subscription.Topic.ToString(), subscription.SubscriptionName))
                 .ReturnsAsync(false);
-            GetMock<IManagementClientWrapper>()
+            GetMock<IServiceBusAdministrationClient>()
                 .Setup(x => x.DoesTopicExistAsync(subscription.Topic.ToString()))
                 .ReturnsAsync(true);
-                GetMock<IManagementClientWrapper>()
+                GetMock<IServiceBusAdministrationClient>()
                     .Setup(x => x.CreateSubscriptionAsync(IsAny<CreateSubscriptionOptions>()))
                     .Callback<CreateSubscriptionOptions>(x => options = x);
             
             await ClassUnderTest.CreateSubscriptionIfNecessaryAsync(subscription);
 
-            GetMock<IManagementClientWrapper>().Verify(x => x.CreateSubscriptionAsync(options));
+            GetMock<IServiceBusAdministrationClient>().Verify(x => x.CreateSubscriptionAsync(options));
             Assert.That(options.TopicName, Is.EqualTo(subscription.Topic.ToString()));
             Assert.That(options.SubscriptionName, Is.EqualTo(subscription.SubscriptionName));
             Assert.That(options.MaxDeliveryCount, Is.EqualTo(10));

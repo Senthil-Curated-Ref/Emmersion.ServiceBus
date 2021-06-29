@@ -1,22 +1,22 @@
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus.Administration;
 
-namespace Emmersion.ServiceBus
+namespace Emmersion.ServiceBus.SdkWrappers
 {
-    internal interface IManagementClientWrapper
+    internal interface IServiceBusAdministrationClient
     {
         Task<bool> DoesTopicExistAsync(string topicName);
         Task<bool> DoesSubscriptionExistAsync(string topicName, string subscriptionName);
         Task CreateSubscriptionAsync(CreateSubscriptionOptions description);
     }
 
-    internal class ManagementClientWrapper : IManagementClientWrapper
+    internal class ServiceBusAdministrationClient : IServiceBusAdministrationClient
     {
-        private ServiceBusAdministrationClient client;
+        private Azure.Messaging.ServiceBus.Administration.ServiceBusAdministrationClient client;
 
-        public ManagementClientWrapper(string connectionString)
+        public ServiceBusAdministrationClient(string connectionString)
         {
-            client = new ServiceBusAdministrationClient(connectionString);
+            client = new Azure.Messaging.ServiceBus.Administration.ServiceBusAdministrationClient(connectionString);
         }
 
         public async Task<bool> DoesTopicExistAsync(string topicName)
