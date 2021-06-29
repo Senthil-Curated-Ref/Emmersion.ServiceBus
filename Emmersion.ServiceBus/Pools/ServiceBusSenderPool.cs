@@ -16,14 +16,14 @@ namespace Emmersion.ServiceBus.Pools
     {
         private readonly Dictionary<string, IServiceBusSender> pool;
         private readonly IPublisherConfig publisherConfig;
-        private readonly IServiceBusSenderCreator serviceBusSenderCreator;
+        private readonly IServiceBusClientPool serviceBusClientPool;
         private static object threadLock = new object();
 
-        public ServiceBusSenderPool(IPublisherConfig publisherConfig, IServiceBusSenderCreator serviceBusSenderCreator)
+        public ServiceBusSenderPool(IPublisherConfig publisherConfig, IServiceBusClientPool serviceBusClientPool)
         {
             pool = new Dictionary<string, IServiceBusSender>();
             this.publisherConfig = publisherConfig;
-            this.serviceBusSenderCreator = serviceBusSenderCreator;
+            this.serviceBusClientPool = serviceBusClientPool;
         }
         
         public async ValueTask DisposeAsync()
@@ -50,7 +50,8 @@ namespace Emmersion.ServiceBus.Pools
                 {
                     if (!pool.ContainsKey(topicName))
                     {
-                        pool[topicName] = serviceBusSenderCreator.Create(connectionString, topicName);
+                        var client = serviceBusClientPool.GetClient(connectionString);
+                        pool[topicName] = client.CreateSender(topicName);
                     }
                 }
             }

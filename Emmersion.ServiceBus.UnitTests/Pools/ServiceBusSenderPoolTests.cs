@@ -14,13 +14,15 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
         {
             var connectionString = "connection-string";
             var topic = new Topic("example", "event", 1);
-            var mockWrapper = new Mock<IServiceBusSender>();
+            var mockServiceBusClient = new Mock<IServiceBusClient>();
+            var mockSender = new Mock<IServiceBusSender>();
             GetMock<IPublisherConfig>().Setup(x => x.ConnectionString).Returns(connectionString);
-            GetMock<IServiceBusSenderCreator>().Setup(x => x.Create(connectionString, topic.ToString())).Returns(mockWrapper.Object);
+            GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(connectionString)).Returns(mockServiceBusClient.Object);
+            mockServiceBusClient.Setup(x => x.CreateSender(topic.ToString())).Returns(mockSender.Object);
 
             var result = ClassUnderTest.GetForTopic(topic);
 
-            Assert.That(result, Is.SameAs(mockWrapper.Object));
+            Assert.That(result, Is.SameAs(mockSender.Object));
         }
 
         [Test]
@@ -28,16 +30,18 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
         {
             var connectionString = "connection-string";
             var topic = new Topic("example", "event", 1);
-            var mockWrapper = new Mock<IServiceBusSender>();
+            var mockServiceBusClient = new Mock<IServiceBusClient>();
+            var mockSender = new Mock<IServiceBusSender>();
             GetMock<IPublisherConfig>().Setup(x => x.ConnectionString).Returns(connectionString);
-            GetMock<IServiceBusSenderCreator>().Setup(x => x.Create(connectionString, topic.ToString())).Returns(mockWrapper.Object);
+            GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(connectionString)).Returns(mockServiceBusClient.Object);
+            mockServiceBusClient.Setup(x => x.CreateSender(topic.ToString())).Returns(mockSender.Object);
 
             var result1 = ClassUnderTest.GetForTopic(topic);
             var result2 = ClassUnderTest.GetForTopic(topic);
 
-            Assert.That(result1, Is.SameAs(mockWrapper.Object));
-            Assert.That(result2, Is.SameAs(mockWrapper.Object));
-            GetMock<IServiceBusSenderCreator>().Verify(x => x.Create(IsAny<string>(), IsAny<string>()), Times.Once);
+            Assert.That(result1, Is.SameAs(mockSender.Object));
+            Assert.That(result2, Is.SameAs(mockSender.Object));
+            mockServiceBusClient.Verify(x => x.CreateSender(IsAny<string>()), Times.Once);
         }
 
         [Test]
@@ -46,16 +50,18 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
             var connectionString = "connection-string";
             var topicA = new Topic("example", "event-a", 1);
             var topicB = new Topic("example", "event-b", 1);
-            var mockWrapperA = new Mock<IServiceBusSender>();
-            var mockWrapperB = new Mock<IServiceBusSender>();
+            var mockServiceBusClient = new Mock<IServiceBusClient>();
+            var mockSenderA = new Mock<IServiceBusSender>();
+            var mockSenderB = new Mock<IServiceBusSender>();
             GetMock<IPublisherConfig>().Setup(x => x.ConnectionString).Returns(connectionString);
-            GetMock<IServiceBusSenderCreator>().Setup(x => x.Create(connectionString, topicA.ToString())).Returns(mockWrapperA.Object);
-            GetMock<IServiceBusSenderCreator>().Setup(x => x.Create(connectionString, topicB.ToString())).Returns(mockWrapperB.Object);
-            
+            GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(connectionString)).Returns(mockServiceBusClient.Object);
+            mockServiceBusClient.Setup(x => x.CreateSender(topicA.ToString())).Returns(mockSenderA.Object);
+            mockServiceBusClient.Setup(x => x.CreateSender(topicB.ToString())).Returns(mockSenderB.Object);
+
             ClassUnderTest.GetForTopic(topicA);
             var result = ClassUnderTest.GetForTopic(topicB);
 
-            Assert.That(result, Is.SameAs(mockWrapperB.Object));
+            Assert.That(result, Is.SameAs(mockSenderB.Object));
         }
 
         [Test]
@@ -70,18 +76,20 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
             var connectionString = "connection-string";
             var topicA = new Topic("example", "event-a", 1);
             var topicB = new Topic("example", "event-b", 1);
-            var mockWrapperA = new Mock<IServiceBusSender>();
-            var mockWrapperB = new Mock<IServiceBusSender>();
+            var mockServiceBusClient = new Mock<IServiceBusClient>();
+            var mockSenderA = new Mock<IServiceBusSender>();
+            var mockSenderB = new Mock<IServiceBusSender>();
             GetMock<IPublisherConfig>().Setup(x => x.ConnectionString).Returns(connectionString);
-            GetMock<IServiceBusSenderCreator>().Setup(x => x.Create(connectionString, topicA.ToString())).Returns(mockWrapperA.Object);
-            GetMock<IServiceBusSenderCreator>().Setup(x => x.Create(connectionString, topicB.ToString())).Returns(mockWrapperB.Object);
+            GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(connectionString)).Returns(mockServiceBusClient.Object);
+            mockServiceBusClient.Setup(x => x.CreateSender(topicA.ToString())).Returns(mockSenderA.Object);
+            mockServiceBusClient.Setup(x => x.CreateSender(topicB.ToString())).Returns(mockSenderB.Object);
             ClassUnderTest.GetForTopic(topicA);
             ClassUnderTest.GetForTopic(topicB);
 
             await ClassUnderTest.DisposeAsync();
 
-            mockWrapperA.Verify(x => x.CloseAsync(), Times.Once);
-            mockWrapperB.Verify(x => x.CloseAsync(), Times.Once);
+            mockSenderA.Verify(x => x.CloseAsync(), Times.Once);
+            mockSenderB.Verify(x => x.CloseAsync(), Times.Once);
         }
 
         [Test]
@@ -89,16 +97,16 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
         {
             var singleTopicConnectionString = "single-topic-connection-string";
             var singleTopicName = "single-topic-name";
-            var mockWrapper = new Mock<IServiceBusSender>();
+            var mockServiceBusClient = new Mock<IServiceBusClient>();
+            var mockSender = new Mock<IServiceBusSender>();
             GetMock<IPublisherConfig>().Setup(x => x.SingleTopicConnectionString).Returns(singleTopicConnectionString);
             GetMock<IPublisherConfig>().Setup(x => x.SingleTopicName).Returns(singleTopicName);
-            GetMock<IServiceBusSenderCreator>()
-                .Setup(x => x.Create(singleTopicConnectionString, singleTopicName))
-                .Returns(mockWrapper.Object);
+            GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(singleTopicConnectionString)).Returns(mockServiceBusClient.Object);
+            mockServiceBusClient.Setup(x => x.CreateSender(singleTopicName)).Returns(mockSender.Object);
 
             var result = ClassUnderTest.GetForSingleTopic();
 
-            Assert.That(result, Is.SameAs(mockWrapper.Object));
+            Assert.That(result, Is.SameAs(mockSender.Object));
         }
 
         [Test]
@@ -106,19 +114,19 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
         {
             var singleTopicConnectionString = "single-topic-connection-string";
             var singleTopicName = "single-topic-name";
-            var mockWrapper = new Mock<IServiceBusSender>();
+            var mockServiceBusClient = new Mock<IServiceBusClient>();
+            var mockSender = new Mock<IServiceBusSender>();
             GetMock<IPublisherConfig>().Setup(x => x.SingleTopicConnectionString).Returns(singleTopicConnectionString);
             GetMock<IPublisherConfig>().Setup(x => x.SingleTopicName).Returns(singleTopicName);
-            GetMock<IServiceBusSenderCreator>()
-                .Setup(x => x.Create(singleTopicConnectionString, singleTopicName))
-                .Returns(mockWrapper.Object);
+            GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(singleTopicConnectionString)).Returns(mockServiceBusClient.Object);
+            mockServiceBusClient.Setup(x => x.CreateSender(singleTopicName)).Returns(mockSender.Object);
 
             var result1 = ClassUnderTest.GetForSingleTopic();
             var result2 = ClassUnderTest.GetForSingleTopic();
 
-            Assert.That(result1, Is.SameAs(mockWrapper.Object));
-            Assert.That(result2, Is.SameAs(mockWrapper.Object));
-            GetMock<IServiceBusSenderCreator>().Verify(x => x.Create(IsAny<string>(), IsAny<string>()), Times.Once);
+            Assert.That(result1, Is.SameAs(mockSender.Object));
+            Assert.That(result2, Is.SameAs(mockSender.Object));
+            mockServiceBusClient.Verify(x => x.CreateSender(IsAny<string>()), Times.Once);
         }
     }
 }

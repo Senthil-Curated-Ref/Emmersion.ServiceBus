@@ -30,7 +30,6 @@ namespace Emmersion.ServiceBus
             services.AddSingleton<IServiceBusSenderPool, ServiceBusSenderPool>();
             services.AddSingleton<IServiceBusClientPool, ServiceBusClientPool>();
 
-            services.AddTransient<IServiceBusSenderCreator, ServiceBusSenderCreator>();
             services.AddTransient<IMessageMapper, MessageMapper>();
             services.AddTransient<IMessageSerializer, MessageSerializer>();
         }
