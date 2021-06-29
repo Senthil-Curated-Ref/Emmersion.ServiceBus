@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Azure.Messaging.ServiceBus;
 
 namespace Emmersion.ServiceBus
 {
@@ -71,12 +72,12 @@ namespace Emmersion.ServiceBus
         {
             var filteringDisabled = string.IsNullOrEmpty(config.EnvironmentFilter);
             var client = await subscriptionClientWrapperPool.GetClientAsync(subscription);
-            client.RegisterMessageHandler(async (serviceBusMessage) => {
+            await client.RegisterMessageHandlerAsync(async (args) => {
                 var receivedAt = DateTimeOffset.UtcNow;
                 DateTimeOffset? publishedAt = null;
                 DateTimeOffset? enqueuedAt = null;
                 try {
-                    var message = messageMapper.FromServiceBusMessage<T>(subscription.Topic, serviceBusMessage, receivedAt);
+                    var message = messageMapper.FromServiceBusMessage<T>(subscription.Topic, args.Message, receivedAt);
                     publishedAt = message.PublishedAt;
                     enqueuedAt = message.EnqueuedAt;
                     if (filteringDisabled || message.Environment == config.EnvironmentFilter)
@@ -121,8 +122,8 @@ namespace Emmersion.ServiceBus
         public async Task SubscribeToDeadLettersAsync(Subscription subscription, Func<DeadLetter, Task> messageHandler)
         {
             var client = await subscriptionClientWrapperPool.GetDeadLetterClientAsync(subscription);
-            client.RegisterMessageHandler(
-                (serviceBusMessage) => messageHandler(messageMapper.GetDeadLetter(serviceBusMessage)),
+            await client.RegisterMessageHandlerAsync(
+                (args) => messageHandler(messageMapper.GetDeadLetter(args.Message)),
                 (args) =>
                 {
                     OnException?.Invoke(this, new ExceptionArgs(subscription, args));
@@ -141,7 +142,7 @@ namespace Emmersion.ServiceBus
         
         public void Subscribe<T>(MessageEvent messageEvent, Func<T, Task> messageHandler)
         {
-            InitializeSingleTopicClient();
+            InitializeSingleTopicClient().Wait();
             routes.Add(new Route
             {
                 MessageEvent = messageEvent.ToString(),
@@ -153,19 +154,23 @@ namespace Emmersion.ServiceBus
             });
         }
 
-        private void InitializeSingleTopicClient()
+        private async Task InitializeSingleTopicClient()
         {
             var client = subscriptionClientWrapperPool.GetSingleTopicClientIfFirstTime();
-            client?.RegisterMessageHandler(RouteMessage,
-                (args) =>
-                {
-                    OnException?.Invoke(this, new ExceptionArgs(null, args));
-                    return Task.CompletedTask;
-                });
+            if (client != null)
+            {
+                await client.RegisterMessageHandlerAsync(RouteMessage,
+                    (args) =>
+                    {
+                        OnException?.Invoke(this, new ExceptionArgs(null, args));
+                        return Task.CompletedTask;
+                    });
+            }
         }
 
-        internal async Task RouteMessage(Microsoft.Azure.ServiceBus.Message serviceBusMessage)
+        internal async Task RouteMessage(ProcessMessageEventArgs args)
         {
+            var serviceBusMessage = args.Message;
             var receivedAt = DateTimeOffset.UtcNow;
             var envelope = messageMapper.ToMessageEnvelope<object>(serviceBusMessage);
             var recipients = routes.Where(x => x.MessageEvent == envelope.MessageEvent);
@@ -192,6 +197,6 @@ namespace Emmersion.ServiceBus
     internal class Route
     {
         public string MessageEvent { get; set; }
-        public Func<Microsoft.Azure.ServiceBus.Message, Task> MessageHandler { get; set; }
+        public Func<ServiceBusReceivedMessage, Task> MessageHandler { get; set; }
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using Azure.Messaging.ServiceBus;
 using Emmersion.Testing;
 using NUnit.Framework;
 
@@ -37,14 +38,18 @@ namespace Emmersion.ServiceBus.UnitTests
             Assert.That(result.CorrelationId, Is.EqualTo(message.CorrelationId));
         }
 
+        private ServiceBusReceivedMessage CreateMessage(byte[] bodyBytes, string messageId, string correlationId)
+        {
+            return ServiceBusModelFactory.ServiceBusReceivedMessage(
+                body: new BinaryData(bodyBytes), messageId: messageId, correlationId: correlationId);
+        }
+
         [Test]
         public void When_mapping_from_service_bus_message()
         {
             var serializedBody = "serialized-data";
             var bodyBytes = Encoding.UTF8.GetBytes(serializedBody);
-            var message = new Microsoft.Azure.ServiceBus.Message(bodyBytes);
-            message.MessageId = RandomString();
-            message.CorrelationId = "correlation-id";
+            var message = CreateMessage(bodyBytes, RandomString(), "correlation-id");
             var topic = new Topic("el-service-bus", "test-event", 1);
             var deserialized = new Payload<TestData> {
                 Body = new TestData { Data = "example data" },
@@ -72,11 +77,7 @@ namespace Emmersion.ServiceBus.UnitTests
         {
             var serializedBody = "serialized-data";
             var bodyBytes = Encoding.UTF8.GetBytes(serializedBody);
-            var message = new Microsoft.Azure.ServiceBus.Message(bodyBytes)
-            {
-                MessageId = RandomString(),
-                CorrelationId = RandomString()
-            };
+            var message = CreateMessage(bodyBytes, RandomString(), RandomString());
 
             var result = ClassUnderTest.GetDeadLetter(message);
 
@@ -101,7 +102,7 @@ namespace Emmersion.ServiceBus.UnitTests
         public void When_mapping_to_message_envelope()
         {
             var body = "test-message-body";
-            var message = new Microsoft.Azure.ServiceBus.Message(Encoding.UTF8.GetBytes(body));
+            var message = CreateMessage(Encoding.UTF8.GetBytes(body), RandomString(), RandomString());
             var envelope = new MessageEnvelope<TestData>();
             GetMock<IMessageSerializer>().Setup(x => x.Deserialize<MessageEnvelope<TestData>>(body)).Returns(envelope);
 

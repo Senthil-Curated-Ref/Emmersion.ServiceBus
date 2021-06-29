@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Azure.Messaging.ServiceBus;
 using Emmersion.Testing;
 using NUnit.Framework;
 
@@ -15,7 +16,7 @@ namespace Emmersion.ServiceBus.UnitTests
             var topic = new Topic("el-service-bus", "test-event", 1);
             var body = new TestData { Data = "test-data" };
             var message = new Message<TestData>(topic, body);
-            var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
+            var serviceBusMessage = new ServiceBusMessage();
             GetMock<ITopicClientWrapperPool>()
                 .Setup(x => x.GetForTopic(topic))
                 .Returns(GetMock<ITopicClientWrapper>().Object);
@@ -37,14 +38,14 @@ namespace Emmersion.ServiceBus.UnitTests
             var topic = new Topic("el-service-bus", "test-event", 1);
             var body = new TestData { Data = "test-data" };
             var message = new Message<TestData>(topic, body);
-            var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
+            var serviceBusMessage = new ServiceBusMessage();
             var receivedTimings = new List<MessagePublishedArgs>();
             GetMock<ITopicClientWrapperPool>()
                 .Setup(x => x.GetForTopic(topic))
                 .Returns(GetMock<ITopicClientWrapper>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToServiceBusMessage(message)).Returns(serviceBusMessage);
             GetMock<ITopicClientWrapper>()
-                .Setup(x => x.SendAsync(IsAny<Microsoft.Azure.ServiceBus.Message>()))
+                .Setup(x => x.SendAsync(IsAny<ServiceBusMessage>()))
                 .Returns(Task.Run(() => Thread.Sleep(150)));
 
             ClassUnderTest.OnMessagePublished += (object sender, MessagePublishedArgs args) => receivedTimings.Add(args); 
@@ -62,7 +63,7 @@ namespace Emmersion.ServiceBus.UnitTests
             var body = new TestData { Data = "test-data" };
             var message = new Message<TestData>(topic, body);
             var enqueueAt = DateTimeOffset.UtcNow.AddMinutes(5);
-            var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
+            var serviceBusMessage = new ServiceBusMessage();
             GetMock<ITopicClientWrapperPool>()
                 .Setup(x => x.GetForTopic(topic))
                 .Returns(GetMock<ITopicClientWrapper>().Object);
@@ -85,14 +86,14 @@ namespace Emmersion.ServiceBus.UnitTests
             var body = new TestData { Data = "test-data" };
             var message = new Message<TestData>(topic, body);
             var enqueueAt = DateTimeOffset.UtcNow.AddMinutes(3);
-            var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
+            var serviceBusMessage = new ServiceBusMessage();
             var receivedTimings = new List<MessagePublishedArgs>();
             GetMock<ITopicClientWrapperPool>()
                 .Setup(x => x.GetForTopic(topic))
                 .Returns(GetMock<ITopicClientWrapper>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToServiceBusMessage(message)).Returns(serviceBusMessage);
             GetMock<ITopicClientWrapper>()
-                .Setup(x => x.ScheduleMessageAsync(IsAny<Microsoft.Azure.ServiceBus.Message>(), IsAny<DateTimeOffset>()))
+                .Setup(x => x.ScheduleMessageAsync(IsAny<ServiceBusMessage>(), IsAny<DateTimeOffset>()))
                 .Returns(Task.Run(() => Thread.Sleep(150)));
 
             ClassUnderTest.OnMessagePublished += (object sender, MessagePublishedArgs args) => receivedTimings.Add(args); 
@@ -109,7 +110,7 @@ namespace Emmersion.ServiceBus.UnitTests
             var messageEvent = new MessageEvent("test-event", 5);
             var message = new TestData { Data = "I am the very model of a modern major test message." };
             MessageEnvelope<TestData> envelope = null;
-            var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
+            var serviceBusMessage = new ServiceBusMessage();
             GetMock<ITopicClientWrapperPool>()
                 .Setup(x => x.GetForSingleTopic())
                 .Returns(GetMock<ITopicClientWrapper>().Object);
@@ -118,7 +119,7 @@ namespace Emmersion.ServiceBus.UnitTests
                 .Callback<MessageEnvelope<TestData>>(x => envelope = x)
                 .Returns(serviceBusMessage);
             GetMock<ITopicClientWrapper>()
-                .Setup(x => x.SendAsync(IsAny<Microsoft.Azure.ServiceBus.Message>()))
+                .Setup(x => x.SendAsync(IsAny<ServiceBusMessage>()))
                 .Returns(Task.CompletedTask);
 
             await ClassUnderTest.PublishAsync(messageEvent, message);
@@ -140,7 +141,7 @@ namespace Emmersion.ServiceBus.UnitTests
                 .Setup(x => x.GetForSingleTopic())
                 .Returns(GetMock<ITopicClientWrapper>().Object);
             GetMock<ITopicClientWrapper>()
-                .Setup(x => x.SendAsync(IsAny<Microsoft.Azure.ServiceBus.Message>()))
+                .Setup(x => x.SendAsync(IsAny<ServiceBusMessage>()))
                 .Returns(Task.Run(() => Thread.Sleep(150)));
 
             ClassUnderTest.OnMessagePublished += (object sender, MessagePublishedArgs args) => receivedTimings.Add(args); 

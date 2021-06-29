@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Emmersion.ServiceBus.Pools;
 using Microsoft.Extensions.DependencyInjection;
 
 [assembly: InternalsVisibleTo("Emmersion.ServiceBus.UnitTests")]
@@ -13,6 +14,7 @@ namespace Emmersion.ServiceBus
             services.AddSingleton<IMessageSubscriber, MessageSubscriber>();
             services.AddSingleton<ISubscriptionClientWrapperPool, SubscriptionClientWrapperPool>();
             services.AddSingleton<IManagementClientWrapperPool, ManagementClientWrapperPool>();
+            services.AddSingleton<IServiceBusClientPool, ServiceBusClientPool>();
 
             services.AddTransient<ISubscriptionClientWrapper, SubscriptionClientWrapper>();
             services.AddTransient<ISubscriptionClientWrapperCreator, SubscriptionClientWrapperCreator>();
@@ -25,6 +27,7 @@ namespace Emmersion.ServiceBus
         {
             services.AddSingleton<IMessagePublisher, MessagePublisher>();
             services.AddSingleton<ITopicClientWrapperPool, TopicClientWrapperPool>();
+            services.AddSingleton<IServiceBusClientPool, ServiceBusClientPool>();
 
             services.AddTransient<ITopicClientWrapperCreator, TopicClientWrapperCreator>();
             services.AddTransient<IMessageMapper, MessageMapper>();

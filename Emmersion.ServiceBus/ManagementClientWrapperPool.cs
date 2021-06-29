@@ -1,9 +1,6 @@
-using System;
-using System.Threading.Tasks;
-
 namespace Emmersion.ServiceBus
 {
-    internal interface IManagementClientWrapperPool : IAsyncDisposable
+    internal interface IManagementClientWrapperPool
     {
         IManagementClientWrapper GetClient();
     }
@@ -34,15 +31,6 @@ namespace Emmersion.ServiceBus
                 }
             }
             return client;
-        }
-
-        public async ValueTask DisposeAsync()
-        {
-            if (client != null)
-            {
-                await client.CloseAsync();
-                client = null;
-            }
         }
     }
 }

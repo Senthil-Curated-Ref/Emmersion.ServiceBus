@@ -1,31 +1,23 @@
 using System;
 using System.Threading.Tasks;
-using Microsoft.Azure.ServiceBus;
+using Azure.Messaging.ServiceBus;
 
 namespace Emmersion.ServiceBus
 {
     internal interface ITopicClientWrapper
     {
-        Task SendAsync(Message message);
-        Task ScheduleMessageAsync(Message message, DateTimeOffset scheduleEnqueueTimeUtc);
+        Task SendAsync(ServiceBusMessage message);
+        Task ScheduleMessageAsync(ServiceBusMessage message, DateTimeOffset scheduleEnqueueTimeUtc);
         Task CloseAsync();
     }
 
     internal class TopicClientWrapper : ITopicClientWrapper
     {
-        private readonly TopicClient client;
+        private readonly ServiceBusSender client;
 
-        public TopicClientWrapper(string connectionString, string topicName)
+        public TopicClientWrapper(ServiceBusSender client)
         {
-            if (string.IsNullOrEmpty(connectionString))
-            {
-                throw new ArgumentException($"Invalid connectionString", nameof(connectionString));
-            }
-            if (string.IsNullOrEmpty(topicName))
-            {
-                throw new ArgumentException($"Invalid topicName", nameof(topicName));
-            }
-            client = new TopicClient(connectionString, topicName);
+            this.client = client;
         }
 
         public Task CloseAsync()
@@ -33,12 +25,12 @@ namespace Emmersion.ServiceBus
             return client.CloseAsync();
         }
 
-        public Task SendAsync(Message message)
+        public Task SendAsync(ServiceBusMessage message)
         {
-            return client.SendAsync(message);
+            return client.SendMessageAsync(message);
         }
 
-        public Task ScheduleMessageAsync(Message message, DateTimeOffset scheduleEnqueueTimeUtc)
+        public Task ScheduleMessageAsync(ServiceBusMessage message, DateTimeOffset scheduleEnqueueTimeUtc)
         {
             return client.ScheduleMessageAsync(message, scheduleEnqueueTimeUtc);
         }

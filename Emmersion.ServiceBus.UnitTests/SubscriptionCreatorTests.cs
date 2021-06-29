@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
+using Azure.Messaging.ServiceBus.Administration;
 using Emmersion.Testing;
-using Microsoft.Azure.ServiceBus.Management;
 using Moq;
 using NUnit.Framework;
 
@@ -28,7 +28,7 @@ namespace Emmersion.ServiceBus.UnitTests
             
             await ClassUnderTest.CreateSubscriptionIfNecessaryAsync(subscription);
 
-            GetMock<IManagementClientWrapper>().VerifyNever(x => x.CreateSubscriptionAsync(IsAny<SubscriptionDescription>()));
+            GetMock<IManagementClientWrapper>().VerifyNever(x => x.CreateSubscriptionAsync(IsAny<CreateSubscriptionOptions>()));
         }
 
         [Test]
@@ -44,13 +44,13 @@ namespace Emmersion.ServiceBus.UnitTests
             var exception = Assert.CatchAsync(() => ClassUnderTest.CreateSubscriptionIfNecessaryAsync(subscription));
 
             Assert.That(exception.Message.Contains($"Topic {subscription.Topic} does not exist"));
-            GetMock<IManagementClientWrapper>().VerifyNever(x => x.CreateSubscriptionAsync(IsAny<SubscriptionDescription>()));
+            GetMock<IManagementClientWrapper>().VerifyNever(x => x.CreateSubscriptionAsync(IsAny<CreateSubscriptionOptions>()));
         }
 
         [Test]
         public async Task When_creating_a_subscription_successfully()
         {
-            SubscriptionDescription description = null;
+            CreateSubscriptionOptions options = null;
             GetMock<IManagementClientWrapper>()
                 .Setup(x => x.DoesSubscriptionExistAsync(subscription.Topic.ToString(), subscription.SubscriptionName))
                 .ReturnsAsync(false);
@@ -58,27 +58,27 @@ namespace Emmersion.ServiceBus.UnitTests
                 .Setup(x => x.DoesTopicExistAsync(subscription.Topic.ToString()))
                 .ReturnsAsync(true);
                 GetMock<IManagementClientWrapper>()
-                    .Setup(x => x.CreateSubscriptionAsync(IsAny<SubscriptionDescription>()))
-                    .Callback<SubscriptionDescription>(x => description = x);
+                    .Setup(x => x.CreateSubscriptionAsync(IsAny<CreateSubscriptionOptions>()))
+                    .Callback<CreateSubscriptionOptions>(x => options = x);
             
             await ClassUnderTest.CreateSubscriptionIfNecessaryAsync(subscription);
 
-            GetMock<IManagementClientWrapper>().Verify(x => x.CreateSubscriptionAsync(description));
-            Assert.That(description.TopicPath, Is.EqualTo(subscription.Topic.ToString()));
-            Assert.That(description.SubscriptionName, Is.EqualTo(subscription.SubscriptionName));
-            Assert.That(description.MaxDeliveryCount, Is.EqualTo(10));
-            Assert.That(description.AutoDeleteOnIdle, Is.EqualTo(TimeSpan.MaxValue));
-            Assert.That(description.DefaultMessageTimeToLive, Is.EqualTo(TimeSpan.FromDays(14)));
-            Assert.That(description.EnableDeadLetteringOnFilterEvaluationExceptions, Is.True);
-            Assert.That(description.EnableDeadLetteringOnMessageExpiration, Is.True);
-            Assert.That(description.LockDuration, Is.EqualTo(TimeSpan.FromSeconds(30)));
+            GetMock<IManagementClientWrapper>().Verify(x => x.CreateSubscriptionAsync(options));
+            Assert.That(options.TopicName, Is.EqualTo(subscription.Topic.ToString()));
+            Assert.That(options.SubscriptionName, Is.EqualTo(subscription.SubscriptionName));
+            Assert.That(options.MaxDeliveryCount, Is.EqualTo(10));
+            Assert.That(options.AutoDeleteOnIdle, Is.EqualTo(TimeSpan.MaxValue));
+            Assert.That(options.DefaultMessageTimeToLive, Is.EqualTo(TimeSpan.FromDays(14)));
+            Assert.That(options.EnableDeadLetteringOnFilterEvaluationExceptions, Is.True);
+            Assert.That(options.DeadLetteringOnMessageExpiration, Is.True);
+            Assert.That(options.LockDuration, Is.EqualTo(TimeSpan.FromSeconds(30)));
         }
 
         [Test]
         public async Task When_creating_a_subscription_that_has_auto_delete_in_the_name()
         {
             subscription = new Subscription(subscription.Topic, "unit-tests", "auto-delete-soon");
-            SubscriptionDescription description = null;
+            CreateSubscriptionOptions options = null;
             GetMock<IManagementClientWrapper>()
                 .Setup(x => x.DoesSubscriptionExistAsync(subscription.Topic.ToString(), subscription.SubscriptionName))
                 .ReturnsAsync(false);
@@ -86,20 +86,20 @@ namespace Emmersion.ServiceBus.UnitTests
                 .Setup(x => x.DoesTopicExistAsync(subscription.Topic.ToString()))
                 .ReturnsAsync(true);
                 GetMock<IManagementClientWrapper>()
-                    .Setup(x => x.CreateSubscriptionAsync(IsAny<SubscriptionDescription>()))
-                    .Callback<SubscriptionDescription>(x => description = x);
+                    .Setup(x => x.CreateSubscriptionAsync(IsAny<CreateSubscriptionOptions>()))
+                    .Callback<CreateSubscriptionOptions>(x => options = x);
             
             await ClassUnderTest.CreateSubscriptionIfNecessaryAsync(subscription);
 
-            GetMock<IManagementClientWrapper>().Verify(x => x.CreateSubscriptionAsync(description));
-            Assert.That(description.TopicPath, Is.EqualTo(subscription.Topic.ToString()));
-            Assert.That(description.SubscriptionName, Is.EqualTo(subscription.SubscriptionName));
-            Assert.That(description.MaxDeliveryCount, Is.EqualTo(10));
-            Assert.That(description.AutoDeleteOnIdle, Is.EqualTo(TimeSpan.FromMinutes(5)));
-            Assert.That(description.DefaultMessageTimeToLive, Is.EqualTo(TimeSpan.FromDays(14)));
-            Assert.That(description.EnableDeadLetteringOnFilterEvaluationExceptions, Is.True);
-            Assert.That(description.EnableDeadLetteringOnMessageExpiration, Is.True);
-            Assert.That(description.LockDuration, Is.EqualTo(TimeSpan.FromSeconds(30)));
+            GetMock<IManagementClientWrapper>().Verify(x => x.CreateSubscriptionAsync(options));
+            Assert.That(options.TopicName, Is.EqualTo(subscription.Topic.ToString()));
+            Assert.That(options.SubscriptionName, Is.EqualTo(subscription.SubscriptionName));
+            Assert.That(options.MaxDeliveryCount, Is.EqualTo(10));
+            Assert.That(options.AutoDeleteOnIdle, Is.EqualTo(TimeSpan.FromMinutes(5)));
+            Assert.That(options.DefaultMessageTimeToLive, Is.EqualTo(TimeSpan.FromDays(14)));
+            Assert.That(options.EnableDeadLetteringOnFilterEvaluationExceptions, Is.True);
+            Assert.That(options.DeadLetteringOnMessageExpiration, Is.True);
+            Assert.That(options.LockDuration, Is.EqualTo(TimeSpan.FromSeconds(30)));
         }
     }
 }

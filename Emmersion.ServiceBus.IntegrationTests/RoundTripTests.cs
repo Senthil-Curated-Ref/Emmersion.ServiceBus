@@ -202,6 +202,9 @@ namespace Emmersion.ServiceBus.IntegrationTests
             
             var receivedMessageCount = 0;
             var deadLetters = new List<DeadLetter>();
+            var exceptions = new List<Exception>();
+            
+            subscriber.OnException += (_, args) => exceptions.Add(args.Exception);
             
             await subscriber.SubscribeToDeadLettersAsync(subscription, (DeadLetter deadLetter) =>
             {
@@ -234,6 +237,8 @@ namespace Emmersion.ServiceBus.IntegrationTests
 
             Assert.That(deadLetters.Count, Is.GreaterThanOrEqualTo(expectedDeadLetterCount), $"Did not get the expected number of dead-letter messages");
             Assert.That(receivedMessageCount, Is.GreaterThanOrEqualTo(expectedReceivedMessageCount), $"Did not get the expected number of messages before dead lettering");
+
+            Assert.That(exceptions.Count, Is.EqualTo(expectedReceivedMessageCount));
         }
 
         [Test]

@@ -1,3 +1,5 @@
+using Emmersion.ServiceBus.Pools;
+
 namespace Emmersion.ServiceBus
 {
     internal interface ISubscriptionClientWrapperCreator
@@ -10,27 +12,32 @@ namespace Emmersion.ServiceBus
     internal class SubscriptionClientWrapperCreator : ISubscriptionClientWrapperCreator
     {
         private readonly ISubscriptionConfig config;
+        private readonly IServiceBusClientPool serviceBusClientPool;
 
         private const string DeadLetterQueueSuffix = "/$DeadLetterQueue";
 
-        public SubscriptionClientWrapperCreator(ISubscriptionConfig config)
+        public SubscriptionClientWrapperCreator(ISubscriptionConfig config, IServiceBusClientPool serviceBusClientPool)
         {
             this.config = config;
+            this.serviceBusClientPool = serviceBusClientPool;
         }
 
         public ISubscriptionClientWrapper Create(Subscription subscription)
         {
-            return new SubscriptionClientWrapper(config.ConnectionString, subscription.Topic.ToString(), subscription.SubscriptionName, config.MaxConcurrentMessages);
+            var serviceBusClient = serviceBusClientPool.GetClient(config.ConnectionString);
+            return new SubscriptionClientWrapper(serviceBusClient.CreateProcessor(subscription.Topic.ToString(), subscription.SubscriptionName, config.MaxConcurrentMessages));
         }
 
         public ISubscriptionClientWrapper CreateDeadLetter(Subscription subscription)
         {
-            return new SubscriptionClientWrapper(config.ConnectionString, subscription.Topic.ToString(), subscription.SubscriptionName + DeadLetterQueueSuffix, config.MaxConcurrentMessages);
+            var serviceBusClient = serviceBusClientPool.GetClient(config.ConnectionString);
+            return new SubscriptionClientWrapper(serviceBusClient.CreateProcessor(subscription.Topic.ToString(), subscription.SubscriptionName + DeadLetterQueueSuffix, config.MaxConcurrentMessages));
         }
 
         public ISubscriptionClientWrapper CreateSingleTopic()
         {
-            return new SubscriptionClientWrapper(config.SingleTopicConnectionString, config.SingleTopicName, config.SingleTopicSubscriptionName, config.MaxConcurrentMessages);
+            var serviceBusClient = serviceBusClientPool.GetClient(config.SingleTopicConnectionString);
+            return new SubscriptionClientWrapper(serviceBusClient.CreateProcessor(config.SingleTopicName, config.SingleTopicSubscriptionName, config.MaxConcurrentMessages));
         }
     }
 }

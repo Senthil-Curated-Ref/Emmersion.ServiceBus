@@ -1,5 +1,5 @@
 using System;
-using Microsoft.Azure.ServiceBus;
+using Azure.Messaging.ServiceBus;
 
 namespace Emmersion.ServiceBus
 {
@@ -17,14 +17,14 @@ namespace Emmersion.ServiceBus
             EntityPath = entityPath;
         }
 
-        internal ExceptionArgs(Subscription subscription, ExceptionReceivedEventArgs args)
+        internal ExceptionArgs(Subscription subscription, ProcessErrorEventArgs args)
         {
             Subscription = subscription;
             Exception = args.Exception;
-            Action = args.ExceptionReceivedContext?.Action ?? "";
-            ClientId = args.ExceptionReceivedContext?.ClientId ?? "";
-            Endpoint = args.ExceptionReceivedContext?.Endpoint ?? "";
-            EntityPath = args.ExceptionReceivedContext?.EntityPath ?? "";
+            Action = "";
+            ClientId = "";
+            Endpoint = "";
+            EntityPath = args.EntityPath ?? "";
         }
 
         public Subscription Subscription { get; }

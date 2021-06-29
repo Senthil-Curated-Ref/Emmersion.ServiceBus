@@ -1,5 +1,5 @@
 using System.Threading.Tasks;
-using Microsoft.Azure.ServiceBus.Management;
+using Azure.Messaging.ServiceBus.Administration;
 
 namespace Emmersion.ServiceBus
 {
@@ -7,37 +7,33 @@ namespace Emmersion.ServiceBus
     {
         Task<bool> DoesTopicExistAsync(string topicName);
         Task<bool> DoesSubscriptionExistAsync(string topicName, string subscriptionName);
-        Task CreateSubscriptionAsync(SubscriptionDescription description);
-        Task CloseAsync();
+        Task CreateSubscriptionAsync(CreateSubscriptionOptions description);
     }
 
     internal class ManagementClientWrapper : IManagementClientWrapper
     {
-        private ManagementClient client;
+        private ServiceBusAdministrationClient client;
 
         public ManagementClientWrapper(string connectionString)
         {
-            client = new ManagementClient(connectionString);
+            client = new ServiceBusAdministrationClient(connectionString);
         }
 
-        public Task<bool> DoesTopicExistAsync(string topicName)
+        public async Task<bool> DoesTopicExistAsync(string topicName)
         {
-            return client.TopicExistsAsync(topicName);
+            var exists = await client.TopicExistsAsync(topicName);
+            return exists.Value;
         }
 
-        public Task<bool> DoesSubscriptionExistAsync(string topicName, string subscriptionName)
+        public async Task<bool> DoesSubscriptionExistAsync(string topicName, string subscriptionName)
         {
-            return client.SubscriptionExistsAsync(topicName, subscriptionName);
+            var exists = await client.SubscriptionExistsAsync(topicName, subscriptionName);
+            return exists.Value;
         }
 
-        public Task CreateSubscriptionAsync(SubscriptionDescription description)
+        public Task CreateSubscriptionAsync(CreateSubscriptionOptions description)
         {
             return client.CreateSubscriptionAsync(description);
-        }
-
-        public Task CloseAsync()
-        {
-            return client.CloseAsync();
         }
     }
 }

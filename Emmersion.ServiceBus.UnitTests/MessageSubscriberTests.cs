@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Azure.Messaging.ServiceBus;
 using Emmersion.Testing;
 using Moq;
 using NUnit.Framework;
-using ExceptionReceivedEventArgs = Microsoft.Azure.ServiceBus.ExceptionReceivedEventArgs;
 
 namespace Emmersion.ServiceBus.UnitTests
 {
@@ -22,28 +22,28 @@ namespace Emmersion.ServiceBus.UnitTests
 
             await ClassUnderTest.SubscribeAsync(subscription, (Message<TestData> message) => Task.CompletedTask);
 
-            GetMock<ISubscriptionClientWrapper>().Verify(x => x.RegisterMessageHandler(
-                IsAny<Func<Microsoft.Azure.ServiceBus.Message, Task>>(),
-                IsAny<Func<ExceptionReceivedEventArgs, Task>>()));
+            GetMock<ISubscriptionClientWrapper>().Verify(x => x.RegisterMessageHandlerAsync(
+                IsAny<Func<ProcessMessageEventArgs, Task>>(),
+                IsAny<Func<ProcessErrorEventArgs, Task>>()));
         }
 
         [Test]
         public async Task When_handling_a_message()
         {
-            Func<Microsoft.Azure.ServiceBus.Message, Task> messageHandler = null;
+            Func<ProcessMessageEventArgs, Task> messageHandler = null;
             var receivedMessages = new List<Message<TestData>>();
-            var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
+            var serviceBusMessage = ServiceBusModelFactory.ServiceBusReceivedMessage();
             var message = new Message<TestData>(subscription.Topic, new TestData { Data = "test data"});
             var receivedAt = DateTimeOffset.MinValue;
             GetMock<ISubscriptionClientWrapperPool>()
                 .Setup(x => x.GetClientAsync(subscription))
                 .ReturnsAsync(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
-                .Setup(x => x.RegisterMessageHandler(IsAny<Func<Microsoft.Azure.ServiceBus.Message, Task>>(), IsAny<Func<ExceptionReceivedEventArgs, Task>>()))
-                .Callback<Func<Microsoft.Azure.ServiceBus.Message, Task>, Func<ExceptionReceivedEventArgs, Task>>((handler, _) => messageHandler = handler);
+                .Setup(x => x.RegisterMessageHandlerAsync(IsAny<Func<ProcessMessageEventArgs, Task>>(), IsAny<Func<ProcessErrorEventArgs, Task>>()))
+                .Callback<Func<ProcessMessageEventArgs, Task>, Func<ProcessErrorEventArgs, Task>>((handler, _) => messageHandler = handler);
             GetMock<IMessageMapper>()
                 .Setup(x => x.FromServiceBusMessage<TestData>(subscription.Topic, serviceBusMessage, IsAny<DateTimeOffset>()))
-                .Callback<Topic, Microsoft.Azure.ServiceBus.Message, DateTimeOffset>((x, y, z) => receivedAt = z)
+                .Callback<Topic, ServiceBusReceivedMessage, DateTimeOffset>((x, y, z) => receivedAt = z)
                 .Returns(message);
 
             await ClassUnderTest.SubscribeAsync(subscription, (Message<TestData> m) =>
@@ -52,7 +52,7 @@ namespace Emmersion.ServiceBus.UnitTests
                 return Task.CompletedTask;
             });
             var before = DateTimeOffset.UtcNow;
-            await messageHandler(serviceBusMessage);
+            await messageHandler(new ProcessMessageEventArgs(serviceBusMessage, null, CancellationToken.None));
 
             Assert.That(receivedMessages.Count, Is.EqualTo(1));
             Assert.That(receivedMessages[0], Is.SameAs(message));
@@ -62,9 +62,9 @@ namespace Emmersion.ServiceBus.UnitTests
         [Test]
         public async Task When_handling_a_message_timing_data_is_emitted()
         {
-            Func<Microsoft.Azure.ServiceBus.Message, Task> messageHandler = null;
+            Func<ProcessMessageEventArgs, Task> messageHandler = null;
             var receivedMessages = new List<Message<TestData>>();
-            var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
+            var serviceBusMessage = ServiceBusModelFactory.ServiceBusReceivedMessage();
             var message = new Message<TestData>(subscription.Topic, new TestData { Data = "test data"})
             {
                 PublishedAt = DateTimeOffset.UtcNow.AddMinutes(-10),
@@ -75,8 +75,8 @@ namespace Emmersion.ServiceBus.UnitTests
                 .Setup(x => x.GetClientAsync(subscription))
                 .ReturnsAsync(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
-                .Setup(x => x.RegisterMessageHandler(IsAny<Func<Microsoft.Azure.ServiceBus.Message, Task>>(), IsAny<Func<ExceptionReceivedEventArgs, Task>>()))
-                .Callback<Func<Microsoft.Azure.ServiceBus.Message, Task>, Func<ExceptionReceivedEventArgs, Task>>((handler, _) => messageHandler = handler);
+                .Setup(x => x.RegisterMessageHandlerAsync(IsAny<Func<ProcessMessageEventArgs, Task>>(), IsAny<Func<ProcessErrorEventArgs, Task>>()))
+                .Callback<Func<ProcessMessageEventArgs, Task>, Func<ProcessErrorEventArgs, Task>>((handler, _) => messageHandler = handler);
             GetMock<IMessageMapper>()
                 .Setup(x => x.FromServiceBusMessage<TestData>(subscription.Topic, serviceBusMessage, IsAny<DateTimeOffset>()))
                 .Returns(message);
@@ -89,7 +89,7 @@ namespace Emmersion.ServiceBus.UnitTests
                 return Task.CompletedTask;
             });
             var before = DateTimeOffset.UtcNow;
-            await messageHandler(serviceBusMessage);
+            await messageHandler(new ProcessMessageEventArgs(serviceBusMessage, null, CancellationToken.None));
             var after = DateTimeOffset.UtcNow;
             var duration = after - before;
 
@@ -109,18 +109,18 @@ namespace Emmersion.ServiceBus.UnitTests
         [Test]
         public async Task When_handling_a_message_that_should_be_filtered_out()
         {
-            Func<Microsoft.Azure.ServiceBus.Message, Task> messageHandler = null;
+            Func<ProcessMessageEventArgs, Task> messageHandler = null;
             var receivedMessages = new List<Message<TestData>>();
-            var serviceBusMessageToReceive = new Microsoft.Azure.ServiceBus.Message();
-            var serviceBusMessageToFilterOut = new Microsoft.Azure.ServiceBus.Message();
+            var serviceBusMessageToReceive = ServiceBusModelFactory.ServiceBusReceivedMessage();
+            var serviceBusMessageToFilterOut = ServiceBusModelFactory.ServiceBusReceivedMessage();
             var messageToReceive = new Message<TestData>(subscription.Topic, new TestData { Data = "test data"}) { Environment = "unit-tests" };
             var messageToFilterOut = new Message<TestData>(subscription.Topic, new TestData { Data = "test data"}) { Environment = "other-env"};
             GetMock<ISubscriptionClientWrapperPool>()
                 .Setup(x => x.GetClientAsync(subscription))
                 .ReturnsAsync(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
-                .Setup(x => x.RegisterMessageHandler(IsAny<Func<Microsoft.Azure.ServiceBus.Message, Task>>(), IsAny<Func<ExceptionReceivedEventArgs, Task>>()))
-                .Callback<Func<Microsoft.Azure.ServiceBus.Message, Task>, Func<ExceptionReceivedEventArgs, Task>>((handler, _) => messageHandler = handler);
+                .Setup(x => x.RegisterMessageHandlerAsync(IsAny<Func<ProcessMessageEventArgs, Task>>(), IsAny<Func<ProcessErrorEventArgs, Task>>()))
+                .Callback<Func<ProcessMessageEventArgs, Task>, Func<ProcessErrorEventArgs, Task>>((handler, _) => messageHandler = handler);
             GetMock<IMessageMapper>()
                 .Setup(x => x.FromServiceBusMessage<TestData>(subscription.Topic, serviceBusMessageToReceive, IsAny<DateTimeOffset>()))
                 .Returns(messageToReceive);
@@ -134,8 +134,8 @@ namespace Emmersion.ServiceBus.UnitTests
                 receivedMessages.Add(message);
                 return Task.CompletedTask;
             });
-            await messageHandler(serviceBusMessageToReceive);
-            await messageHandler(serviceBusMessageToFilterOut);
+            await messageHandler(new ProcessMessageEventArgs(serviceBusMessageToReceive, null, CancellationToken.None));
+            await messageHandler(new ProcessMessageEventArgs(serviceBusMessageToFilterOut, null, CancellationToken.None));
 
             Assert.That(receivedMessages.Count, Is.EqualTo(1));
             Assert.That(receivedMessages[0], Is.SameAs(messageToReceive));
@@ -144,9 +144,9 @@ namespace Emmersion.ServiceBus.UnitTests
         [Test]
         public async Task When_handling_a_message_timing_data_is_emitted_even_if_the_subscribed_handler_throws()
         {
-            Func<Microsoft.Azure.ServiceBus.Message, Task> messageHandler = null;
+            Func<ProcessMessageEventArgs, Task> messageHandler = null;
             var receivedMessages = new List<Message<TestData>>();
-            var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
+            var serviceBusMessage = ServiceBusModelFactory.ServiceBusReceivedMessage();
             var message = new Message<TestData>(subscription.Topic, new TestData { Data = "test data"})
             {
                 PublishedAt = DateTimeOffset.UtcNow.AddSeconds(-3),
@@ -158,8 +158,8 @@ namespace Emmersion.ServiceBus.UnitTests
                 .Setup(x => x.GetClientAsync(subscription))
                 .ReturnsAsync(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
-                .Setup(x => x.RegisterMessageHandler(IsAny<Func<Microsoft.Azure.ServiceBus.Message, Task>>(), IsAny<Func<ExceptionReceivedEventArgs, Task>>()))
-                .Callback<Func<Microsoft.Azure.ServiceBus.Message, Task>, Func<ExceptionReceivedEventArgs, Task>>((handler, _) => messageHandler = handler);
+                .Setup(x => x.RegisterMessageHandlerAsync(IsAny<Func<ProcessMessageEventArgs, Task>>(), IsAny<Func<ProcessErrorEventArgs, Task>>()))
+                .Callback<Func<ProcessMessageEventArgs, Task>, Func<ProcessErrorEventArgs, Task>>((handler, _) => messageHandler = handler);
             GetMock<IMessageMapper>()
                 .Setup(x => x.FromServiceBusMessage<TestData>(subscription.Topic, serviceBusMessage, IsAny<DateTimeOffset>()))
                 .Returns(message);
@@ -172,7 +172,7 @@ namespace Emmersion.ServiceBus.UnitTests
                 throw testException;
             });
             var before = DateTimeOffset.UtcNow;
-            var caught = Assert.CatchAsync(() => messageHandler(serviceBusMessage));
+            var caught = Assert.CatchAsync(() => messageHandler(new ProcessMessageEventArgs(serviceBusMessage, null, CancellationToken.None)));
             var after = DateTimeOffset.UtcNow;
             var duration = after - before;
 
@@ -194,15 +194,15 @@ namespace Emmersion.ServiceBus.UnitTests
         [Test]
         public async Task When_handling_exceptions()
         {
-            Func<ExceptionReceivedEventArgs, Task> exceptionHandler = null;
+            Func<ProcessErrorEventArgs, Task> exceptionHandler = null;
             var exceptionArgs = new List<ExceptionArgs>();
-            var serviceBusExceptionArgs = new ExceptionReceivedEventArgs(new Exception("test exception"), "action", "endpoint", "entity name", "client id");
+            var serviceBusExceptionArgs = new ProcessErrorEventArgs(new Exception("test exception"), ServiceBusErrorSource.Receive, "namespace", "entity path", CancellationToken.None);
             GetMock<ISubscriptionClientWrapperPool>()
                 .Setup(x => x.GetClientAsync(subscription))
                 .ReturnsAsync(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
-                .Setup(x => x.RegisterMessageHandler(IsAny<Func<Microsoft.Azure.ServiceBus.Message, Task>>(), IsAny<Func<ExceptionReceivedEventArgs, Task>>()))
-                .Callback<Func<Microsoft.Azure.ServiceBus.Message, Task>, Func<ExceptionReceivedEventArgs, Task>>((_, handler) => exceptionHandler = handler);
+                .Setup(x => x.RegisterMessageHandlerAsync(IsAny<Func<ProcessMessageEventArgs, Task>>(), IsAny<Func<ProcessErrorEventArgs, Task>>()))
+                .Callback<Func<ProcessMessageEventArgs, Task>, Func<ProcessErrorEventArgs, Task>>((_, handler) => exceptionHandler = handler);
 
             ClassUnderTest.OnException += (sender, args) => exceptionArgs.Add(args);
             await ClassUnderTest.SubscribeAsync(subscription, (Message<TestData> message) => Task.CompletedTask);
@@ -211,25 +211,25 @@ namespace Emmersion.ServiceBus.UnitTests
             Assert.That(exceptionArgs.Count, Is.EqualTo(1));
             Assert.That(exceptionArgs[0].Subscription, Is.SameAs(subscription));
             Assert.That(exceptionArgs[0].Exception, Is.SameAs(serviceBusExceptionArgs.Exception));
-            Assert.That(exceptionArgs[0].Action, Is.EqualTo(serviceBusExceptionArgs.ExceptionReceivedContext.Action));
-            Assert.That(exceptionArgs[0].Endpoint, Is.EqualTo(serviceBusExceptionArgs.ExceptionReceivedContext.Endpoint));
-            Assert.That(exceptionArgs[0].EntityPath, Is.EqualTo(serviceBusExceptionArgs.ExceptionReceivedContext.EntityPath));
-            Assert.That(exceptionArgs[0].ClientId, Is.EqualTo(serviceBusExceptionArgs.ExceptionReceivedContext.ClientId));
+            Assert.That(exceptionArgs[0].Action, Is.Empty);
+            Assert.That(exceptionArgs[0].Endpoint, Is.Empty);
+            Assert.That(exceptionArgs[0].EntityPath, Is.EqualTo(serviceBusExceptionArgs.EntityPath));
+            Assert.That(exceptionArgs[0].ClientId, Is.Empty);
         }
 
         [Test]
         public async Task When_subscribing_to_the_dead_letter_queue()
         {
-            Func<Microsoft.Azure.ServiceBus.Message, Task> messageHandler = null;
-            var testMessage = new Microsoft.Azure.ServiceBus.Message();
+            Func<ProcessMessageEventArgs, Task> messageHandler = null;
+            var testMessage = ServiceBusModelFactory.ServiceBusReceivedMessage();
             var expectedDeadLetter = new DeadLetter();
             DeadLetter deadLetter = null;
             GetMock<ISubscriptionClientWrapperPool>()
                 .Setup(x => x.GetDeadLetterClientAsync(subscription))
                 .ReturnsAsync(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
-                .Setup(x => x.RegisterMessageHandler(IsAny<Func<Microsoft.Azure.ServiceBus.Message, Task>>(), IsAny<Func<ExceptionReceivedEventArgs, Task>>()))
-                .Callback<Func<Microsoft.Azure.ServiceBus.Message, Task>, Func<ExceptionReceivedEventArgs, Task>>((handler, _) => messageHandler = handler);
+                .Setup(x => x.RegisterMessageHandlerAsync(IsAny<Func<ProcessMessageEventArgs, Task>>(), IsAny<Func<ProcessErrorEventArgs, Task>>()))
+                .Callback<Func<ProcessMessageEventArgs, Task>, Func<ProcessErrorEventArgs, Task>>((handler, _) => messageHandler = handler);
             GetMock<IMessageMapper>().Setup(x => x.GetDeadLetter(testMessage)).Returns(expectedDeadLetter);
 
             await ClassUnderTest.SubscribeToDeadLettersAsync(subscription, x =>
@@ -237,7 +237,7 @@ namespace Emmersion.ServiceBus.UnitTests
                 deadLetter = x;
                 return Task.CompletedTask;
             });
-            await messageHandler(testMessage);
+            await messageHandler(new ProcessMessageEventArgs(testMessage, null, CancellationToken.None));
             
             Assert.That(deadLetter, Is.EqualTo(expectedDeadLetter));
         }
@@ -251,7 +251,7 @@ namespace Emmersion.ServiceBus.UnitTests
 
             ClassUnderTest.Subscribe(new MessageEvent("test-event", 1), (TestData message) => {});
 
-            GetMock<ISubscriptionClientWrapper>().Verify(x => x.RegisterMessageHandler(ClassUnderTest.RouteMessage, IsAny<Func<ExceptionReceivedEventArgs, Task>>()));
+            GetMock<ISubscriptionClientWrapper>().Verify(x => x.RegisterMessageHandlerAsync(ClassUnderTest.RouteMessage, IsAny<Func<ProcessErrorEventArgs, Task>>()));
         }
 
         [Test]
@@ -265,13 +265,13 @@ namespace Emmersion.ServiceBus.UnitTests
             ClassUnderTest.Subscribe(new MessageEvent("test-event", 1), (TestData message) => {});
             ClassUnderTest.Subscribe(new MessageEvent("test-event", 2), (TestData message) => {});
 
-            GetMock<ISubscriptionClientWrapper>().Verify(x => x.RegisterMessageHandler(ClassUnderTest.RouteMessage, IsAny<Func<ExceptionReceivedEventArgs, Task>>()), Times.Once);
+            GetMock<ISubscriptionClientWrapper>().Verify(x => x.RegisterMessageHandlerAsync(ClassUnderTest.RouteMessage, IsAny<Func<ProcessErrorEventArgs, Task>>()), Times.Once);
         }
 
         [Test]
         public async Task When_routing_a_message_it_should_only_reach_the_matching_subscriber()
         {
-            var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
+            var serviceBusMessage = ServiceBusModelFactory.ServiceBusReceivedMessage();
             var deserializedObject = new MessageEnvelope<object> { MessageEvent = "test-event.v1", };
             var deserializedMessage = new MessageEnvelope<TestData>() { Payload = new TestData { Data = "hello world" } };
             var testEventV1Messages = new List<TestData>();
@@ -287,7 +287,7 @@ namespace Emmersion.ServiceBus.UnitTests
             ClassUnderTest.Subscribe(new MessageEvent("test-event", 2), (TestData message) => testEventV1Messages.Add(message));
             ClassUnderTest.Subscribe(new MessageEvent("other-event", 1), (TestData message) => testEventV1Messages.Add(message));
 
-            await ClassUnderTest.RouteMessage(serviceBusMessage);
+            await ClassUnderTest.RouteMessage(new ProcessMessageEventArgs(serviceBusMessage, null, CancellationToken.None));
 
             Assert.That(testEventV1Messages.Count, Is.EqualTo(1));
             Assert.That(testEventV1Messages[0], Is.SameAs(deserializedMessage.Payload));
@@ -298,7 +298,7 @@ namespace Emmersion.ServiceBus.UnitTests
         [Test]
         public async Task When_routing_a_message_and_there_are_multiple_subscribers()
         {
-            var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
+            var serviceBusMessage = ServiceBusModelFactory.ServiceBusReceivedMessage();
             var deserializedObject = new MessageEnvelope<object> { MessageEvent = "test-event.v3" };
             var deserializedMessage = new MessageEnvelope<TestData>() { Payload = new TestData { Data = "hello world" } };
             var subscriber1Messages = new List<TestData>();
@@ -312,7 +312,7 @@ namespace Emmersion.ServiceBus.UnitTests
             ClassUnderTest.Subscribe(new MessageEvent("test-event", 3), (TestData message) => subscriber1Messages.Add(message));
             ClassUnderTest.Subscribe(new MessageEvent("test-event", 3), (TestData message) => subscriber2Messages.Add(message));
 
-            await ClassUnderTest.RouteMessage(serviceBusMessage);
+            await ClassUnderTest.RouteMessage(new ProcessMessageEventArgs(serviceBusMessage, null, CancellationToken.None));
 
             Assert.That(subscriber1Messages.Count, Is.EqualTo(1), "Message missing from subscriber 1");
             Assert.That(subscriber1Messages[0], Is.SameAs(deserializedMessage.Payload));
@@ -323,7 +323,7 @@ namespace Emmersion.ServiceBus.UnitTests
         [Test]
         public async Task When_routing_a_message_you_get_timing_data()
         {
-            var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
+            var serviceBusMessage = ServiceBusModelFactory.ServiceBusReceivedMessage();
             var deserializedObject = new MessageEnvelope<object> { MessageEvent = "test-event.v3" };
             var eventArgs = new List<MessageReceivedArgs>();
             GetMock<ISubscriptionClientWrapperPool>()
@@ -333,7 +333,7 @@ namespace Emmersion.ServiceBus.UnitTests
 
             ClassUnderTest.OnMessageReceived += (sender, args) => eventArgs.Add(args);
             var before = DateTimeOffset.UtcNow;
-            await ClassUnderTest.RouteMessage(serviceBusMessage);
+            await ClassUnderTest.RouteMessage(new ProcessMessageEventArgs(serviceBusMessage, null, CancellationToken.None));
             var duration = DateTimeOffset.UtcNow - before;
 
             Assert.That(eventArgs.Count, Is.EqualTo(1));
@@ -347,7 +347,7 @@ namespace Emmersion.ServiceBus.UnitTests
 
             ClassUnderTest.Subscribe(new MessageEvent("test-event", 3), (object _) => { Thread.Sleep(25); });
             ClassUnderTest.Subscribe(new MessageEvent("test-event", 3), (object _) => { Thread.Sleep(25); });
-            await ClassUnderTest.RouteMessage(serviceBusMessage);
+            await ClassUnderTest.RouteMessage(new ProcessMessageEventArgs(serviceBusMessage, null, CancellationToken.None));
 
             Assert.That(eventArgs.Count, Is.EqualTo(2));
             Assert.That(eventArgs[1].ProcessingTime.TotalMilliseconds, Is.EqualTo(50).Within(20));
@@ -356,7 +356,7 @@ namespace Emmersion.ServiceBus.UnitTests
         [Test]
         public void When_routing_a_message_you_get_timing_data_even_if_a_subscriber_blows_up()
         {
-            var serviceBusMessage = new Microsoft.Azure.ServiceBus.Message();
+            var serviceBusMessage = ServiceBusModelFactory.ServiceBusReceivedMessage();
             var messageEvent = new MessageEvent("test-event", 3);
             var deserializedObject = new MessageEnvelope<object> { MessageEvent = messageEvent.ToString() };
             var eventArgs = new List<MessageReceivedArgs>();
@@ -373,7 +373,7 @@ namespace Emmersion.ServiceBus.UnitTests
 
             ClassUnderTest.OnMessageReceived += (sender, args) => eventArgs.Add(args);
             var before = DateTimeOffset.UtcNow;
-            Assert.CatchAsync<Exception>(() => ClassUnderTest.RouteMessage(serviceBusMessage));
+            Assert.CatchAsync<Exception>(() => ClassUnderTest.RouteMessage(new ProcessMessageEventArgs(serviceBusMessage, null, CancellationToken.None)));
             var duration = DateTimeOffset.UtcNow - before;
 
             Assert.That(eventArgs.Count, Is.EqualTo(1));
@@ -388,15 +388,19 @@ namespace Emmersion.ServiceBus.UnitTests
         [Test]
         public void When_handling_service_bus_exceptions_for_single_topic_subscriptions()
         {
-            var serviceBusArgs = new ExceptionReceivedEventArgs(new Exception("test exception"), "action", "endpoint", "entity name", "client id");
+            var serviceBusArgs = new ProcessErrorEventArgs(new Exception("test exception"),
+                ServiceBusErrorSource.Complete,
+                "namespace",
+                "entity path",
+                CancellationToken.None);
             var eventArgs = new List<ExceptionArgs>();
-            Func<ExceptionReceivedEventArgs, Task> exceptionHandler = null;
+            Func<ProcessErrorEventArgs, Task> exceptionHandler = null;
             GetMock<ISubscriptionClientWrapperPool>()
                 .Setup(x => x.GetSingleTopicClientIfFirstTime())
                 .Returns(GetMock<ISubscriptionClientWrapper>().Object);
             GetMock<ISubscriptionClientWrapper>()
-                .Setup(x => x.RegisterMessageHandler(ClassUnderTest.RouteMessage, IsAny<Func<ExceptionReceivedEventArgs, Task>>()))
-                .Callback<Func<Microsoft.Azure.ServiceBus.Message, Task>, Func<ExceptionReceivedEventArgs, Task>>((_, handler) => exceptionHandler = handler);
+                .Setup(x => x.RegisterMessageHandlerAsync(ClassUnderTest.RouteMessage, IsAny<Func<ProcessErrorEventArgs, Task>>()))
+                .Callback<Func<ProcessMessageEventArgs, Task>, Func<ProcessErrorEventArgs, Task>>((_, handler) => exceptionHandler = handler);
 
             ClassUnderTest.OnException += (_, args) => eventArgs.Add(args);
             ClassUnderTest.Subscribe(new MessageEvent("test-event", 1), (TestData message) => {});
@@ -405,10 +409,10 @@ namespace Emmersion.ServiceBus.UnitTests
             Assert.That(eventArgs.Count, Is.EqualTo(1));
             Assert.That(eventArgs[0].Subscription, Is.Null);
             Assert.That(eventArgs[0].Exception, Is.SameAs(serviceBusArgs.Exception));
-            Assert.That(eventArgs[0].Action, Is.EqualTo("action"));
-            Assert.That(eventArgs[0].Endpoint, Is.EqualTo("endpoint"));
-            Assert.That(eventArgs[0].EntityPath, Is.EqualTo("entity name"));
-            Assert.That(eventArgs[0].ClientId, Is.EqualTo("client id"));
+            Assert.That(eventArgs[0].Action, Is.Empty);
+            Assert.That(eventArgs[0].Endpoint, Is.Empty);
+            Assert.That(eventArgs[0].EntityPath, Is.EqualTo("entity path"));
+            Assert.That(eventArgs[0].ClientId, Is.Empty);
         }
     }
 }
