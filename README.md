@@ -183,6 +183,9 @@ dotnet user-secrets set 'ServiceBus:SingleTopicConnectionString' 'your-connectio
 
 ## Changes & Upgrading Info
 
+### v4.1
+Migrated dependency from `Microsoft.Azure.ServiceBus` to `Azure.Messaging.ServiceBus`
+
 ### v4.0
 Changed namespace from `EL.` to `Emmersion.`
 
@@ -194,7 +197,7 @@ Added `async..await` support:
     * `PublishScheduledAsync`
     * `SubscribeAsync`
     * `SubscribeToDeadLettersAsync`
-* Older  methods were deprecated because they utilize a `.Wait()`
+* Older methods were deprecated because they utilize a `.Wait()`
   which may not interact well with `async..await`:
     * `Publish`
     * `PublishScheduled`
