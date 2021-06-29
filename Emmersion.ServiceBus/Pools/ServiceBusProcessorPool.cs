@@ -35,21 +35,15 @@ namespace Emmersion.ServiceBus.Pools
 
         public Task<IServiceBusProcessor> GetProcessorAsync(Subscription subscription)
         {
-            return GetClient(subscription.ToString(), subscription, client => client.CreateProcessor(
-                subscription.Topic.ToString(),
-                subscription.SubscriptionName,
-                subscriptionConfig.MaxConcurrentMessages));
+            return GetClient(subscription.ToString(), subscription, "");
         }
 
         public Task<IServiceBusProcessor> GetDeadLetterProcessorAsync(Subscription subscription)
         {
-            return GetClient(subscription + "-dead-letter", subscription, client => client.CreateProcessor(
-                subscription.Topic.ToString(),
-                subscription.SubscriptionName + DeadLetterQueueSuffix,
-                subscriptionConfig.MaxConcurrentMessages));
+            return GetClient(subscription + "-dead-letter", subscription, DeadLetterQueueSuffix);
         }
 
-        private async Task<IServiceBusProcessor> GetClient(string key, Subscription subscription, Func<IServiceBusClient, IServiceBusProcessor> createProcessor)
+        private async Task<IServiceBusProcessor> GetClient(string key, Subscription subscription, string suffix)
         {
             await semaphoreSlim.WaitAsync();
             try
@@ -59,7 +53,11 @@ namespace Emmersion.ServiceBus.Pools
                     throw new Exception($"Connecting to the same subscription twice is not allowed: {subscription}");
                 }
                 await subscriptionCreator.CreateSubscriptionIfNecessaryAsync(subscription);
-                var processor = createProcessor(serviceBusClientPool.GetClient(subscriptionConfig.ConnectionString));
+                var client = serviceBusClientPool.GetClient(subscriptionConfig.ConnectionString);
+                var processor = client.CreateProcessor(
+                    subscription.Topic.ToString(),
+                    subscription.SubscriptionName + suffix,
+                    subscriptionConfig.MaxConcurrentMessages);
                 processors[key] = processor;
                 return processor;
             }
