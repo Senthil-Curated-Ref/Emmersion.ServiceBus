@@ -16,8 +16,7 @@ namespace Emmersion.ServiceBus
             services.AddSingleton<IServiceBusProcessorPool, ServiceBusProcessorPool>();
             services.AddSingleton<IServiceBusAdministrationClientPool, ServiceBusAdministrationClientPool>();
             services.AddSingleton<IServiceBusClientPool, ServiceBusClientPool>();
-
-            services.AddTransient<IServiceBusProcessor, ServiceBusProcessorWrapper>();
+            
             services.AddTransient<ISubscriptionCreator, SubscriptionCreator>();
             services.AddTransient<IMessageMapper, MessageMapper>();
             services.AddTransient<IMessageSerializer, MessageSerializer>();
