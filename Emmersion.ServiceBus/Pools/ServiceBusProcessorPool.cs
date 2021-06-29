@@ -16,41 +16,52 @@ namespace Emmersion.ServiceBus.Pools
 
     internal class ServiceBusProcessorPool : IServiceBusProcessorPool
     {
-        private Dictionary<string, IServiceBusProcessor> clients = new Dictionary<string, IServiceBusProcessor>();
-        static SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1,1);
-        private readonly IServiceBusProcessorCreator serviceBusProcessorCreator;
+        private Dictionary<string, IServiceBusProcessor> processors = new Dictionary<string, IServiceBusProcessor>();
+        static readonly SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1,1);
         private readonly ISubscriptionCreator subscriptionCreator;
+        private readonly IServiceBusClientPool serviceBusClientPool;
+        private readonly ISubscriptionConfig subscriptionConfig;
+        
+        private const string DeadLetterQueueSuffix = "/$DeadLetterQueue";
 
-        public ServiceBusProcessorPool(IServiceBusProcessorCreator serviceBusProcessorCreator,
-            ISubscriptionCreator subscriptionCreator)
+        public ServiceBusProcessorPool(ISubscriptionCreator subscriptionCreator,
+            IServiceBusClientPool serviceBusClientPool,
+            ISubscriptionConfig subscriptionConfig)
         {
-            this.serviceBusProcessorCreator = serviceBusProcessorCreator;
             this.subscriptionCreator = subscriptionCreator;
+            this.serviceBusClientPool = serviceBusClientPool;
+            this.subscriptionConfig = subscriptionConfig;
         }
 
         public Task<IServiceBusProcessor> GetProcessorAsync(Subscription subscription)
         {
-            return GetClient(subscription.ToString(), subscription, () => serviceBusProcessorCreator.Create(subscription));
+            return GetClient(subscription.ToString(), subscription, client => client.CreateProcessor(
+                subscription.Topic.ToString(),
+                subscription.SubscriptionName,
+                subscriptionConfig.MaxConcurrentMessages));
         }
 
         public Task<IServiceBusProcessor> GetDeadLetterProcessorAsync(Subscription subscription)
         {
-            return GetClient(subscription.ToString() + "-dead-letter", subscription, () => serviceBusProcessorCreator.CreateDeadLetter(subscription));
+            return GetClient(subscription + "-dead-letter", subscription, client => client.CreateProcessor(
+                subscription.Topic.ToString(),
+                subscription.SubscriptionName + DeadLetterQueueSuffix,
+                subscriptionConfig.MaxConcurrentMessages));
         }
 
-        private async Task<IServiceBusProcessor> GetClient(string key, Subscription subscription, Func<IServiceBusProcessor> createClient)
+        private async Task<IServiceBusProcessor> GetClient(string key, Subscription subscription, Func<IServiceBusClient, IServiceBusProcessor> createProcessor)
         {
             await semaphoreSlim.WaitAsync();
             try
             {
-                if (clients.ContainsKey(key))
+                if (processors.ContainsKey(key))
                 {
                     throw new Exception($"Connecting to the same subscription twice is not allowed: {subscription}");
                 }
                 await subscriptionCreator.CreateSubscriptionIfNecessaryAsync(subscription);
-                var client = createClient();
-                clients[key] = client;
-                return client;
+                var processor = createProcessor(serviceBusClientPool.GetClient(subscriptionConfig.ConnectionString));
+                processors[key] = processor;
+                return processor;
             }
             finally
             {
@@ -63,10 +74,14 @@ namespace Emmersion.ServiceBus.Pools
             semaphoreSlim.Wait();
             try
             {
-                if (!clients.ContainsKey("single-topic"))
+                if (!processors.ContainsKey("single-topic"))
                 {
-                    clients["single-topic"] = serviceBusProcessorCreator.CreateSingleTopic();
-                    return clients["single-topic"];
+                    var client = serviceBusClientPool.GetClient(subscriptionConfig.SingleTopicConnectionString);
+                    processors["single-topic"] = client.CreateProcessor(
+                        subscriptionConfig.SingleTopicName,
+                        subscriptionConfig.SingleTopicSubscriptionName,
+                        subscriptionConfig.MaxConcurrentMessages);
+                    return processors["single-topic"];
                 }
                 return null;
             }
@@ -78,8 +93,8 @@ namespace Emmersion.ServiceBus.Pools
 
         public async ValueTask DisposeAsync()
         {
-            await Task.WhenAll(clients.Select(x => x.Value.CloseAsync()));
-            clients.Clear();
+            await Task.WhenAll(processors.Select(x => x.Value.CloseAsync()));
+            processors.Clear();
         }
     }
 }

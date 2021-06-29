@@ -11,32 +11,53 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
     {
         private Subscription subscription = new Subscription(new Topic("el-service-bus", "test-event", 1), "el-service-bus", "listener");
         private Subscription otherSubscription = new Subscription(new Topic("el-service-bus", "other-test-event", 2), "el-service-bus", "listener");
+        private string connectionString = "connection-string";
+        private string singleTopicConnectionString = "single-topic-connection-string";
+        private string singleTopicName = "single-topic-name";
+        private string singleTopicSubscriptionName = "single-topic-subscription-name";
+        private int maxConcurrentCalls = 13;
+        private Mock<IServiceBusClient> mockServiceBusClient;
+
+        [SetUp]
+        public void SetUp()
+        {
+            mockServiceBusClient = new Mock<IServiceBusClient>();
+            
+            GetMock<ISubscriptionConfig>().Setup(x => x.ConnectionString).Returns(connectionString);
+            GetMock<ISubscriptionConfig>().Setup(x => x.SingleTopicConnectionString).Returns(singleTopicConnectionString);
+            GetMock<ISubscriptionConfig>().Setup(x => x.SingleTopicName).Returns(singleTopicName);
+            GetMock<ISubscriptionConfig>().Setup(x => x.SingleTopicSubscriptionName).Returns(singleTopicSubscriptionName);
+            GetMock<ISubscriptionConfig>().Setup(x => x.MaxConcurrentMessages).Returns(maxConcurrentCalls);
+        }
 
         [Test]
         public async Task When_getting_client_the_first_time()
         {
-            var mockSubscriptionClientWrapper = new Mock<IServiceBusProcessor>();
-            GetMock<IServiceBusProcessorCreator>()
-                .Setup(x => x.Create(subscription))
-                .Returns(mockSubscriptionClientWrapper.Object);
+            var mockProcessor = new Mock<IServiceBusProcessor>();
+            GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(connectionString)).Returns(mockServiceBusClient.Object);
+            mockServiceBusClient
+                .Setup(x => x.CreateProcessor(subscription.Topic.ToString(), subscription.SubscriptionName, maxConcurrentCalls))
+                .Returns(mockProcessor.Object);
 
             var result = await ClassUnderTest.GetProcessorAsync(subscription);
 
-            Assert.That(result, Is.SameAs(mockSubscriptionClientWrapper.Object));
+            Assert.That(result, Is.SameAs(mockProcessor.Object));
             GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessaryAsync(subscription));
         }
 
         [Test]
         public async Task When_getting_client_after_the_first_time()
         {
-            var mockSubscriptionClientWrapper = new Mock<IServiceBusProcessor>();
-            GetMock<IServiceBusProcessorCreator>()
-                .Setup(x => x.Create(subscription))
-                .Returns(mockSubscriptionClientWrapper.Object);
+            var mockProcessor = new Mock<IServiceBusProcessor>();
+            GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(connectionString)).Returns(mockServiceBusClient.Object);
+            mockServiceBusClient
+                .Setup(x => x.CreateProcessor(subscription.Topic.ToString(), subscription.SubscriptionName, maxConcurrentCalls))
+                .Returns(mockProcessor.Object);
 
-            await ClassUnderTest.GetProcessorAsync(subscription);
+            var first = await ClassUnderTest.GetProcessorAsync(subscription);
             var result = Assert.CatchAsync(() => ClassUnderTest.GetProcessorAsync(subscription));
 
+            Assert.That(first, Is.SameAs(mockProcessor.Object));
             Assert.That(result.Message, Does.Contain(subscription.ToString()));
             GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessaryAsync(IsAny<Subscription>()), Times.Once);
         }
@@ -44,20 +65,21 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
         [Test]
         public async Task When_getting_different_clients()
         {
-            var mockSubscriptionClientWrapper = new Mock<IServiceBusProcessor>();
-            GetMock<IServiceBusProcessorCreator>()
-                .Setup(x => x.Create(subscription))
-                .Returns(mockSubscriptionClientWrapper.Object);
-            var otherMockSubscriptionClientWrapper = new Mock<IServiceBusProcessor>();
-            GetMock<IServiceBusProcessorCreator>()
-                .Setup(x => x.Create(otherSubscription))
-                .Returns(otherMockSubscriptionClientWrapper.Object);
+            var mockProcessor = new Mock<IServiceBusProcessor>();
+            GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(connectionString)).Returns(mockServiceBusClient.Object);
+            mockServiceBusClient
+                .Setup(x => x.CreateProcessor(subscription.Topic.ToString(), subscription.SubscriptionName, maxConcurrentCalls))
+                .Returns(mockProcessor.Object);
+            var otherMockProcessor = new Mock<IServiceBusProcessor>();
+            mockServiceBusClient
+                .Setup(x => x.CreateProcessor(otherSubscription.Topic.ToString(), otherSubscription.SubscriptionName, maxConcurrentCalls))
+                .Returns(otherMockProcessor.Object);
 
             var result1 = await ClassUnderTest.GetProcessorAsync(subscription);
             var result2 = await ClassUnderTest.GetProcessorAsync(otherSubscription);
 
-            Assert.That(result1, Is.SameAs(mockSubscriptionClientWrapper.Object));
-            Assert.That(result2, Is.SameAs(otherMockSubscriptionClientWrapper.Object));
+            Assert.That(result1, Is.SameAs(mockProcessor.Object));
+            Assert.That(result2, Is.SameAs(otherMockProcessor.Object));
             GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessaryAsync(subscription));
             GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessaryAsync(otherSubscription));
         }
@@ -65,28 +87,31 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
         [Test]
         public async Task When_getting_a_dead_letter_client_the_first_time()
         {
-            var mockSubscriptionClientWrapper = new Mock<IServiceBusProcessor>();
-            GetMock<IServiceBusProcessorCreator>()
-                .Setup(x => x.CreateDeadLetter(subscription))
-                .Returns(mockSubscriptionClientWrapper.Object);
+            var mockProcessor = new Mock<IServiceBusProcessor>();
+            GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(connectionString)).Returns(mockServiceBusClient.Object);
+            mockServiceBusClient
+                .Setup(x => x.CreateProcessor(subscription.Topic.ToString(), subscription.SubscriptionName + "/$DeadLetterQueue", maxConcurrentCalls))
+                .Returns(mockProcessor.Object);
 
             var result = await ClassUnderTest.GetDeadLetterProcessorAsync(subscription);
 
-            Assert.That(result, Is.SameAs(mockSubscriptionClientWrapper.Object));
+            Assert.That(result, Is.SameAs(mockProcessor.Object));
             GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessaryAsync(subscription));
         }
 
         [Test]
         public async Task When_getting_a_dead_letter_client_after_the_first_time()
         {
-            var mockSubscriptionClientWrapper = new Mock<IServiceBusProcessor>();
-            GetMock<IServiceBusProcessorCreator>()
-                .Setup(x => x.CreateDeadLetter(subscription))
-                .Returns(mockSubscriptionClientWrapper.Object);
+            var mockProcessor = new Mock<IServiceBusProcessor>();
+            GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(connectionString)).Returns(mockServiceBusClient.Object);
+            mockServiceBusClient
+                .Setup(x => x.CreateProcessor(subscription.Topic.ToString(), subscription.SubscriptionName + "/$DeadLetterQueue", maxConcurrentCalls))
+                .Returns(mockProcessor.Object);
 
-            await ClassUnderTest.GetDeadLetterProcessorAsync(subscription);
+            var first = await ClassUnderTest.GetDeadLetterProcessorAsync(subscription);
             var result = Assert.CatchAsync(() => ClassUnderTest.GetDeadLetterProcessorAsync(subscription));
 
+            Assert.That(first, Is.SameAs(mockProcessor.Object));
             Assert.That(result.Message, Does.Contain(subscription.ToString()));
             GetMock<ISubscriptionCreator>().Verify(x => x.CreateSubscriptionIfNecessaryAsync(IsAny<Subscription>()), Times.Once);
         }
@@ -94,49 +119,56 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
         [Test]
         public void When_getting_the_single_topic_client_the_first_time()
         {
-            var mockSubscriptionClientWrapper = new Mock<IServiceBusProcessor>();
-            GetMock<IServiceBusProcessorCreator>()
-                .Setup(x => x.CreateSingleTopic())
-                .Returns(mockSubscriptionClientWrapper.Object);
+            var mockProcessor = new Mock<IServiceBusProcessor>();
+            GetMock<IServiceBusClientPool>()
+                .Setup(x => x.GetClient(singleTopicConnectionString))
+                .Returns(mockServiceBusClient.Object);
+            mockServiceBusClient
+                .Setup(x => x.CreateProcessor(singleTopicName, singleTopicSubscriptionName, maxConcurrentCalls))
+                .Returns(mockProcessor.Object);
 
             var result = ClassUnderTest.GetSingleTopicProcessorIfFirstTime();
 
-            Assert.That(result, Is.SameAs(mockSubscriptionClientWrapper.Object));
+            Assert.That(result, Is.SameAs(mockProcessor.Object));
         }
 
         [Test]
         public void When_getting_the_single_topic_client_after_the_first_time()
         {
-            var mockSubscriptionClientWrapper = new Mock<IServiceBusProcessor>();
-            GetMock<IServiceBusProcessorCreator>()
-                .Setup(x => x.CreateSingleTopic())
-                .Returns(mockSubscriptionClientWrapper.Object);
+            var mockProcessor = new Mock<IServiceBusProcessor>();
+            GetMock<IServiceBusClientPool>()
+                .Setup(x => x.GetClient(singleTopicConnectionString))
+                .Returns(mockServiceBusClient.Object);
+            mockServiceBusClient
+                .Setup(x => x.CreateProcessor(singleTopicName, singleTopicSubscriptionName, maxConcurrentCalls))
+                .Returns(mockProcessor.Object);
 
             var result1 = ClassUnderTest.GetSingleTopicProcessorIfFirstTime();
             var result2 = ClassUnderTest.GetSingleTopicProcessorIfFirstTime();
 
-            Assert.That(result1, Is.SameAs(mockSubscriptionClientWrapper.Object));
+            Assert.That(result1, Is.SameAs(mockProcessor.Object));
             Assert.That(result2, Is.Null);
         }
 
         [Test]
         public async Task When_disposing_and_there_are_subscriptions()
         {
-            var mockSubscriptionClientWrapper = new Mock<IServiceBusProcessor>();
-            GetMock<IServiceBusProcessorCreator>()
-                .Setup(x => x.Create(subscription))
-                .Returns(mockSubscriptionClientWrapper.Object);
-            var otherMockSubscriptionClientWrapper = new Mock<IServiceBusProcessor>();
-            GetMock<IServiceBusProcessorCreator>()
-                .Setup(x => x.Create(otherSubscription))
-                .Returns(otherMockSubscriptionClientWrapper.Object);
+            var mockProcessor = new Mock<IServiceBusProcessor>();
+            GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(connectionString)).Returns(mockServiceBusClient.Object);
+            mockServiceBusClient
+                .Setup(x => x.CreateProcessor(subscription.Topic.ToString(), subscription.SubscriptionName, maxConcurrentCalls))
+                .Returns(mockProcessor.Object);
+            var otherMockProcessor = new Mock<IServiceBusProcessor>();
+            mockServiceBusClient
+                .Setup(x => x.CreateProcessor(otherSubscription.Topic.ToString(), otherSubscription.SubscriptionName, maxConcurrentCalls))
+                .Returns(otherMockProcessor.Object);
 
             await ClassUnderTest.GetProcessorAsync(subscription);
             await ClassUnderTest.GetProcessorAsync(otherSubscription);
             await ClassUnderTest.DisposeAsync();
 
-            mockSubscriptionClientWrapper.Verify(x => x.CloseAsync());
-            otherMockSubscriptionClientWrapper.Verify(x => x.CloseAsync());
+            mockProcessor.Verify(x => x.CloseAsync());
+            otherMockProcessor.Verify(x => x.CloseAsync());
         }
 
         [Test]
