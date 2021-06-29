@@ -20,18 +20,17 @@ namespace Emmersion.ServiceBus.Pools
 
         public IServiceBusAdministrationClient GetClient()
         {
-            if (client != null)
+            if (client == null)
             {
-                return client;
-            }
-
-            lock (threadLock)
-            {
-                if (client == null)
+                lock (threadLock)
                 {
-                    client = new ServiceBusAdministrationClient(config.ConnectionString);
+                    if (client == null)
+                    {
+                        client = new ServiceBusAdministrationClient(config.ConnectionString);
+                    }
                 }
             }
+
             return client;
         }
     }
