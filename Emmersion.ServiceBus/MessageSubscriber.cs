@@ -17,9 +17,13 @@ namespace Emmersion.ServiceBus
 
         Task SubscribeAsync<T>(Subscription subscription, Func<Message<T>, Task> messageHandler);
 
+        [Obsolete("Use SubscribeAsync instead")]
         void Subscribe<T>(MessageEvent messageEvent, Action<T> messageHandler);
         
+        [Obsolete("Use SubscribeAsync instead")]
         void Subscribe<T>(MessageEvent messageEvent, Func<T, Task> messageHandler);
+
+        Task SubscribeAsync<T>(MessageEvent messageEvent, Func<T, Task> messageHandler);
         
         event OnMessageReceived OnMessageReceived;
         
@@ -132,6 +136,7 @@ namespace Emmersion.ServiceBus
                 });
         }
 
+        [Obsolete("Use SubscribeAsync instead")]
         public void Subscribe<T>(MessageEvent messageEvent, Action<T> messageHandler)
         {
             Subscribe(messageEvent, (T data) =>
@@ -141,9 +146,15 @@ namespace Emmersion.ServiceBus
             });
         }
         
+        [Obsolete("Use SubscribeAsync instead")]
         public void Subscribe<T>(MessageEvent messageEvent, Func<T, Task> messageHandler)
         {
-            InitializeSingleTopicClient().Wait();
+            SubscribeAsync(messageEvent, messageHandler).Wait();
+        }
+        
+        public async Task SubscribeAsync<T>(MessageEvent messageEvent, Func<T, Task> messageHandler)
+        {
+            await InitializeSingleTopicClient();
             routes.Add(new Route
             {
                 MessageEvent = messageEvent.ToString(),

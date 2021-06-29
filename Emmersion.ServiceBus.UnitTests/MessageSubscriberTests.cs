@@ -245,27 +245,27 @@ namespace Emmersion.ServiceBus.UnitTests
         }
 
         [Test]
-        public void When_subscribing_to_a_single_topic_message_event()
+        public async Task When_subscribing_to_a_single_topic_message_event()
         {
             GetMock<IServiceBusProcessorPool>()
                 .Setup(x => x.GetSingleTopicProcessorIfFirstTime())
                 .Returns(GetMock<IServiceBusProcessor>().Object);
 
-            ClassUnderTest.Subscribe(new MessageEvent("test-event", 1), (TestData message) => {});
+            await ClassUnderTest.SubscribeAsync(new MessageEvent("test-event", 1), (TestData message) => Task.CompletedTask);
 
             GetMock<IServiceBusProcessor>().Verify(x => x.RegisterMessageHandlerAsync(ClassUnderTest.RouteMessage, IsAny<Func<ProcessErrorEventArgs, Task>>()));
         }
 
         [Test]
-        public void When_subscribing_to_a_single_topic_message_event_multiple_times()
+        public async Task When_subscribing_to_a_single_topic_message_event_multiple_times()
         {
             GetMock<IServiceBusProcessorPool>()
                 .SetupSequence(x => x.GetSingleTopicProcessorIfFirstTime())
                 .Returns(GetMock<IServiceBusProcessor>().Object)
                 .Returns((IServiceBusProcessor)null);
 
-            ClassUnderTest.Subscribe(new MessageEvent("test-event", 1), (TestData message) => {});
-            ClassUnderTest.Subscribe(new MessageEvent("test-event", 2), (TestData message) => {});
+            await ClassUnderTest.SubscribeAsync(new MessageEvent("test-event", 1), (TestData message) => Task.CompletedTask);
+            await ClassUnderTest.SubscribeAsync(new MessageEvent("test-event", 2), (TestData message) => Task.CompletedTask);
 
             GetMock<IServiceBusProcessor>().Verify(x => x.RegisterMessageHandlerAsync(ClassUnderTest.RouteMessage, IsAny<Func<ProcessErrorEventArgs, Task>>()), Times.Once);
         }
@@ -285,9 +285,21 @@ namespace Emmersion.ServiceBus.UnitTests
             GetMock<IMessageMapper>().Setup(x => x.ToMessageEnvelope<object>(serviceBusMessage)).Returns(deserializedObject);
             GetMock<IMessageMapper>().Setup(x => x.ToMessageEnvelope<TestData>(serviceBusMessage)).Returns(deserializedMessage);
 
-            ClassUnderTest.Subscribe(new MessageEvent("test-event", 1), (TestData message) => testEventV1Messages.Add(message));
-            ClassUnderTest.Subscribe(new MessageEvent("test-event", 2), (TestData message) => testEventV1Messages.Add(message));
-            ClassUnderTest.Subscribe(new MessageEvent("other-event", 1), (TestData message) => testEventV1Messages.Add(message));
+            await ClassUnderTest.SubscribeAsync(new MessageEvent("test-event", 1), (TestData message) =>
+            {
+                testEventV1Messages.Add(message);
+                return Task.CompletedTask;
+            });
+            await ClassUnderTest.SubscribeAsync(new MessageEvent("test-event", 2), (TestData message) =>
+            {
+                testEventV1Messages.Add(message);
+                return Task.CompletedTask;
+            });
+            await ClassUnderTest.SubscribeAsync(new MessageEvent("other-event", 1), (TestData message) =>
+            {
+                testEventV1Messages.Add(message);
+                return Task.CompletedTask;
+            });
 
             await ClassUnderTest.RouteMessage(new ProcessMessageEventArgs(serviceBusMessage, null, CancellationToken.None));
 
@@ -311,8 +323,16 @@ namespace Emmersion.ServiceBus.UnitTests
             GetMock<IMessageMapper>().Setup(x => x.ToMessageEnvelope<object>(serviceBusMessage)).Returns(deserializedObject);
             GetMock<IMessageMapper>().Setup(x => x.ToMessageEnvelope<TestData>(serviceBusMessage)).Returns(deserializedMessage);
 
-            ClassUnderTest.Subscribe(new MessageEvent("test-event", 3), (TestData message) => subscriber1Messages.Add(message));
-            ClassUnderTest.Subscribe(new MessageEvent("test-event", 3), (TestData message) => subscriber2Messages.Add(message));
+            await ClassUnderTest.SubscribeAsync(new MessageEvent("test-event", 3), (TestData message) =>
+            {
+                subscriber1Messages.Add(message);
+                return Task.CompletedTask;
+            });
+            await ClassUnderTest.SubscribeAsync(new MessageEvent("test-event", 3), (TestData message) =>
+            {
+                subscriber2Messages.Add(message);
+                return Task.CompletedTask;
+            });
 
             await ClassUnderTest.RouteMessage(new ProcessMessageEventArgs(serviceBusMessage, null, CancellationToken.None));
 
@@ -347,8 +367,8 @@ namespace Emmersion.ServiceBus.UnitTests
             Assert.That(eventArgs[0].ReceivedAt, Is.GreaterThan(deserializedObject.PublishedAt));
             Assert.That(eventArgs[0].ProcessingTime, Is.EqualTo(duration).Within(TimeSpan.FromMilliseconds(25)));
 
-            ClassUnderTest.Subscribe(new MessageEvent("test-event", 3), (object _) => { Thread.Sleep(25); });
-            ClassUnderTest.Subscribe(new MessageEvent("test-event", 3), (object _) => { Thread.Sleep(25); });
+            await ClassUnderTest.SubscribeAsync(new MessageEvent("test-event", 3), async (object _) => await Task.Delay(25));
+            await ClassUnderTest.SubscribeAsync(new MessageEvent("test-event", 3), async (object _) => await Task.Delay(25));
             await ClassUnderTest.RouteMessage(new ProcessMessageEventArgs(serviceBusMessage, null, CancellationToken.None));
 
             Assert.That(eventArgs.Count, Is.EqualTo(2));
@@ -356,7 +376,7 @@ namespace Emmersion.ServiceBus.UnitTests
         }
 
         [Test]
-        public void When_routing_a_message_you_get_timing_data_even_if_a_subscriber_blows_up()
+        public async Task When_routing_a_message_you_get_timing_data_even_if_a_subscriber_blows_up()
         {
             var serviceBusMessage = ServiceBusModelFactory.ServiceBusReceivedMessage();
             var messageEvent = new MessageEvent("test-event", 3);
@@ -367,7 +387,7 @@ namespace Emmersion.ServiceBus.UnitTests
                 .Returns(GetMock<IServiceBusProcessor>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToMessageEnvelope<object>(serviceBusMessage)).Returns(deserializedObject);
 
-            ClassUnderTest.Subscribe(messageEvent, (object _) =>
+            await ClassUnderTest.SubscribeAsync(messageEvent, (object _) =>
             {
                 Thread.Sleep(50);
                 throw new Exception("Test exception!");
@@ -388,7 +408,7 @@ namespace Emmersion.ServiceBus.UnitTests
         }
 
         [Test]
-        public void When_handling_service_bus_exceptions_for_single_topic_subscriptions()
+        public async Task When_handling_service_bus_exceptions_for_single_topic_subscriptions()
         {
             var serviceBusArgs = new ProcessErrorEventArgs(new Exception("test exception"),
                 ServiceBusErrorSource.Complete,
@@ -405,8 +425,8 @@ namespace Emmersion.ServiceBus.UnitTests
                 .Callback<Func<ProcessMessageEventArgs, Task>, Func<ProcessErrorEventArgs, Task>>((_, handler) => exceptionHandler = handler);
 
             ClassUnderTest.OnException += (_, args) => eventArgs.Add(args);
-            ClassUnderTest.Subscribe(new MessageEvent("test-event", 1), (TestData message) => {});
-            exceptionHandler(serviceBusArgs);
+            await ClassUnderTest.SubscribeAsync(new MessageEvent("test-event", 1), (TestData message) => Task.CompletedTask);
+            await exceptionHandler(serviceBusArgs);
 
             Assert.That(eventArgs.Count, Is.EqualTo(1));
             Assert.That(eventArgs[0].Subscription, Is.Null);

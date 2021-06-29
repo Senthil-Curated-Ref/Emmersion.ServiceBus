@@ -12,7 +12,6 @@ namespace Emmersion.ServiceBus.IntegrationTests
     {
         private IMessagePublisher publisher;
         private IMessageSubscriber subscriber;
-        private IMessageSerializer serializer;
 
         [SetUp]
         public void Setup()
@@ -27,7 +26,7 @@ namespace Emmersion.ServiceBus.IntegrationTests
 
             subscriber = serviceProvider.GetRequiredService<IMessageSubscriber>();
             publisher = serviceProvider.GetRequiredService<IMessagePublisher>();
-            serializer = serviceProvider.GetRequiredService<IMessageSerializer>();
+            serviceProvider.GetRequiredService<IMessageSerializer>();
         }
 
         [Test]
@@ -55,30 +54,35 @@ namespace Emmersion.ServiceBus.IntegrationTests
                 var duration = (args.ReceivedAt - args.PublishedAt.Value).TotalMilliseconds;
                 messageRoundTripDurations.Add(duration);
             };
-            subscriber.Subscribe(eventA1, (IntegrationTestData message) =>
+            await subscriber.SubscribeAsync(eventA1, (IntegrationTestData message) =>
             {
                 receivedA1Messages.Add(message);
                 receivedMessageCount++;
+                return Task.CompletedTask;
             });
-            subscriber.Subscribe(eventA2, (IntegrationTestData message) =>
+            await subscriber.SubscribeAsync(eventA2, (IntegrationTestData message) =>
             {
                 receivedA2Messages.Add(message);
                 receivedMessageCount++;
+                return Task.CompletedTask;
             });
-            subscriber.Subscribe(eventB1, (IntegrationTestData message) =>
+            await subscriber.SubscribeAsync(eventB1, (IntegrationTestData message) =>
             {
                 receivedB1Messages.Add(message);
                 receivedMessageCount++;
+                return Task.CompletedTask;
             });
-            subscriber.Subscribe(stringEvent, (string message) =>
+            await subscriber.SubscribeAsync(stringEvent, (string message) =>
             {
                 receivedStringMessages.Add(message);
                 receivedMessageCount++;
+                return Task.CompletedTask;
             });
-            subscriber.Subscribe(intEvent, (int message) =>
+            await subscriber.SubscribeAsync(intEvent, (int message) =>
             {
                 receivedIntMessages.Add(message);
                 receivedMessageCount++;
+                return Task.CompletedTask;
             });
 
             var messagePublishDurations = new List<long>();

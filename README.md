@@ -186,6 +186,10 @@ dotnet user-secrets set 'ServiceBus:SingleTopicConnectionString' 'your-connectio
 ### v4.1
 Migrated dependency from `Microsoft.Azure.ServiceBus` to `Azure.Messaging.ServiceBus`
 
+Also deprecated the older single-topic `Subscribe` methods (which took a `MessageEvent`)
+because the SDK change introduced a `.Wait()`.
+Please use `SubscribeAsync` instead.
+
 ### v4.0
 Changed namespace from `EL.` to `Emmersion.`
 
