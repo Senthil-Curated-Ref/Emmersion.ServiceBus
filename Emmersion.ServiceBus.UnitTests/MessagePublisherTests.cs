@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
+using Emmersion.ServiceBus.Pools;
+using Emmersion.ServiceBus.SdkWrappers;
 using Emmersion.Testing;
 using NUnit.Framework;
 
@@ -17,9 +19,9 @@ namespace Emmersion.ServiceBus.UnitTests
             var body = new TestData { Data = "test-data" };
             var message = new Message<TestData>(topic, body);
             var serviceBusMessage = new ServiceBusMessage();
-            GetMock<ITopicClientWrapperPool>()
+            GetMock<IServiceBusSenderPool>()
                 .Setup(x => x.GetForTopic(topic))
-                .Returns(GetMock<ITopicClientWrapper>().Object);
+                .Returns(GetMock<IServiceBusSender>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToServiceBusMessage(message)).Returns(serviceBusMessage);
             GetMock<IPublisherConfig>().Setup(x => x.Environment).Returns("unit-tests");
 
@@ -29,7 +31,7 @@ namespace Emmersion.ServiceBus.UnitTests
             Assert.That(message.PublishedAt, Is.EqualTo(before).Within(TimeSpan.FromMilliseconds(10)), "Incorrect PublishedAt");
             Assert.That(message.EnqueuedAt, Is.EqualTo(message.PublishedAt), "Incorrect EnqueuedAt");
             Assert.That(message.Environment, Is.EqualTo("unit-tests"));
-            GetMock<ITopicClientWrapper>().Verify(x => x.SendAsync(serviceBusMessage));
+            GetMock<IServiceBusSender>().Verify(x => x.SendAsync(serviceBusMessage));
         }
 
         [Test]
@@ -40,11 +42,11 @@ namespace Emmersion.ServiceBus.UnitTests
             var message = new Message<TestData>(topic, body);
             var serviceBusMessage = new ServiceBusMessage();
             var receivedTimings = new List<MessagePublishedArgs>();
-            GetMock<ITopicClientWrapperPool>()
+            GetMock<IServiceBusSenderPool>()
                 .Setup(x => x.GetForTopic(topic))
-                .Returns(GetMock<ITopicClientWrapper>().Object);
+                .Returns(GetMock<IServiceBusSender>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToServiceBusMessage(message)).Returns(serviceBusMessage);
-            GetMock<ITopicClientWrapper>()
+            GetMock<IServiceBusSender>()
                 .Setup(x => x.SendAsync(IsAny<ServiceBusMessage>()))
                 .Returns(Task.Run(() => Thread.Sleep(150)));
 
@@ -64,9 +66,9 @@ namespace Emmersion.ServiceBus.UnitTests
             var message = new Message<TestData>(topic, body);
             var enqueueAt = DateTimeOffset.UtcNow.AddMinutes(5);
             var serviceBusMessage = new ServiceBusMessage();
-            GetMock<ITopicClientWrapperPool>()
+            GetMock<IServiceBusSenderPool>()
                 .Setup(x => x.GetForTopic(topic))
-                .Returns(GetMock<ITopicClientWrapper>().Object);
+                .Returns(GetMock<IServiceBusSender>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToServiceBusMessage(message)).Returns(serviceBusMessage);
             GetMock<IPublisherConfig>().Setup(x => x.Environment).Returns("unit-tests");
 
@@ -76,7 +78,7 @@ namespace Emmersion.ServiceBus.UnitTests
             Assert.That(message.PublishedAt, Is.EqualTo(before).Within(TimeSpan.FromMilliseconds(10)), "Incorrect PublishedAt");
             Assert.That(message.EnqueuedAt, Is.EqualTo(enqueueAt), "Incorrect EnqueuedAt");
             Assert.That(message.Environment, Is.EqualTo("unit-tests"));
-            GetMock<ITopicClientWrapper>().Verify(x => x.ScheduleMessageAsync(serviceBusMessage, enqueueAt));
+            GetMock<IServiceBusSender>().Verify(x => x.ScheduleMessageAsync(serviceBusMessage, enqueueAt));
         }
 
         [Test]
@@ -88,11 +90,11 @@ namespace Emmersion.ServiceBus.UnitTests
             var enqueueAt = DateTimeOffset.UtcNow.AddMinutes(3);
             var serviceBusMessage = new ServiceBusMessage();
             var receivedTimings = new List<MessagePublishedArgs>();
-            GetMock<ITopicClientWrapperPool>()
+            GetMock<IServiceBusSenderPool>()
                 .Setup(x => x.GetForTopic(topic))
-                .Returns(GetMock<ITopicClientWrapper>().Object);
+                .Returns(GetMock<IServiceBusSender>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToServiceBusMessage(message)).Returns(serviceBusMessage);
-            GetMock<ITopicClientWrapper>()
+            GetMock<IServiceBusSender>()
                 .Setup(x => x.ScheduleMessageAsync(IsAny<ServiceBusMessage>(), IsAny<DateTimeOffset>()))
                 .Returns(Task.Run(() => Thread.Sleep(150)));
 
@@ -111,14 +113,14 @@ namespace Emmersion.ServiceBus.UnitTests
             var message = new TestData { Data = "I am the very model of a modern major test message." };
             MessageEnvelope<TestData> envelope = null;
             var serviceBusMessage = new ServiceBusMessage();
-            GetMock<ITopicClientWrapperPool>()
+            GetMock<IServiceBusSenderPool>()
                 .Setup(x => x.GetForSingleTopic())
-                .Returns(GetMock<ITopicClientWrapper>().Object);
+                .Returns(GetMock<IServiceBusSender>().Object);
             GetMock<IMessageMapper>()
                 .Setup(x => x.FromMessageEnvelope(IsAny<MessageEnvelope<TestData>>()))
                 .Callback<MessageEnvelope<TestData>>(x => envelope = x)
                 .Returns(serviceBusMessage);
-            GetMock<ITopicClientWrapper>()
+            GetMock<IServiceBusSender>()
                 .Setup(x => x.SendAsync(IsAny<ServiceBusMessage>()))
                 .Returns(Task.CompletedTask);
 
@@ -128,7 +130,7 @@ namespace Emmersion.ServiceBus.UnitTests
             Assert.That(envelope.PublishedAt, Is.EqualTo(DateTimeOffset.UtcNow).Within(TimeSpan.FromSeconds(1)));
             Assert.That(envelope.Payload, Is.SameAs(message));
 
-            GetMock<ITopicClientWrapper>().Verify(x => x.SendAsync(serviceBusMessage));
+            GetMock<IServiceBusSender>().Verify(x => x.SendAsync(serviceBusMessage));
         }
 
         [Test]
@@ -137,10 +139,10 @@ namespace Emmersion.ServiceBus.UnitTests
             var messageEvent = new MessageEvent("test-event", 13);
             var message = new TestData { Data = "I am the very model of a modern major test message." };
             var receivedTimings = new List<MessagePublishedArgs>();
-            GetMock<ITopicClientWrapperPool>()
+            GetMock<IServiceBusSenderPool>()
                 .Setup(x => x.GetForSingleTopic())
-                .Returns(GetMock<ITopicClientWrapper>().Object);
-            GetMock<ITopicClientWrapper>()
+                .Returns(GetMock<IServiceBusSender>().Object);
+            GetMock<IServiceBusSender>()
                 .Setup(x => x.SendAsync(IsAny<ServiceBusMessage>()))
                 .Returns(Task.Run(() => Thread.Sleep(150)));
 

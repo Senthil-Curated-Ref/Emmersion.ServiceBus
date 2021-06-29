@@ -2,6 +2,8 @@
 using System.Diagnostics;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
+using Emmersion.ServiceBus.Pools;
+using Emmersion.ServiceBus.SdkWrappers;
 
 namespace Emmersion.ServiceBus
 {
@@ -27,17 +29,17 @@ namespace Emmersion.ServiceBus
 
     internal class MessagePublisher : IMessagePublisher
     {
-        private readonly ITopicClientWrapperPool pool;
+        private readonly IServiceBusSenderPool pool;
         private readonly IMessageMapper messageMapper;
         private readonly IPublisherConfig config;
 
         public event OnMessagePublished OnMessagePublished;
 
-        public MessagePublisher(ITopicClientWrapperPool topicClientWrapperPool,
+        public MessagePublisher(IServiceBusSenderPool serviceBusSenderPool,
             IMessageMapper messageMapper,
             IPublisherConfig config)
         {
-            pool = topicClientWrapperPool;
+            pool = serviceBusSenderPool;
             this.messageMapper = messageMapper;
             this.config = config;
         }
@@ -64,7 +66,7 @@ namespace Emmersion.ServiceBus
             await Publish(message, enqueueAt, (client, data) => client.ScheduleMessageAsync(data, enqueueAt));
         }
 
-        private async Task Publish<T>(Message<T> message, DateTimeOffset? enqueueAt, Func<ITopicClientWrapper, ServiceBusMessage, Task> sendTask)
+        private async Task Publish<T>(Message<T> message, DateTimeOffset? enqueueAt, Func<IServiceBusSender, ServiceBusMessage, Task> sendTask)
         {
             var client = pool.GetForTopic(message.Topic);
             var stopwatch = Stopwatch.StartNew();

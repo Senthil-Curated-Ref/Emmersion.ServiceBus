@@ -2,27 +2,28 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Emmersion.ServiceBus.SdkWrappers;
 
-namespace Emmersion.ServiceBus
+namespace Emmersion.ServiceBus.Pools
 {
-    internal interface ITopicClientWrapperPool : IAsyncDisposable
+    internal interface IServiceBusSenderPool : IAsyncDisposable
     {
-        ITopicClientWrapper GetForTopic(Topic topic);
-        ITopicClientWrapper GetForSingleTopic();
+        IServiceBusSender GetForTopic(Topic topic);
+        IServiceBusSender GetForSingleTopic();
     }
 
-    internal class TopicClientWrapperPool : ITopicClientWrapperPool
+    internal class ServiceBusSenderPool : IServiceBusSenderPool
     {
-        private readonly Dictionary<string, ITopicClientWrapper> pool;
+        private readonly Dictionary<string, IServiceBusSender> pool;
         private readonly IPublisherConfig publisherConfig;
-        private readonly ITopicClientWrapperCreator topicClientWrapperCreator;
+        private readonly IServiceBusSenderCreator serviceBusSenderCreator;
         private static object threadLock = new object();
 
-        public TopicClientWrapperPool(IPublisherConfig publisherConfig, ITopicClientWrapperCreator topicClientWrapperCreator)
+        public ServiceBusSenderPool(IPublisherConfig publisherConfig, IServiceBusSenderCreator serviceBusSenderCreator)
         {
-            pool = new Dictionary<string, ITopicClientWrapper>();
+            pool = new Dictionary<string, IServiceBusSender>();
             this.publisherConfig = publisherConfig;
-            this.topicClientWrapperCreator = topicClientWrapperCreator;
+            this.serviceBusSenderCreator = serviceBusSenderCreator;
         }
         
         public async ValueTask DisposeAsync()
@@ -31,17 +32,17 @@ namespace Emmersion.ServiceBus
             pool.Clear();
         }
 
-        public ITopicClientWrapper GetForTopic(Topic topic)
+        public IServiceBusSender GetForTopic(Topic topic)
         {
             return GetForTopic(publisherConfig.ConnectionString, topic.ToString());
         }
 
-        public ITopicClientWrapper GetForSingleTopic()
+        public IServiceBusSender GetForSingleTopic()
         {
             return GetForTopic(publisherConfig.SingleTopicConnectionString, publisherConfig.SingleTopicName);
         }
 
-        private ITopicClientWrapper GetForTopic(string connectionString, string topicName)
+        private IServiceBusSender GetForTopic(string connectionString, string topicName)
         {
             if (!pool.ContainsKey(topicName))
             {
@@ -49,7 +50,7 @@ namespace Emmersion.ServiceBus
                 {
                     if (!pool.ContainsKey(topicName))
                     {
-                        pool[topicName] = topicClientWrapperCreator.Create(connectionString, topicName);
+                        pool[topicName] = serviceBusSenderCreator.Create(connectionString, topicName);
                     }
                 }
             }

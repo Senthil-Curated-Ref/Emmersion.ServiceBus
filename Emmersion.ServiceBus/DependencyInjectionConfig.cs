@@ -26,10 +26,10 @@ namespace Emmersion.ServiceBus
         public static void ConfigurePublisherServices(IServiceCollection services)
         {
             services.AddSingleton<IMessagePublisher, MessagePublisher>();
-            services.AddSingleton<ITopicClientWrapperPool, TopicClientWrapperPool>();
+            services.AddSingleton<IServiceBusSenderPool, ServiceBusSenderPool>();
             services.AddSingleton<IServiceBusClientPool, ServiceBusClientPool>();
 
-            services.AddTransient<ITopicClientWrapperCreator, TopicClientWrapperCreator>();
+            services.AddTransient<IServiceBusSenderCreator, ServiceBusSenderCreator>();
             services.AddTransient<IMessageMapper, MessageMapper>();
             services.AddTransient<IMessageSerializer, MessageSerializer>();
         }

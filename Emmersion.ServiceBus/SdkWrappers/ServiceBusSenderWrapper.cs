@@ -2,20 +2,20 @@ using System;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
 
-namespace Emmersion.ServiceBus
+namespace Emmersion.ServiceBus.SdkWrappers
 {
-    internal interface ITopicClientWrapper
+    internal interface IServiceBusSender
     {
         Task SendAsync(ServiceBusMessage message);
         Task ScheduleMessageAsync(ServiceBusMessage message, DateTimeOffset scheduleEnqueueTimeUtc);
         Task CloseAsync();
     }
 
-    internal class TopicClientWrapper : ITopicClientWrapper
+    internal class ServiceBusSenderWrapper : IServiceBusSender
     {
         private readonly ServiceBusSender client;
 
-        public TopicClientWrapper(ServiceBusSender client)
+        public ServiceBusSenderWrapper(ServiceBusSender client)
         {
             this.client = client;
         }
