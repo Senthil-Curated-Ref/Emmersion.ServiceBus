@@ -12,7 +12,7 @@ namespace Emmersion.ServiceBus
 
     internal class SubscriptionCreator : ISubscriptionCreator
     {
-        private IServiceBusAdministrationClientPool serviceBusAdministrationClientPool;
+        private readonly IServiceBusAdministrationClientPool serviceBusAdministrationClientPool;
         
         public SubscriptionCreator(IServiceBusAdministrationClientPool serviceBusAdministrationClientPool)
         {
