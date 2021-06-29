@@ -19,7 +19,7 @@ namespace Emmersion.ServiceBus.Pools
         public IServiceBusSender Create(string connectionString, string topicName)
         {
             var serviceBusClient = serviceBusClientPool.GetClient(connectionString);
-            return new ServiceBusSenderWrapper(serviceBusClient.CreateSender(topicName));
+            return serviceBusClient.CreateSender(topicName);
         }
     }
 }

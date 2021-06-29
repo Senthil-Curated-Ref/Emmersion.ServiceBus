@@ -25,19 +25,19 @@ namespace Emmersion.ServiceBus.Pools
         public IServiceBusProcessor Create(Subscription subscription)
         {
             var serviceBusClient = serviceBusClientPool.GetClient(config.ConnectionString);
-            return new ServiceBusProcessorWrapper(serviceBusClient.CreateProcessor(subscription.Topic.ToString(), subscription.SubscriptionName, config.MaxConcurrentMessages));
+            return serviceBusClient.CreateProcessor(subscription.Topic.ToString(), subscription.SubscriptionName, config.MaxConcurrentMessages);
         }
 
         public IServiceBusProcessor CreateDeadLetter(Subscription subscription)
         {
             var serviceBusClient = serviceBusClientPool.GetClient(config.ConnectionString);
-            return new ServiceBusProcessorWrapper(serviceBusClient.CreateProcessor(subscription.Topic.ToString(), subscription.SubscriptionName + DeadLetterQueueSuffix, config.MaxConcurrentMessages));
+            return serviceBusClient.CreateProcessor(subscription.Topic.ToString(), subscription.SubscriptionName + DeadLetterQueueSuffix, config.MaxConcurrentMessages);
         }
 
         public IServiceBusProcessor CreateSingleTopic()
         {
             var serviceBusClient = serviceBusClientPool.GetClient(config.SingleTopicConnectionString);
-            return new ServiceBusProcessorWrapper(serviceBusClient.CreateProcessor(config.SingleTopicName, config.SingleTopicSubscriptionName, config.MaxConcurrentMessages));
+            return serviceBusClient.CreateProcessor(config.SingleTopicName, config.SingleTopicSubscriptionName, config.MaxConcurrentMessages);
         }
     }
 }

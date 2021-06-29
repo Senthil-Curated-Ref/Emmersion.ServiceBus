@@ -6,8 +6,8 @@ namespace Emmersion.ServiceBus.SdkWrappers
 {
     internal interface IServiceBusClient : IAsyncDisposable
     {
-        ServiceBusSender CreateSender(string topicName);
-        ServiceBusProcessor CreateProcessor(string topicName, string subscriptionName, int maxConcurrentCalls);
+        IServiceBusSender CreateSender(string topicName);
+        IServiceBusProcessor CreateProcessor(string topicName, string subscriptionName, int maxConcurrentCalls);
     }
 
     internal class ServiceBusClientWrapper : IServiceBusClient
@@ -24,17 +24,17 @@ namespace Emmersion.ServiceBus.SdkWrappers
             serviceBusClient = new ServiceBusClient(connectionString);
         }
 
-        public ServiceBusSender CreateSender(string topicName)
+        public IServiceBusSender CreateSender(string topicName)
         {
             if (string.IsNullOrEmpty(topicName))
             {
                 throw new ArgumentException($"Invalid topicName", nameof(topicName));
             }
             
-            return serviceBusClient.CreateSender(topicName);
+            return new ServiceBusSenderWrapper(serviceBusClient.CreateSender(topicName));
         }
 
-        public ServiceBusProcessor CreateProcessor(string topicName, string subscriptionName, int maxConcurrentMessages)
+        public IServiceBusProcessor CreateProcessor(string topicName, string subscriptionName, int maxConcurrentMessages)
         {
             if (string.IsNullOrEmpty(topicName))
             {
@@ -49,11 +49,11 @@ namespace Emmersion.ServiceBus.SdkWrappers
                 throw new ArgumentException($"MaxConcurrentMessages must be greater than zero.", nameof(maxConcurrentMessages));
             }
             
-            return serviceBusClient.CreateProcessor(topicName, subscriptionName, new ServiceBusProcessorOptions
+            return new ServiceBusProcessorWrapper(serviceBusClient.CreateProcessor(topicName, subscriptionName, new ServiceBusProcessorOptions
             {
                 AutoCompleteMessages = true,
                 MaxConcurrentCalls = maxConcurrentMessages
-            });
+            }));
         }
 
         public async ValueTask DisposeAsync()
