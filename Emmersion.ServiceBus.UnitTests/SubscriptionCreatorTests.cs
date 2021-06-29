@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus.Administration;
+using Emmersion.ServiceBus.Pools;
 using Emmersion.ServiceBus.SdkWrappers;
 using Emmersion.Testing;
 using Moq;
@@ -15,7 +16,7 @@ namespace Emmersion.ServiceBus.UnitTests
         [SetUp]
         public void SetUp()
         {
-            GetMock<IManagementClientWrapperPool>()
+            GetMock<IServiceBusAdministrationClientPool>()
                 .Setup(x => x.GetClient())
                 .Returns(GetMock<IServiceBusAdministrationClient>().Object);
         }

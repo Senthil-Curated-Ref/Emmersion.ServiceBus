@@ -1,19 +1,19 @@
 using Emmersion.ServiceBus.SdkWrappers;
 
-namespace Emmersion.ServiceBus
+namespace Emmersion.ServiceBus.Pools
 {
-    internal interface IManagementClientWrapperPool
+    internal interface IServiceBusAdministrationClientPool
     {
         IServiceBusAdministrationClient GetClient();
     }
 
-    internal class ManagementClientWrapperPool : IManagementClientWrapperPool
+    internal class ServiceBusAdministrationClientPool : IServiceBusAdministrationClientPool
     {
         private readonly ISubscriptionConfig config;
         private IServiceBusAdministrationClient client;
         private static object threadLock = new object();
 
-        public ManagementClientWrapperPool(ISubscriptionConfig config)
+        public ServiceBusAdministrationClientPool(ISubscriptionConfig config)
         {
             this.config = config;
         }

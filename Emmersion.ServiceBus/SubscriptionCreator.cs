@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus.Administration;
+using Emmersion.ServiceBus.Pools;
 
 namespace Emmersion.ServiceBus
 {
@@ -11,16 +12,16 @@ namespace Emmersion.ServiceBus
 
     internal class SubscriptionCreator : ISubscriptionCreator
     {
-        private IManagementClientWrapperPool managementClientWrapperPool;
+        private IServiceBusAdministrationClientPool serviceBusAdministrationClientPool;
         
-        public SubscriptionCreator(IManagementClientWrapperPool managementClientWrapperPool)
+        public SubscriptionCreator(IServiceBusAdministrationClientPool serviceBusAdministrationClientPool)
         {
-            this.managementClientWrapperPool = managementClientWrapperPool;
+            this.serviceBusAdministrationClientPool = serviceBusAdministrationClientPool;
         }
 
         public async Task CreateSubscriptionIfNecessaryAsync(Subscription subscription)
         {   
-            var client = managementClientWrapperPool.GetClient();
+            var client = serviceBusAdministrationClientPool.GetClient();
             var topicName = subscription.Topic.ToString();
             var subscriptionName = subscription.SubscriptionName;
             var subscriptionExists = await client.DoesSubscriptionExistAsync(topicName, subscriptionName);
