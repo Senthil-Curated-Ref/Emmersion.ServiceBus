@@ -6,6 +6,6 @@ namespace Emmersion.ServiceBus
     {
         public string MessageEvent { get; set; }
         public T Payload { get; set; }
-        public DateTimeOffset PublishedAt { get; } = DateTimeOffset.UtcNow;
+        public DateTimeOffset PublishedAt { get; set; } = DateTimeOffset.UtcNow;
     }
 }
