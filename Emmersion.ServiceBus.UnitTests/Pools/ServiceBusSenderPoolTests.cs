@@ -10,7 +10,7 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
     internal class ServiceBusSenderPoolTests : With_an_automocked<ServiceBusSenderPool>
     {
         [Test]
-        public void When_getting_for_topic_the_first_time()
+        public async Task When_getting_for_topic_the_first_time()
         {
             var connectionString = "connection-string";
             var topic = new Topic("example", "event", 1);
@@ -20,13 +20,13 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
             GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(connectionString)).Returns(mockServiceBusClient.Object);
             mockServiceBusClient.Setup(x => x.CreateSender(topic.ToString())).Returns(mockSender.Object);
 
-            var result = ClassUnderTest.GetForTopic(topic);
+            var result = await ClassUnderTest.GetForTopicAsync(topic);
 
             Assert.That(result, Is.SameAs(mockSender.Object));
         }
 
         [Test]
-        public void When_getting_for_topic_after_the_first_time()
+        public async Task When_getting_for_topic_after_the_first_time()
         {
             var connectionString = "connection-string";
             var topic = new Topic("example", "event", 1);
@@ -36,8 +36,8 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
             GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(connectionString)).Returns(mockServiceBusClient.Object);
             mockServiceBusClient.Setup(x => x.CreateSender(topic.ToString())).Returns(mockSender.Object);
 
-            var result1 = ClassUnderTest.GetForTopic(topic);
-            var result2 = ClassUnderTest.GetForTopic(topic);
+            var result1 = await ClassUnderTest.GetForTopicAsync(topic);
+            var result2 = await ClassUnderTest.GetForTopicAsync(topic);
 
             Assert.That(result1, Is.SameAs(mockSender.Object));
             Assert.That(result2, Is.SameAs(mockSender.Object));
@@ -45,7 +45,7 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
         }
 
         [Test]
-        public void When_getting_for_topic_and_it_is_a_different_topic_name()
+        public async Task When_getting_for_topic_and_it_is_a_different_topic_name()
         {
             var connectionString = "connection-string";
             var topicA = new Topic("example", "event-a", 1);
@@ -58,8 +58,8 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
             mockServiceBusClient.Setup(x => x.CreateSender(topicA.ToString())).Returns(mockSenderA.Object);
             mockServiceBusClient.Setup(x => x.CreateSender(topicB.ToString())).Returns(mockSenderB.Object);
 
-            ClassUnderTest.GetForTopic(topicA);
-            var result = ClassUnderTest.GetForTopic(topicB);
+            await ClassUnderTest.GetForTopicAsync(topicA);
+            var result = await ClassUnderTest.GetForTopicAsync(topicB);
 
             Assert.That(result, Is.SameAs(mockSenderB.Object));
         }
@@ -83,8 +83,8 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
             GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(connectionString)).Returns(mockServiceBusClient.Object);
             mockServiceBusClient.Setup(x => x.CreateSender(topicA.ToString())).Returns(mockSenderA.Object);
             mockServiceBusClient.Setup(x => x.CreateSender(topicB.ToString())).Returns(mockSenderB.Object);
-            ClassUnderTest.GetForTopic(topicA);
-            ClassUnderTest.GetForTopic(topicB);
+            await ClassUnderTest.GetForTopicAsync(topicA);
+            await ClassUnderTest.GetForTopicAsync(topicB);
 
             await ClassUnderTest.DisposeAsync();
 
@@ -93,7 +93,7 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
         }
 
         [Test]
-        public void When_getting_for_single_topic_the_first_time()
+        public async Task When_getting_for_single_topic_the_first_time()
         {
             var singleTopicConnectionString = "single-topic-connection-string";
             var singleTopicName = "single-topic-name";
@@ -104,13 +104,13 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
             GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(singleTopicConnectionString)).Returns(mockServiceBusClient.Object);
             mockServiceBusClient.Setup(x => x.CreateSender(singleTopicName)).Returns(mockSender.Object);
 
-            var result = ClassUnderTest.GetForSingleTopic();
+            var result = await ClassUnderTest.GetForSingleTopicAsync();
 
             Assert.That(result, Is.SameAs(mockSender.Object));
         }
 
         [Test]
-        public void When_getting_for_single_topic_after_the_first_time()
+        public async Task When_getting_for_single_topic_after_the_first_time()
         {
             var singleTopicConnectionString = "single-topic-connection-string";
             var singleTopicName = "single-topic-name";
@@ -121,8 +121,8 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
             GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(singleTopicConnectionString)).Returns(mockServiceBusClient.Object);
             mockServiceBusClient.Setup(x => x.CreateSender(singleTopicName)).Returns(mockSender.Object);
 
-            var result1 = ClassUnderTest.GetForSingleTopic();
-            var result2 = ClassUnderTest.GetForSingleTopic();
+            var result1 = await ClassUnderTest.GetForSingleTopicAsync();
+            var result2 = await ClassUnderTest.GetForSingleTopicAsync();
 
             Assert.That(result1, Is.SameAs(mockSender.Object));
             Assert.That(result2, Is.SameAs(mockSender.Object));

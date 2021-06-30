@@ -6,6 +6,7 @@ using Azure.Messaging.ServiceBus;
 using Emmersion.ServiceBus.Pools;
 using Emmersion.ServiceBus.SdkWrappers;
 using Emmersion.Testing;
+using Moq;
 using NUnit.Framework;
 
 namespace Emmersion.ServiceBus.UnitTests
@@ -20,8 +21,8 @@ namespace Emmersion.ServiceBus.UnitTests
             var message = new Message<TestData>(topic, body);
             var serviceBusMessage = new ServiceBusMessage();
             GetMock<IServiceBusSenderPool>()
-                .Setup(x => x.GetForTopic(topic))
-                .Returns(GetMock<IServiceBusSender>().Object);
+                .Setup(x => x.GetForTopicAsync(topic))
+                .ReturnsAsync(GetMock<IServiceBusSender>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToServiceBusMessage(message)).Returns(serviceBusMessage);
             GetMock<IPublisherConfig>().Setup(x => x.Environment).Returns("unit-tests");
 
@@ -43,8 +44,8 @@ namespace Emmersion.ServiceBus.UnitTests
             var serviceBusMessage = new ServiceBusMessage();
             var receivedTimings = new List<MessagePublishedArgs>();
             GetMock<IServiceBusSenderPool>()
-                .Setup(x => x.GetForTopic(topic))
-                .Returns(GetMock<IServiceBusSender>().Object);
+                .Setup(x => x.GetForTopicAsync(topic))
+                .ReturnsAsync(GetMock<IServiceBusSender>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToServiceBusMessage(message)).Returns(serviceBusMessage);
             GetMock<IServiceBusSender>()
                 .Setup(x => x.SendAsync(IsAny<ServiceBusMessage>()))
@@ -67,8 +68,8 @@ namespace Emmersion.ServiceBus.UnitTests
             var enqueueAt = DateTimeOffset.UtcNow.AddMinutes(5);
             var serviceBusMessage = new ServiceBusMessage();
             GetMock<IServiceBusSenderPool>()
-                .Setup(x => x.GetForTopic(topic))
-                .Returns(GetMock<IServiceBusSender>().Object);
+                .Setup(x => x.GetForTopicAsync(topic))
+                .ReturnsAsync(GetMock<IServiceBusSender>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToServiceBusMessage(message)).Returns(serviceBusMessage);
             GetMock<IPublisherConfig>().Setup(x => x.Environment).Returns("unit-tests");
 
@@ -91,8 +92,8 @@ namespace Emmersion.ServiceBus.UnitTests
             var serviceBusMessage = new ServiceBusMessage();
             var receivedTimings = new List<MessagePublishedArgs>();
             GetMock<IServiceBusSenderPool>()
-                .Setup(x => x.GetForTopic(topic))
-                .Returns(GetMock<IServiceBusSender>().Object);
+                .Setup(x => x.GetForTopicAsync(topic))
+                .ReturnsAsync(GetMock<IServiceBusSender>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToServiceBusMessage(message)).Returns(serviceBusMessage);
             GetMock<IServiceBusSender>()
                 .Setup(x => x.ScheduleMessageAsync(IsAny<ServiceBusMessage>(), IsAny<DateTimeOffset>()))
@@ -114,8 +115,8 @@ namespace Emmersion.ServiceBus.UnitTests
             MessageEnvelope<TestData> envelope = null;
             var serviceBusMessage = new ServiceBusMessage();
             GetMock<IServiceBusSenderPool>()
-                .Setup(x => x.GetForSingleTopic())
-                .Returns(GetMock<IServiceBusSender>().Object);
+                .Setup(x => x.GetForSingleTopicAsync())
+                .ReturnsAsync(GetMock<IServiceBusSender>().Object);
             GetMock<IMessageMapper>()
                 .Setup(x => x.FromMessageEnvelope(IsAny<MessageEnvelope<TestData>>()))
                 .Callback<MessageEnvelope<TestData>>(x => envelope = x)
@@ -140,8 +141,8 @@ namespace Emmersion.ServiceBus.UnitTests
             var message = new TestData { Data = "I am the very model of a modern major test message." };
             var receivedTimings = new List<MessagePublishedArgs>();
             GetMock<IServiceBusSenderPool>()
-                .Setup(x => x.GetForSingleTopic())
-                .Returns(GetMock<IServiceBusSender>().Object);
+                .Setup(x => x.GetForSingleTopicAsync())
+                .ReturnsAsync(GetMock<IServiceBusSender>().Object);
             GetMock<IServiceBusSender>()
                 .Setup(x => x.SendAsync(IsAny<ServiceBusMessage>()))
                 .Returns(Task.Run(() => Thread.Sleep(150)));

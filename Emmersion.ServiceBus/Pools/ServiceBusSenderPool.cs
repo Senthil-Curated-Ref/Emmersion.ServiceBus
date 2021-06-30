@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Emmersion.ServiceBus.SdkWrappers;
 
@@ -8,54 +6,46 @@ namespace Emmersion.ServiceBus.Pools
 {
     internal interface IServiceBusSenderPool : IAsyncDisposable
     {
-        IServiceBusSender GetForTopic(Topic topic);
-        IServiceBusSender GetForSingleTopic();
+        Task<IServiceBusSender> GetForTopicAsync(Topic topic);
+        Task<IServiceBusSender> GetForSingleTopicAsync();
     }
 
     internal class ServiceBusSenderPool : IServiceBusSenderPool
     {
-        private readonly Dictionary<string, IServiceBusSender> pool;
+        private readonly SemaphorePool<IServiceBusSender> pool = new SemaphorePool<IServiceBusSender>();
         private readonly IPublisherConfig publisherConfig;
         private readonly IServiceBusClientPool serviceBusClientPool;
-        private static object threadLock = new object();
 
         public ServiceBusSenderPool(IPublisherConfig publisherConfig, IServiceBusClientPool serviceBusClientPool)
         {
-            pool = new Dictionary<string, IServiceBusSender>();
             this.publisherConfig = publisherConfig;
             this.serviceBusClientPool = serviceBusClientPool;
         }
         
         public async ValueTask DisposeAsync()
         {
-            await Task.WhenAll(pool.Select(x => x.Value.CloseAsync()));
-            pool.Clear();
+            await pool.Clear(async item => await item.CloseAsync());
         }
 
-        public IServiceBusSender GetForTopic(Topic topic)
+        public async Task<IServiceBusSender> GetForTopicAsync(Topic topic)
         {
-            return GetForTopic(publisherConfig.ConnectionString, topic.ToString());
+            return await GetForTopic(publisherConfig.ConnectionString, topic.ToString());
         }
 
-        public IServiceBusSender GetForSingleTopic()
+        public async Task<IServiceBusSender> GetForSingleTopicAsync()
         {
-            return GetForTopic(publisherConfig.SingleTopicConnectionString, publisherConfig.SingleTopicName);
+            return await GetForTopic(publisherConfig.SingleTopicConnectionString, publisherConfig.SingleTopicName);
         }
 
-        private IServiceBusSender GetForTopic(string connectionString, string topicName)
+        private async Task<IServiceBusSender> GetForTopic(string connectionString, string topicName)
         {
-            if (!pool.ContainsKey(topicName))
+            var result = await pool.Get(topicName, () =>
             {
-                lock (threadLock)
-                {
-                    if (!pool.ContainsKey(topicName))
-                    {
-                        var client = serviceBusClientPool.GetClient(connectionString);
-                        pool[topicName] = client.CreateSender(topicName);
-                    }
-                }
-            }
-            return pool[topicName];
+                var client = serviceBusClientPool.GetClient(connectionString);
+                return Task.FromResult(client.CreateSender(topicName));
+            });
+
+            return result.Item;
         }
     }
 }

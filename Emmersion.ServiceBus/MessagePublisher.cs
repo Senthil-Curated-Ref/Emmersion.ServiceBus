@@ -68,7 +68,7 @@ namespace Emmersion.ServiceBus
 
         private async Task Publish<T>(Message<T> message, DateTimeOffset? enqueueAt, Func<IServiceBusSender, ServiceBusMessage, Task> sendTask)
         {
-            var sender = pool.GetForTopic(message.Topic);
+            var sender = await pool.GetForTopicAsync(message.Topic);
             var stopwatch = Stopwatch.StartNew();
             await sendTask(sender, PrepareMessage(message, enqueueAt));
             OnMessagePublished?.Invoke(this, new MessagePublishedArgs(stopwatch.ElapsedMilliseconds));
@@ -90,7 +90,7 @@ namespace Emmersion.ServiceBus
         
         public async Task PublishAsync<T>(MessageEvent messageEvent, T message)
         {
-            var sender = pool.GetForSingleTopic();
+            var sender = await pool.GetForSingleTopicAsync();
             var stopwatch = Stopwatch.StartNew();
             await sender.SendAsync(PrepareMessage(messageEvent, message));
             OnMessagePublished?.Invoke(this, new MessagePublishedArgs(stopwatch.ElapsedMilliseconds));
