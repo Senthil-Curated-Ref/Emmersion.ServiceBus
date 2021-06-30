@@ -36,7 +36,7 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
             Assert.That(result2, Is.SameAs(mockClient.Object));
             Assert.That(result3, Is.SameAs(mockClient.Object));
 
-            GetMock<IServiceBusClientFactory>().Verify(x => x.Create(connectionString), Times.Once);
+            GetMock<IServiceBusClientFactory>().Verify(x => x.Create(IsAny<string>()), Times.Once);
         }
         
         [Test]
