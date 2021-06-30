@@ -168,7 +168,7 @@ namespace Emmersion.ServiceBus
 
         private async Task InitializeSingleTopicClient()
         {
-            var processor = serviceBusProcessorPool.GetSingleTopicProcessorIfFirstTime();
+            var processor = await serviceBusProcessorPool.GetSingleTopicProcessorIfFirstTime();
             if (processor != null)
             {
                 await processor.RegisterMessageHandlerAsync(RouteMessage,

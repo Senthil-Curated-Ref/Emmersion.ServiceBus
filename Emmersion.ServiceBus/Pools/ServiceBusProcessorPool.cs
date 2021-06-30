@@ -1,7 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Emmersion.ServiceBus.SdkWrappers;
 
@@ -11,13 +8,12 @@ namespace Emmersion.ServiceBus.Pools
     {
         Task<IServiceBusProcessor> GetProcessorAsync(Subscription subscription);
         Task<IServiceBusProcessor> GetDeadLetterProcessorAsync(Subscription subscription);
-        IServiceBusProcessor GetSingleTopicProcessorIfFirstTime();
+        Task<IServiceBusProcessor> GetSingleTopicProcessorIfFirstTime();
     }
 
     internal class ServiceBusProcessorPool : IServiceBusProcessorPool
     {
-        private Dictionary<string, IServiceBusProcessor> processors = new Dictionary<string, IServiceBusProcessor>();
-        static readonly SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1,1);
+        private SemaphorePool<IServiceBusProcessor> processors = new SemaphorePool<IServiceBusProcessor>();
         private readonly ISubscriptionCreator subscriptionCreator;
         private readonly IServiceBusClientPool serviceBusClientPool;
         private readonly ISubscriptionConfig subscriptionConfig;
@@ -45,54 +41,46 @@ namespace Emmersion.ServiceBus.Pools
 
         private async Task<IServiceBusProcessor> GetClient(string key, Subscription subscription, string suffix)
         {
-            await semaphoreSlim.WaitAsync();
-            try
+            var processor = await processors.Get(key, async () =>
             {
-                if (processors.ContainsKey(key))
-                {
-                    throw new Exception($"Connecting to the same subscription twice is not allowed: {subscription}");
-                }
                 await subscriptionCreator.CreateSubscriptionIfNecessaryAsync(subscription);
                 var client = serviceBusClientPool.GetClient(subscriptionConfig.ConnectionString);
-                var processor = client.CreateProcessor(
+                return client.CreateProcessor(
                     subscription.Topic.ToString(),
                     subscription.SubscriptionName + suffix,
                     subscriptionConfig.MaxConcurrentMessages);
-                processors[key] = processor;
-                return processor;
-            }
-            finally
+            });
+
+            if (!processor.NewlyCreated)
             {
-                semaphoreSlim.Release();
+                throw new Exception($"Connecting to the same subscription twice is not allowed: {subscription}");
             }
+
+            return processor.Item;
         }
 
-        public IServiceBusProcessor GetSingleTopicProcessorIfFirstTime()
+        public async Task<IServiceBusProcessor> GetSingleTopicProcessorIfFirstTime()
         {
-            semaphoreSlim.Wait();
-            try
+            var processor = await processors.Get("single-topic", () =>
             {
-                if (!processors.ContainsKey("single-topic"))
-                {
-                    var client = serviceBusClientPool.GetClient(subscriptionConfig.SingleTopicConnectionString);
-                    processors["single-topic"] = client.CreateProcessor(
-                        subscriptionConfig.SingleTopicName,
-                        subscriptionConfig.SingleTopicSubscriptionName,
-                        subscriptionConfig.MaxConcurrentMessages);
-                    return processors["single-topic"];
-                }
-                return null;
-            }
-            finally
+                var client = serviceBusClientPool.GetClient(subscriptionConfig.SingleTopicConnectionString);
+                return Task.FromResult(client.CreateProcessor(
+                    subscriptionConfig.SingleTopicName,
+                    subscriptionConfig.SingleTopicSubscriptionName,
+                    subscriptionConfig.MaxConcurrentMessages));
+            });
+
+            if (processor.NewlyCreated)
             {
-                semaphoreSlim.Release();
+                return processor.Item;
             }
+
+            return null;
         }
 
         public async ValueTask DisposeAsync()
         {
-            await Task.WhenAll(processors.Select(x => x.Value.CloseAsync()));
-            processors.Clear();
+            await processors.Clear(async processor => await processor.CloseAsync());
         }
     }
 }

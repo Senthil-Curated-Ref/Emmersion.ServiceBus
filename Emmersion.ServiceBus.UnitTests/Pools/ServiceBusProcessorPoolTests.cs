@@ -117,7 +117,7 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
         }
 
         [Test]
-        public void When_getting_the_single_topic_client_the_first_time()
+        public async Task When_getting_the_single_topic_client_the_first_time()
         {
             var mockProcessor = new Mock<IServiceBusProcessor>();
             GetMock<IServiceBusClientPool>()
@@ -127,13 +127,13 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
                 .Setup(x => x.CreateProcessor(singleTopicName, singleTopicSubscriptionName, maxConcurrentCalls))
                 .Returns(mockProcessor.Object);
 
-            var result = ClassUnderTest.GetSingleTopicProcessorIfFirstTime();
+            var result = await ClassUnderTest.GetSingleTopicProcessorIfFirstTime();
 
             Assert.That(result, Is.SameAs(mockProcessor.Object));
         }
 
         [Test]
-        public void When_getting_the_single_topic_client_after_the_first_time()
+        public async Task When_getting_the_single_topic_client_after_the_first_time()
         {
             var mockProcessor = new Mock<IServiceBusProcessor>();
             GetMock<IServiceBusClientPool>()
@@ -143,8 +143,8 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
                 .Setup(x => x.CreateProcessor(singleTopicName, singleTopicSubscriptionName, maxConcurrentCalls))
                 .Returns(mockProcessor.Object);
 
-            var result1 = ClassUnderTest.GetSingleTopicProcessorIfFirstTime();
-            var result2 = ClassUnderTest.GetSingleTopicProcessorIfFirstTime();
+            var result1 = await ClassUnderTest.GetSingleTopicProcessorIfFirstTime();
+            var result2 = await ClassUnderTest.GetSingleTopicProcessorIfFirstTime();
 
             Assert.That(result1, Is.SameAs(mockProcessor.Object));
             Assert.That(result2, Is.Null);

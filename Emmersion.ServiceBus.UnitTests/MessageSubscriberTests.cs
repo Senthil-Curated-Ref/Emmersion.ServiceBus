@@ -249,7 +249,7 @@ namespace Emmersion.ServiceBus.UnitTests
         {
             GetMock<IServiceBusProcessorPool>()
                 .Setup(x => x.GetSingleTopicProcessorIfFirstTime())
-                .Returns(GetMock<IServiceBusProcessor>().Object);
+                .ReturnsAsync(GetMock<IServiceBusProcessor>().Object);
 
             await ClassUnderTest.SubscribeAsync(new MessageEvent("test-event", 1), (TestData message) => Task.CompletedTask);
 
@@ -261,8 +261,8 @@ namespace Emmersion.ServiceBus.UnitTests
         {
             GetMock<IServiceBusProcessorPool>()
                 .SetupSequence(x => x.GetSingleTopicProcessorIfFirstTime())
-                .Returns(GetMock<IServiceBusProcessor>().Object)
-                .Returns((IServiceBusProcessor)null);
+                .ReturnsAsync(GetMock<IServiceBusProcessor>().Object)
+                .ReturnsAsync((IServiceBusProcessor)null);
 
             await ClassUnderTest.SubscribeAsync(new MessageEvent("test-event", 1), (TestData message) => Task.CompletedTask);
             await ClassUnderTest.SubscribeAsync(new MessageEvent("test-event", 2), (TestData message) => Task.CompletedTask);
@@ -281,7 +281,7 @@ namespace Emmersion.ServiceBus.UnitTests
             var otherEventV1Messages = new List<TestData>();
             GetMock<IServiceBusProcessorPool>()
                 .Setup(x => x.GetSingleTopicProcessorIfFirstTime())
-                .Returns(GetMock<IServiceBusProcessor>().Object);
+                .ReturnsAsync(GetMock<IServiceBusProcessor>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToMessageEnvelope<object>(serviceBusMessage)).Returns(deserializedObject);
             GetMock<IMessageMapper>().Setup(x => x.ToMessageEnvelope<TestData>(serviceBusMessage)).Returns(deserializedMessage);
 
@@ -319,7 +319,7 @@ namespace Emmersion.ServiceBus.UnitTests
             var subscriber2Messages = new List<TestData>();
             GetMock<IServiceBusProcessorPool>()
                 .Setup(x => x.GetSingleTopicProcessorIfFirstTime())
-                .Returns(GetMock<IServiceBusProcessor>().Object);
+                .ReturnsAsync(GetMock<IServiceBusProcessor>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToMessageEnvelope<object>(serviceBusMessage)).Returns(deserializedObject);
             GetMock<IMessageMapper>().Setup(x => x.ToMessageEnvelope<TestData>(serviceBusMessage)).Returns(deserializedMessage);
 
@@ -350,7 +350,7 @@ namespace Emmersion.ServiceBus.UnitTests
             var eventArgs = new List<MessageReceivedArgs>();
             GetMock<IServiceBusProcessorPool>()
                 .Setup(x => x.GetSingleTopicProcessorIfFirstTime())
-                .Returns(GetMock<IServiceBusProcessor>().Object);
+                .ReturnsAsync(GetMock<IServiceBusProcessor>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToMessageEnvelope<object>(serviceBusMessage)).Returns(deserializedObject);
 
             ClassUnderTest.OnMessageReceived += (sender, args) => eventArgs.Add(args);
@@ -384,7 +384,7 @@ namespace Emmersion.ServiceBus.UnitTests
             var eventArgs = new List<MessageReceivedArgs>();
             GetMock<IServiceBusProcessorPool>()
                 .Setup(x => x.GetSingleTopicProcessorIfFirstTime())
-                .Returns(GetMock<IServiceBusProcessor>().Object);
+                .ReturnsAsync(GetMock<IServiceBusProcessor>().Object);
             GetMock<IMessageMapper>().Setup(x => x.ToMessageEnvelope<object>(serviceBusMessage)).Returns(deserializedObject);
 
             await ClassUnderTest.SubscribeAsync(messageEvent, (object _) =>
@@ -419,7 +419,7 @@ namespace Emmersion.ServiceBus.UnitTests
             Func<ProcessErrorEventArgs, Task> exceptionHandler = null;
             GetMock<IServiceBusProcessorPool>()
                 .Setup(x => x.GetSingleTopicProcessorIfFirstTime())
-                .Returns(GetMock<IServiceBusProcessor>().Object);
+                .ReturnsAsync(GetMock<IServiceBusProcessor>().Object);
             GetMock<IServiceBusProcessor>()
                 .Setup(x => x.RegisterMessageHandlerAsync(ClassUnderTest.RouteMessage, IsAny<Func<ProcessErrorEventArgs, Task>>()))
                 .Callback<Func<ProcessMessageEventArgs, Task>, Func<ProcessErrorEventArgs, Task>>((_, handler) => exceptionHandler = handler);
