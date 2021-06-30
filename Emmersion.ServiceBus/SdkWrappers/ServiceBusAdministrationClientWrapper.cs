@@ -10,13 +10,13 @@ namespace Emmersion.ServiceBus.SdkWrappers
         Task CreateSubscriptionAsync(CreateSubscriptionOptions description);
     }
 
-    internal class ServiceBusAdministrationClient : IServiceBusAdministrationClient
+    internal class ServiceBusAdministrationClientWrapper : IServiceBusAdministrationClient
     {
-        private Azure.Messaging.ServiceBus.Administration.ServiceBusAdministrationClient client;
+        private ServiceBusAdministrationClient client;
 
-        public ServiceBusAdministrationClient(string connectionString)
+        public ServiceBusAdministrationClientWrapper(string connectionString)
         {
-            client = new Azure.Messaging.ServiceBus.Administration.ServiceBusAdministrationClient(connectionString);
+            client = new ServiceBusAdministrationClient(connectionString);
         }
 
         public async Task<bool> DoesTopicExistAsync(string topicName)

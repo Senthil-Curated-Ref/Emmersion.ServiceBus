@@ -11,17 +11,19 @@ namespace Emmersion.ServiceBus.Pools
     internal class ServiceBusAdministrationClientPool : IServiceBusAdministrationClientPool
     {
         private readonly ISubscriptionConfig config;
-        private SemaphorePool<IServiceBusAdministrationClient> pool = new SemaphorePool<IServiceBusAdministrationClient>();
+        private readonly IServiceBusAdministrationClientFactory factory;
+        private readonly SemaphorePool<IServiceBusAdministrationClient> pool = new SemaphorePool<IServiceBusAdministrationClient>();
 
-        public ServiceBusAdministrationClientPool(ISubscriptionConfig config)
+        public ServiceBusAdministrationClientPool(ISubscriptionConfig config, IServiceBusAdministrationClientFactory factory)
         {
             this.config = config;
+            this.factory = factory;
         }
 
         public async Task<IServiceBusAdministrationClient> GetClientAsync()
         {
             var result = await pool.Get(config.ConnectionString, () =>
-                Task.FromResult((IServiceBusAdministrationClient) new ServiceBusAdministrationClient(config.ConnectionString)));
+                Task.FromResult(factory.Create(config.ConnectionString)));
 
             return result.Item;
         }
