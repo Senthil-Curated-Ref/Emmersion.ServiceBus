@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Azure;
 using Azure.Messaging.ServiceBus.Administration;
 
 namespace Emmersion.ServiceBus.SdkWrappers
@@ -21,14 +22,12 @@ namespace Emmersion.ServiceBus.SdkWrappers
 
         public async Task<bool> DoesTopicExistAsync(string topicName)
         {
-            var exists = await client.TopicExistsAsync(topicName);
-            return exists.Value;
+            return (await client.TopicExistsAsync(topicName)).Value;
         }
 
         public async Task<bool> DoesSubscriptionExistAsync(string topicName, string subscriptionName)
         {
-            var exists = await client.SubscriptionExistsAsync(topicName, subscriptionName);
-            return exists.Value;
+            return (await client.SubscriptionExistsAsync(topicName, subscriptionName)).Value;
         }
 
         public Task CreateSubscriptionAsync(CreateSubscriptionOptions description)

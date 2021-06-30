@@ -11,7 +11,7 @@ namespace Emmersion.ServiceBus
 
     internal class MessageSerializer : IMessageSerializer
     {
-        private JsonSerializerOptions jsonOptions;
+        private readonly JsonSerializerOptions jsonOptions;
 
         public MessageSerializer()
         {

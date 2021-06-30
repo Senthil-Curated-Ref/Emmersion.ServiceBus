@@ -52,7 +52,7 @@ namespace Emmersion.ServiceBus
         
         public async Task PublishAsync<T>(Message<T> message)
         {
-            await Publish(message, null, (client, data) => client.SendAsync(data));
+            await Publish(message, null, (sender, data) => sender.SendAsync(data));
         }
 
         [Obsolete("Use PublishScheduledAsync instead")]
@@ -63,7 +63,7 @@ namespace Emmersion.ServiceBus
         
         public async Task PublishScheduledAsync<T>(Message<T> message, DateTimeOffset enqueueAt)
         {
-            await Publish(message, enqueueAt, (client, data) => client.ScheduleMessageAsync(data, enqueueAt));
+            await Publish(message, enqueueAt, (sender, data) => sender.ScheduleMessageAsync(data, enqueueAt));
         }
 
         private async Task Publish<T>(Message<T> message, DateTimeOffset? enqueueAt, Func<IServiceBusSender, ServiceBusMessage, Task> sendTask)

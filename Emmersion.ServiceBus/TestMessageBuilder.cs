@@ -56,7 +56,7 @@ namespace Emmersion.ServiceBus
 
         public Message<T> Build(T body)
         {
-            return new Message<T>(messageId.ToString(), topic, body)
+            return new Message<T>(messageId, topic, body)
             {
                 CorrelationId = correlationId,
                 PublishedAt = publishedAt,
