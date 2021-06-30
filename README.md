@@ -65,7 +65,7 @@ var message = new UserAssessmentScored
     UserAssessmentId = userAssessmentId,
     UserId = userId
 };
-publisher.PublishAsync(event, message);
+await publisher.PublishAsync(event, message);
 ```
 
 To track metrics about all messages sent through the `IMessagePublisher`:
@@ -93,7 +93,8 @@ await subscriber.SubscribeAsync(subscription, async (Message<UserAssessmentScore
 
 Note that you are given the entire message object, which contains additional information such as `MessageId` and `CorrelationId`.
 
-Calling `Subscribe` will create the topic subscription in Azure automatically (if it didn't already exist).
+Calling `Subscribe` will create the subscription in Azure automatically (if it didn't already exist)
+but will fail if the topic does not exist.
 If the name of the subscription contains the text `auto-delete` then it will delete itself after it is idle for 5 minutes.
 
 The library also provides a way to subscribe to the dead letter queue (multi-topic only).
