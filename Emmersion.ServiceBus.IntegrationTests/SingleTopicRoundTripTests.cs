@@ -26,7 +26,6 @@ namespace Emmersion.ServiceBus.IntegrationTests
 
             subscriber = serviceProvider.GetRequiredService<IMessageSubscriber>();
             publisher = serviceProvider.GetRequiredService<IMessagePublisher>();
-            serviceProvider.GetRequiredService<IMessageSerializer>();
         }
 
         [Test]
