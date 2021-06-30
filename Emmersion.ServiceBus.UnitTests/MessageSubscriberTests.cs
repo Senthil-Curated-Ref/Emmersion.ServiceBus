@@ -217,6 +217,8 @@ namespace Emmersion.ServiceBus.UnitTests
             Assert.That(exceptionArgs[0].Endpoint, Is.Empty);
             Assert.That(exceptionArgs[0].EntityPath, Is.EqualTo(serviceBusExceptionArgs.EntityPath));
             Assert.That(exceptionArgs[0].ClientId, Is.Empty);
+            Assert.That(exceptionArgs[0].ErrorSource, Is.EqualTo(serviceBusExceptionArgs.ErrorSource.ToString()));
+            Assert.That(exceptionArgs[0].FullyQualifiedNamespace, Is.EqualTo(serviceBusExceptionArgs.FullyQualifiedNamespace));
         }
 
         [Test]
@@ -410,7 +412,7 @@ namespace Emmersion.ServiceBus.UnitTests
         [Test]
         public async Task When_handling_service_bus_exceptions_for_single_topic_subscriptions()
         {
-            var serviceBusArgs = new ProcessErrorEventArgs(new Exception("test exception"),
+            var exceptionArgs = new ProcessErrorEventArgs(new Exception("test exception"),
                 ServiceBusErrorSource.Complete,
                 "namespace",
                 "entity path",
@@ -426,15 +428,17 @@ namespace Emmersion.ServiceBus.UnitTests
 
             ClassUnderTest.OnException += (_, args) => eventArgs.Add(args);
             await ClassUnderTest.SubscribeAsync(new MessageEvent("test-event", 1), (TestData message) => Task.CompletedTask);
-            await exceptionHandler(serviceBusArgs);
+            await exceptionHandler(exceptionArgs);
 
             Assert.That(eventArgs.Count, Is.EqualTo(1));
             Assert.That(eventArgs[0].Subscription, Is.Null);
-            Assert.That(eventArgs[0].Exception, Is.SameAs(serviceBusArgs.Exception));
+            Assert.That(eventArgs[0].Exception, Is.SameAs(exceptionArgs.Exception));
             Assert.That(eventArgs[0].Action, Is.Empty);
             Assert.That(eventArgs[0].Endpoint, Is.Empty);
             Assert.That(eventArgs[0].EntityPath, Is.EqualTo("entity path"));
             Assert.That(eventArgs[0].ClientId, Is.Empty);
+            Assert.That(eventArgs[0].ErrorSource, Is.EqualTo(exceptionArgs.ErrorSource.ToString()));
+            Assert.That(eventArgs[0].FullyQualifiedNamespace, Is.EqualTo(exceptionArgs.FullyQualifiedNamespace));
         }
     }
 }

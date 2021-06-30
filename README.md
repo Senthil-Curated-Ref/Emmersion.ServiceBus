@@ -189,6 +189,8 @@ dotnet user-secrets set 'ServiceBus:SingleTopicConnectionString' 'your-connectio
   because the SDK change introduced a `.Wait()`.
   Please use `SubscribeAsync` instead.
 * Deprecated a `Message` constructor in favor of the `TestMessageBuilder`
+* `ExceptionArgs` now exposes new data from the updated SDK
+  and has deprecated old data which is now unavailable.  
 
 ### v4.0
 Changed namespace from `EL.` to `Emmersion.`

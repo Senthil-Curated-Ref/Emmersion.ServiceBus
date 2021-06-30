@@ -7,6 +7,7 @@ namespace Emmersion.ServiceBus
 
     public class ExceptionArgs
     {
+        [Obsolete("This constructor takes data which is no longer provided by the Azure SDK")]
         public ExceptionArgs(Subscription subscription, Exception exception, string action, string clientId, string endpoint, string entityPath)
         {
             Subscription = subscription;
@@ -16,22 +17,42 @@ namespace Emmersion.ServiceBus
             Endpoint = endpoint;
             EntityPath = entityPath;
         }
+        
+        public ExceptionArgs(Subscription subscription, Exception exception, string entityPath, string errorSource, string fullyQualifiedNamespace)
+        {
+            Subscription = subscription;
+            Exception = exception;
+            EntityPath = entityPath;
+            ErrorSource = errorSource;
+            FullyQualifiedNamespace = fullyQualifiedNamespace;
+        }
 
         internal ExceptionArgs(Subscription subscription, ProcessErrorEventArgs args)
         {
             Subscription = subscription;
             Exception = args.Exception;
-            Action = "";
-            ClientId = "";
-            Endpoint = "";
             EntityPath = args.EntityPath ?? "";
+            ErrorSource = args.ErrorSource.ToString();
+            FullyQualifiedNamespace = args.FullyQualifiedNamespace;
         }
 
         public Subscription Subscription { get; }
+        
         public Exception Exception { get; }
-        public string Action { get; }
-        public string ClientId { get; }
-        public string Endpoint { get; }
+
+        [Obsolete("The Azure SDK no longer provides this information")]
+        public string Action { get; } = "";
+
+        [Obsolete("The Azure SDK no longer provides this information")]
+        public string ClientId { get; } = "";
+
+        [Obsolete("The Azure SDK no longer provides this information")]
+        public string Endpoint { get; } = "";
+        
         public string EntityPath { get; }
+        
+        public string ErrorSource { get; }
+        
+        public string FullyQualifiedNamespace { get; }
     }
 }
