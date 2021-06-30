@@ -11,13 +11,17 @@ namespace Emmersion.ServiceBus.Pools
 
     internal class ServiceBusClientPool : IServiceBusClientPool
     {
+        private readonly IServiceBusClientFactory factory;
         private readonly SemaphorePool<IServiceBusClient> pool = new SemaphorePool<IServiceBusClient>();
+
+        public ServiceBusClientPool(IServiceBusClientFactory factory)
+        {
+            this.factory = factory;
+        }
 
         public async Task<IServiceBusClient> GetClientAsync(string connectionString)
         {
-            var result = await pool.Get(connectionString,
-                () => Task.FromResult((IServiceBusClient) new ServiceBusClientWrapper(connectionString)));
-
+            var result = await pool.Get(connectionString, () => Task.FromResult(factory.Create(connectionString)));
             return result.Item;
         }
 
