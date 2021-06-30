@@ -12,7 +12,7 @@ namespace Emmersion.ServiceBus.Pools
 
     internal class ServiceBusSenderPool : IServiceBusSenderPool
     {
-        private readonly SemaphorePool<IServiceBusSender> pool = new SemaphorePool<IServiceBusSender>();
+        private readonly SemaphoreLockedPool<IServiceBusSender> pool = new SemaphoreLockedPool<IServiceBusSender>();
         private readonly IPublisherConfig publisherConfig;
         private readonly IServiceBusClientPool serviceBusClientPool;
 

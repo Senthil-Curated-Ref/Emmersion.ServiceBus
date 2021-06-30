@@ -5,12 +5,12 @@ using System.Threading.Tasks;
 
 namespace Emmersion.ServiceBus.Pools
 {
-    internal class SemaphorePool<T>
+    internal class SemaphoreLockedPool<T>
     {
         private readonly Dictionary<string, T> pool = new Dictionary<string, T>();
         private static readonly SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1,1);
         
-        public async Task<SemaphorePoolResult<T>> Get(string key, Func<Task<T>> creator)
+        public async Task<SemaphoreLockedPoolResult<T>> Get(string key, Func<Task<T>> creator)
         {
             if (!pool.ContainsKey(key))
             {
@@ -20,7 +20,7 @@ namespace Emmersion.ServiceBus.Pools
                     if (!pool.ContainsKey(key))
                     {
                         pool[key] = await creator();
-                        return new SemaphorePoolResult<T>(pool[key], true);
+                        return new SemaphoreLockedPoolResult<T>(pool[key], true);
                     }
                 }
                 finally
@@ -29,7 +29,7 @@ namespace Emmersion.ServiceBus.Pools
                 }
             }
             
-            return new SemaphorePoolResult<T>(pool[key], false);
+            return new SemaphoreLockedPoolResult<T>(pool[key], false);
         }
 
         public async Task Clear(Func<T, Task> disposeTask)
@@ -42,12 +42,12 @@ namespace Emmersion.ServiceBus.Pools
         }
     }
 
-    internal class SemaphorePoolResult<T>
+    internal class SemaphoreLockedPoolResult<T>
     {
         public T Item { get; }
         public bool NewlyCreated { get; }
 
-        public SemaphorePoolResult(T item, bool newlyCreated)
+        public SemaphoreLockedPoolResult(T item, bool newlyCreated)
         {
             Item = item;
             NewlyCreated = newlyCreated;

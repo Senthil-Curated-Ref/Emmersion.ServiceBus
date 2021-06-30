@@ -13,7 +13,7 @@ namespace Emmersion.ServiceBus.Pools
 
     internal class ServiceBusProcessorPool : IServiceBusProcessorPool
     {
-        private SemaphorePool<IServiceBusProcessor> processors = new SemaphorePool<IServiceBusProcessor>();
+        private SemaphoreLockedPool<IServiceBusProcessor> processors = new SemaphoreLockedPool<IServiceBusProcessor>();
         private readonly ISubscriptionCreator subscriptionCreator;
         private readonly IServiceBusClientPool serviceBusClientPool;
         private readonly ISubscriptionConfig subscriptionConfig;

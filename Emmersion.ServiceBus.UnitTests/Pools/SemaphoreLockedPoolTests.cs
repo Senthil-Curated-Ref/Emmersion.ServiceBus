@@ -5,14 +5,14 @@ using NUnit.Framework;
 
 namespace Emmersion.ServiceBus.UnitTests.Pools
 {
-    public class SemaphorePoolTests
+    public class SemaphoreLockedPoolTests
     {
-        private SemaphorePool<int> classUnderTest;
+        private SemaphoreLockedPool<int> classUnderTest;
 
         [SetUp]
         public void SetUp()
         {
-            classUnderTest = new SemaphorePool<int>();
+            classUnderTest = new SemaphoreLockedPool<int>();
         }
         
         [Test]
