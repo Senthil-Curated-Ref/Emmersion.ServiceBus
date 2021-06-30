@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Emmersion.ServiceBus.SdkWrappers;
 
@@ -7,37 +6,24 @@ namespace Emmersion.ServiceBus.Pools
 {
     internal interface IServiceBusClientPool : IAsyncDisposable
     {
-        IServiceBusClient GetClient(string connectionString);
+        Task<IServiceBusClient> GetClientAsync(string connectionString);
     }
 
     internal class ServiceBusClientPool : IServiceBusClientPool
     {
-        private readonly Dictionary<string, IServiceBusClient> pool = new Dictionary<string, IServiceBusClient>();
-        private static object threadLock = new object();
-        
-        public IServiceBusClient GetClient(string connectionString)
-        {
-            if (!pool.ContainsKey(connectionString))
-            {
-                lock (threadLock)
-                {
-                    if (!pool.ContainsKey(connectionString))
-                    {
-                        pool.Add(connectionString, new ServiceBusClientWrapper(connectionString));
-                    }
-                }
-            }
+        private readonly SemaphorePool<IServiceBusClient> pool = new SemaphorePool<IServiceBusClient>();
 
-            return pool[connectionString];
+        public async Task<IServiceBusClient> GetClientAsync(string connectionString)
+        {
+            var result = await pool.Get(connectionString,
+                () => Task.FromResult((IServiceBusClient) new ServiceBusClientWrapper(connectionString)));
+
+            return result.Item;
         }
 
         public async ValueTask DisposeAsync()
         {
-            foreach (var client in pool)
-            {
-                await client.Value.DisposeAsync();
-            }
-            pool.Clear();
+            await pool.Clear(async item => await item.DisposeAsync());
         }
     }
 }

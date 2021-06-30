@@ -34,7 +34,7 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
         public async Task When_getting_client_the_first_time()
         {
             var mockProcessor = new Mock<IServiceBusProcessor>();
-            GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(connectionString)).Returns(mockServiceBusClient.Object);
+            GetMock<IServiceBusClientPool>().Setup(x => x.GetClientAsync(connectionString)).ReturnsAsync(mockServiceBusClient.Object);
             mockServiceBusClient
                 .Setup(x => x.CreateProcessor(subscription.Topic.ToString(), subscription.SubscriptionName, maxConcurrentCalls))
                 .Returns(mockProcessor.Object);
@@ -49,7 +49,7 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
         public async Task When_getting_client_after_the_first_time()
         {
             var mockProcessor = new Mock<IServiceBusProcessor>();
-            GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(connectionString)).Returns(mockServiceBusClient.Object);
+            GetMock<IServiceBusClientPool>().Setup(x => x.GetClientAsync(connectionString)).ReturnsAsync(mockServiceBusClient.Object);
             mockServiceBusClient
                 .Setup(x => x.CreateProcessor(subscription.Topic.ToString(), subscription.SubscriptionName, maxConcurrentCalls))
                 .Returns(mockProcessor.Object);
@@ -66,7 +66,7 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
         public async Task When_getting_different_clients()
         {
             var mockProcessor = new Mock<IServiceBusProcessor>();
-            GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(connectionString)).Returns(mockServiceBusClient.Object);
+            GetMock<IServiceBusClientPool>().Setup(x => x.GetClientAsync(connectionString)).ReturnsAsync(mockServiceBusClient.Object);
             mockServiceBusClient
                 .Setup(x => x.CreateProcessor(subscription.Topic.ToString(), subscription.SubscriptionName, maxConcurrentCalls))
                 .Returns(mockProcessor.Object);
@@ -88,7 +88,7 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
         public async Task When_getting_a_dead_letter_client_the_first_time()
         {
             var mockProcessor = new Mock<IServiceBusProcessor>();
-            GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(connectionString)).Returns(mockServiceBusClient.Object);
+            GetMock<IServiceBusClientPool>().Setup(x => x.GetClientAsync(connectionString)).ReturnsAsync(mockServiceBusClient.Object);
             mockServiceBusClient
                 .Setup(x => x.CreateProcessor(subscription.Topic.ToString(), subscription.SubscriptionName + "/$DeadLetterQueue", maxConcurrentCalls))
                 .Returns(mockProcessor.Object);
@@ -103,7 +103,7 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
         public async Task When_getting_a_dead_letter_client_after_the_first_time()
         {
             var mockProcessor = new Mock<IServiceBusProcessor>();
-            GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(connectionString)).Returns(mockServiceBusClient.Object);
+            GetMock<IServiceBusClientPool>().Setup(x => x.GetClientAsync(connectionString)).ReturnsAsync(mockServiceBusClient.Object);
             mockServiceBusClient
                 .Setup(x => x.CreateProcessor(subscription.Topic.ToString(), subscription.SubscriptionName + "/$DeadLetterQueue", maxConcurrentCalls))
                 .Returns(mockProcessor.Object);
@@ -121,8 +121,8 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
         {
             var mockProcessor = new Mock<IServiceBusProcessor>();
             GetMock<IServiceBusClientPool>()
-                .Setup(x => x.GetClient(singleTopicConnectionString))
-                .Returns(mockServiceBusClient.Object);
+                .Setup(x => x.GetClientAsync(singleTopicConnectionString))
+                .ReturnsAsync(mockServiceBusClient.Object);
             mockServiceBusClient
                 .Setup(x => x.CreateProcessor(singleTopicName, singleTopicSubscriptionName, maxConcurrentCalls))
                 .Returns(mockProcessor.Object);
@@ -137,8 +137,8 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
         {
             var mockProcessor = new Mock<IServiceBusProcessor>();
             GetMock<IServiceBusClientPool>()
-                .Setup(x => x.GetClient(singleTopicConnectionString))
-                .Returns(mockServiceBusClient.Object);
+                .Setup(x => x.GetClientAsync(singleTopicConnectionString))
+                .ReturnsAsync(mockServiceBusClient.Object);
             mockServiceBusClient
                 .Setup(x => x.CreateProcessor(singleTopicName, singleTopicSubscriptionName, maxConcurrentCalls))
                 .Returns(mockProcessor.Object);
@@ -154,7 +154,7 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
         public async Task When_disposing_and_there_are_subscriptions()
         {
             var mockProcessor = new Mock<IServiceBusProcessor>();
-            GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(connectionString)).Returns(mockServiceBusClient.Object);
+            GetMock<IServiceBusClientPool>().Setup(x => x.GetClientAsync(connectionString)).ReturnsAsync(mockServiceBusClient.Object);
             mockServiceBusClient
                 .Setup(x => x.CreateProcessor(subscription.Topic.ToString(), subscription.SubscriptionName, maxConcurrentCalls))
                 .Returns(mockProcessor.Object);

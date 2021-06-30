@@ -39,10 +39,10 @@ namespace Emmersion.ServiceBus.Pools
 
         private async Task<IServiceBusSender> GetForTopic(string connectionString, string topicName)
         {
-            var result = await pool.Get(topicName, () =>
+            var result = await pool.Get(topicName, async () =>
             {
-                var client = serviceBusClientPool.GetClient(connectionString);
-                return Task.FromResult(client.CreateSender(topicName));
+                var client = await serviceBusClientPool.GetClientAsync(connectionString);
+                return client.CreateSender(topicName);
             });
 
             return result.Item;

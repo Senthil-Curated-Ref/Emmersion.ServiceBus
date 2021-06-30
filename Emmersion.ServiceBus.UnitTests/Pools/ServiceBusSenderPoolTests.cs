@@ -17,7 +17,7 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
             var mockServiceBusClient = new Mock<IServiceBusClient>();
             var mockSender = new Mock<IServiceBusSender>();
             GetMock<IPublisherConfig>().Setup(x => x.ConnectionString).Returns(connectionString);
-            GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(connectionString)).Returns(mockServiceBusClient.Object);
+            GetMock<IServiceBusClientPool>().Setup(x => x.GetClientAsync(connectionString)).ReturnsAsync(mockServiceBusClient.Object);
             mockServiceBusClient.Setup(x => x.CreateSender(topic.ToString())).Returns(mockSender.Object);
 
             var result = await ClassUnderTest.GetForTopicAsync(topic);
@@ -33,7 +33,7 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
             var mockServiceBusClient = new Mock<IServiceBusClient>();
             var mockSender = new Mock<IServiceBusSender>();
             GetMock<IPublisherConfig>().Setup(x => x.ConnectionString).Returns(connectionString);
-            GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(connectionString)).Returns(mockServiceBusClient.Object);
+            GetMock<IServiceBusClientPool>().Setup(x => x.GetClientAsync(connectionString)).ReturnsAsync(mockServiceBusClient.Object);
             mockServiceBusClient.Setup(x => x.CreateSender(topic.ToString())).Returns(mockSender.Object);
 
             var result1 = await ClassUnderTest.GetForTopicAsync(topic);
@@ -54,7 +54,7 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
             var mockSenderA = new Mock<IServiceBusSender>();
             var mockSenderB = new Mock<IServiceBusSender>();
             GetMock<IPublisherConfig>().Setup(x => x.ConnectionString).Returns(connectionString);
-            GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(connectionString)).Returns(mockServiceBusClient.Object);
+            GetMock<IServiceBusClientPool>().Setup(x => x.GetClientAsync(connectionString)).ReturnsAsync(mockServiceBusClient.Object);
             mockServiceBusClient.Setup(x => x.CreateSender(topicA.ToString())).Returns(mockSenderA.Object);
             mockServiceBusClient.Setup(x => x.CreateSender(topicB.ToString())).Returns(mockSenderB.Object);
 
@@ -80,7 +80,7 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
             var mockSenderA = new Mock<IServiceBusSender>();
             var mockSenderB = new Mock<IServiceBusSender>();
             GetMock<IPublisherConfig>().Setup(x => x.ConnectionString).Returns(connectionString);
-            GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(connectionString)).Returns(mockServiceBusClient.Object);
+            GetMock<IServiceBusClientPool>().Setup(x => x.GetClientAsync(connectionString)).ReturnsAsync(mockServiceBusClient.Object);
             mockServiceBusClient.Setup(x => x.CreateSender(topicA.ToString())).Returns(mockSenderA.Object);
             mockServiceBusClient.Setup(x => x.CreateSender(topicB.ToString())).Returns(mockSenderB.Object);
             await ClassUnderTest.GetForTopicAsync(topicA);
@@ -101,7 +101,7 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
             var mockSender = new Mock<IServiceBusSender>();
             GetMock<IPublisherConfig>().Setup(x => x.SingleTopicConnectionString).Returns(singleTopicConnectionString);
             GetMock<IPublisherConfig>().Setup(x => x.SingleTopicName).Returns(singleTopicName);
-            GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(singleTopicConnectionString)).Returns(mockServiceBusClient.Object);
+            GetMock<IServiceBusClientPool>().Setup(x => x.GetClientAsync(singleTopicConnectionString)).ReturnsAsync(mockServiceBusClient.Object);
             mockServiceBusClient.Setup(x => x.CreateSender(singleTopicName)).Returns(mockSender.Object);
 
             var result = await ClassUnderTest.GetForSingleTopicAsync();
@@ -118,7 +118,7 @@ namespace Emmersion.ServiceBus.UnitTests.Pools
             var mockSender = new Mock<IServiceBusSender>();
             GetMock<IPublisherConfig>().Setup(x => x.SingleTopicConnectionString).Returns(singleTopicConnectionString);
             GetMock<IPublisherConfig>().Setup(x => x.SingleTopicName).Returns(singleTopicName);
-            GetMock<IServiceBusClientPool>().Setup(x => x.GetClient(singleTopicConnectionString)).Returns(mockServiceBusClient.Object);
+            GetMock<IServiceBusClientPool>().Setup(x => x.GetClientAsync(singleTopicConnectionString)).ReturnsAsync(mockServiceBusClient.Object);
             mockServiceBusClient.Setup(x => x.CreateSender(singleTopicName)).Returns(mockSender.Object);
 
             var result1 = await ClassUnderTest.GetForSingleTopicAsync();

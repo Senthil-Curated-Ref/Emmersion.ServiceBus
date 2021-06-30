@@ -44,7 +44,7 @@ namespace Emmersion.ServiceBus.Pools
             var processor = await processors.Get(key, async () =>
             {
                 await subscriptionCreator.CreateSubscriptionIfNecessaryAsync(subscription);
-                var client = serviceBusClientPool.GetClient(subscriptionConfig.ConnectionString);
+                var client = await serviceBusClientPool.GetClientAsync(subscriptionConfig.ConnectionString);
                 return client.CreateProcessor(
                     subscription.Topic.ToString(),
                     subscription.SubscriptionName + suffix,
@@ -61,13 +61,13 @@ namespace Emmersion.ServiceBus.Pools
 
         public async Task<IServiceBusProcessor> GetSingleTopicProcessorIfFirstTime()
         {
-            var processor = await processors.Get("single-topic", () =>
+            var processor = await processors.Get("single-topic", async () =>
             {
-                var client = serviceBusClientPool.GetClient(subscriptionConfig.SingleTopicConnectionString);
-                return Task.FromResult(client.CreateProcessor(
+                var client = await serviceBusClientPool.GetClientAsync(subscriptionConfig.SingleTopicConnectionString);
+                return client.CreateProcessor(
                     subscriptionConfig.SingleTopicName,
                     subscriptionConfig.SingleTopicSubscriptionName,
-                    subscriptionConfig.MaxConcurrentMessages));
+                    subscriptionConfig.MaxConcurrentMessages);
             });
 
             if (processor.NewlyCreated)
