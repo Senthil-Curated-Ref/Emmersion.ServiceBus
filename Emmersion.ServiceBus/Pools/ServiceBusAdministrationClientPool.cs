@@ -1,37 +1,29 @@
+using System.Threading.Tasks;
 using Emmersion.ServiceBus.SdkWrappers;
 
 namespace Emmersion.ServiceBus.Pools
 {
     internal interface IServiceBusAdministrationClientPool
     {
-        IServiceBusAdministrationClient GetClient();
+        Task<IServiceBusAdministrationClient> GetClientAsync();
     }
 
     internal class ServiceBusAdministrationClientPool : IServiceBusAdministrationClientPool
     {
         private readonly ISubscriptionConfig config;
-        private IServiceBusAdministrationClient client;
-        private static object threadLock = new object();
+        private SemaphorePool<IServiceBusAdministrationClient> pool = new SemaphorePool<IServiceBusAdministrationClient>();
 
         public ServiceBusAdministrationClientPool(ISubscriptionConfig config)
         {
             this.config = config;
         }
 
-        public IServiceBusAdministrationClient GetClient()
+        public async Task<IServiceBusAdministrationClient> GetClientAsync()
         {
-            if (client == null)
-            {
-                lock (threadLock)
-                {
-                    if (client == null)
-                    {
-                        client = new ServiceBusAdministrationClient(config.ConnectionString);
-                    }
-                }
-            }
+            var result = await pool.Get(config.ConnectionString, () =>
+                Task.FromResult((IServiceBusAdministrationClient) new ServiceBusAdministrationClient(config.ConnectionString)));
 
-            return client;
+            return result.Item;
         }
     }
 }

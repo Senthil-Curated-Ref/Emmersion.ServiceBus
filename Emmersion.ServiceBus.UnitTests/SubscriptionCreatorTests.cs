@@ -17,8 +17,8 @@ namespace Emmersion.ServiceBus.UnitTests
         public void SetUp()
         {
             GetMock<IServiceBusAdministrationClientPool>()
-                .Setup(x => x.GetClient())
-                .Returns(GetMock<IServiceBusAdministrationClient>().Object);
+                .Setup(x => x.GetClientAsync())
+                .ReturnsAsync(GetMock<IServiceBusAdministrationClient>().Object);
         }
 
         [Test]

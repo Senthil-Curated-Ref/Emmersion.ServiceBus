@@ -21,7 +21,7 @@ namespace Emmersion.ServiceBus
 
         public async Task CreateSubscriptionIfNecessaryAsync(Subscription subscription)
         {   
-            var client = serviceBusAdministrationClientPool.GetClient();
+            var client = await serviceBusAdministrationClientPool.GetClientAsync();
             var topicName = subscription.Topic.ToString();
             var subscriptionName = subscription.SubscriptionName;
             var subscriptionExists = await client.DoesSubscriptionExistAsync(topicName, subscriptionName);
