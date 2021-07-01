@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
-using Microsoft.Azure.ServiceBus.Management;
+using Azure.Messaging.ServiceBus.Administration;
+using Emmersion.ServiceBus.Pools;
 
 namespace Emmersion.ServiceBus
 {
@@ -11,16 +12,16 @@ namespace Emmersion.ServiceBus
 
     internal class SubscriptionCreator : ISubscriptionCreator
     {
-        private IManagementClientWrapperPool managementClientWrapperPool;
+        private readonly IServiceBusAdministrationClientPool serviceBusAdministrationClientPool;
         
-        public SubscriptionCreator(IManagementClientWrapperPool managementClientWrapperPool)
+        public SubscriptionCreator(IServiceBusAdministrationClientPool serviceBusAdministrationClientPool)
         {
-            this.managementClientWrapperPool = managementClientWrapperPool;
+            this.serviceBusAdministrationClientPool = serviceBusAdministrationClientPool;
         }
 
         public async Task CreateSubscriptionIfNecessaryAsync(Subscription subscription)
         {   
-            var client = managementClientWrapperPool.GetClient();
+            var client = await serviceBusAdministrationClientPool.GetClientAsync();
             var topicName = subscription.Topic.ToString();
             var subscriptionName = subscription.SubscriptionName;
             var subscriptionExists = await client.DoesSubscriptionExistAsync(topicName, subscriptionName);
@@ -35,13 +36,13 @@ namespace Emmersion.ServiceBus
                 throw new Exception($"Topic {topicName} does not exist");
             }
 
-            var description = new SubscriptionDescription(topicName, subscriptionName)
+            var description = new CreateSubscriptionOptions(topicName, subscriptionName)
             {
                 MaxDeliveryCount = 10,
                 AutoDeleteOnIdle = subscriptionName.Contains("auto-delete") ? TimeSpan.FromMinutes(5) : TimeSpan.MaxValue,
                 DefaultMessageTimeToLive = TimeSpan.FromDays(14),
                 EnableDeadLetteringOnFilterEvaluationExceptions = true,
-                EnableDeadLetteringOnMessageExpiration = true,
+                DeadLetteringOnMessageExpiration = true,
                 LockDuration = TimeSpan.FromSeconds(30)
             };
             await client.CreateSubscriptionAsync(description);

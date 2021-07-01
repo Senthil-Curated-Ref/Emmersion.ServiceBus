@@ -4,7 +4,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Azure.ServiceBus;
+using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.Configuration;
 
 namespace AdHocs
@@ -30,20 +30,21 @@ namespace AdHocs
 
             Console.WriteLine($"Draining dead letters from {topic}/{deadLetterSubscription}");
             
-            var client = new SubscriptionClient(connectionString, topic, deadLetterSubscription);
-            var options = new MessageHandlerOptions(WriteException)
+            await using var client = new ServiceBusClient(connectionString);
+            var processor = client.CreateProcessor(topic, deadLetterSubscription, new ServiceBusProcessorOptions
             {
                 MaxConcurrentCalls = 5
-            };
-            client.RegisterMessageHandler((message, _) => AddMessageToBuffer(message), options);
+            });
+            processor.ProcessMessageAsync += AddMessageToBuffer;
+            processor.ProcessErrorAsync += WriteException;
+            await processor.StartProcessingAsync();
 
-            var timer = new Timer(WriteBuffer, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+            await using var timer = new Timer(WriteBuffer, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
 
             Console.WriteLine("Press ENTER to stop.");
             await Console.In.ReadLineAsync();
-
-            await client.CloseAsync();
-            timer.Dispose();
+            
+            await processor.CloseAsync();
             WriteBuffer(null);
             Console.WriteLine("Stopped.");
         }
@@ -61,16 +62,16 @@ namespace AdHocs
             }
         }
 
-        private static Task WriteException(ExceptionReceivedEventArgs args)
+        private static Task WriteException(ProcessErrorEventArgs args)
         {
             Console.WriteLine("EXCEPTION:");
             Console.WriteLine(args.Exception.Message);
             return Task.CompletedTask;
         }
 
-        private static Task AddMessageToBuffer(Message message)
+        private static Task AddMessageToBuffer(ProcessMessageEventArgs args)
         {
-            MessageBuffer.Add(Encoding.UTF8.GetString(message.Body) + Environment.NewLine);
+            MessageBuffer.Add(Encoding.UTF8.GetString(args.Message.Body) + Environment.NewLine);
 
             Count++;
             var count = Count;

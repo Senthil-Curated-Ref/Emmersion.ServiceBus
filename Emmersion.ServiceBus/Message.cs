@@ -4,10 +4,10 @@ namespace Emmersion.ServiceBus
 {
     public class Message<T>
     {
-        public string MessageId { get; private set; } = Guid.NewGuid().ToString();
-        public string CorrelationId { get; set; }
-        public Topic Topic { get; private set; }
-        public T Body { get; private set; }
+        public string MessageId { get; } = Guid.NewGuid().ToString();
+        public string CorrelationId { get; set; } = "";
+        public Topic Topic { get; }
+        public T Body { get; }
         public DateTimeOffset? PublishedAt { get; internal set; }
         public DateTimeOffset? EnqueuedAt { get; internal set; }
         public DateTimeOffset? ReceivedAt { get; internal set; }
@@ -19,6 +19,7 @@ namespace Emmersion.ServiceBus
             Body = body;
         }
 
+        [Obsolete("Use TestMessageBuilder to set protected fields for testing")]
         public Message(Topic topic, T body, DateTimeOffset? publishedAt, DateTimeOffset? enqueuedAt, DateTimeOffset? receivedAt)
         {
             Topic = topic;

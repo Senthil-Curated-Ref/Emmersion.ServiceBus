@@ -65,7 +65,7 @@ var message = new UserAssessmentScored
     UserAssessmentId = userAssessmentId,
     UserId = userId
 };
-publisher.PublishAsync(event, message);
+await publisher.PublishAsync(event, message);
 ```
 
 To track metrics about all messages sent through the `IMessagePublisher`:
@@ -93,7 +93,8 @@ await subscriber.SubscribeAsync(subscription, async (Message<UserAssessmentScore
 
 Note that you are given the entire message object, which contains additional information such as `MessageId` and `CorrelationId`.
 
-Calling `Subscribe` will create the topic subscription in Azure automatically (if it didn't already exist).
+Calling `Subscribe` will create the subscription in Azure automatically (if it didn't already exist)
+but will fail if the topic does not exist.
 If the name of the subscription contains the text `auto-delete` then it will delete itself after it is idle for 5 minutes.
 
 The library also provides a way to subscribe to the dead letter queue (multi-topic only).
@@ -183,6 +184,15 @@ dotnet user-secrets set 'ServiceBus:SingleTopicConnectionString' 'your-connectio
 
 ## Changes & Upgrading Info
 
+### v4.1
+* Migrated dependency from `Microsoft.Azure.ServiceBus` to `Azure.Messaging.ServiceBus`
+* Deprecated the older single-topic `Subscribe` methods (which took a `MessageEvent`)
+  because the SDK change introduced a `.Wait()`.
+  Please use `SubscribeAsync` instead.
+* Deprecated a `Message` constructor in favor of the `TestMessageBuilder`
+* `ExceptionArgs` now exposes new data from the updated SDK
+  and has deprecated old data which is now unavailable.  
+
 ### v4.0
 Changed namespace from `EL.` to `Emmersion.`
 
@@ -194,7 +204,7 @@ Added `async..await` support:
     * `PublishScheduledAsync`
     * `SubscribeAsync`
     * `SubscribeToDeadLettersAsync`
-* Older  methods were deprecated because they utilize a `.Wait()`
+* Older methods were deprecated because they utilize a `.Wait()`
   which may not interact well with `async..await`:
     * `Publish`
     * `PublishScheduled`

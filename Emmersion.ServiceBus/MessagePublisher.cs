@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using Azure.Messaging.ServiceBus;
+using Emmersion.ServiceBus.Pools;
+using Emmersion.ServiceBus.SdkWrappers;
 
 namespace Emmersion.ServiceBus
 {
@@ -26,17 +29,17 @@ namespace Emmersion.ServiceBus
 
     internal class MessagePublisher : IMessagePublisher
     {
-        private readonly ITopicClientWrapperPool pool;
+        private readonly IServiceBusSenderPool pool;
         private readonly IMessageMapper messageMapper;
         private readonly IPublisherConfig config;
 
         public event OnMessagePublished OnMessagePublished;
 
-        public MessagePublisher(ITopicClientWrapperPool topicClientWrapperPool,
+        public MessagePublisher(IServiceBusSenderPool serviceBusSenderPool,
             IMessageMapper messageMapper,
             IPublisherConfig config)
         {
-            pool = topicClientWrapperPool;
+            pool = serviceBusSenderPool;
             this.messageMapper = messageMapper;
             this.config = config;
         }
@@ -49,7 +52,7 @@ namespace Emmersion.ServiceBus
         
         public async Task PublishAsync<T>(Message<T> message)
         {
-            await Publish(message, null, (client, data) => client.SendAsync(data));
+            await Publish(message, null, (sender, data) => sender.SendAsync(data));
         }
 
         [Obsolete("Use PublishScheduledAsync instead")]
@@ -60,18 +63,18 @@ namespace Emmersion.ServiceBus
         
         public async Task PublishScheduledAsync<T>(Message<T> message, DateTimeOffset enqueueAt)
         {
-            await Publish(message, enqueueAt, (client, data) => client.ScheduleMessageAsync(data, enqueueAt));
+            await Publish(message, enqueueAt, (sender, data) => sender.ScheduleMessageAsync(data, enqueueAt));
         }
 
-        private async Task Publish<T>(Message<T> message, DateTimeOffset? enqueueAt, Func<ITopicClientWrapper, Microsoft.Azure.ServiceBus.Message, Task> sendTask)
+        private async Task Publish<T>(Message<T> message, DateTimeOffset? enqueueAt, Func<IServiceBusSender, ServiceBusMessage, Task> sendTask)
         {
-            var client = pool.GetForTopic(message.Topic);
+            var sender = await pool.GetForTopicAsync(message.Topic);
             var stopwatch = Stopwatch.StartNew();
-            await sendTask(client, PrepareMessage(message, enqueueAt));
+            await sendTask(sender, PrepareMessage(message, enqueueAt));
             OnMessagePublished?.Invoke(this, new MessagePublishedArgs(stopwatch.ElapsedMilliseconds));
         }
 
-        private Microsoft.Azure.ServiceBus.Message PrepareMessage<T>(Message<T> message, DateTimeOffset? enqueueAt)
+        private ServiceBusMessage PrepareMessage<T>(Message<T> message, DateTimeOffset? enqueueAt)
         {
             message.PublishedAt = DateTimeOffset.UtcNow;
             message.EnqueuedAt = enqueueAt ?? message.PublishedAt;
@@ -87,13 +90,13 @@ namespace Emmersion.ServiceBus
         
         public async Task PublishAsync<T>(MessageEvent messageEvent, T message)
         {
-            var client = pool.GetForSingleTopic();
+            var sender = await pool.GetForSingleTopicAsync();
             var stopwatch = Stopwatch.StartNew();
-            await client.SendAsync(PrepareMessage(messageEvent, message));
+            await sender.SendAsync(PrepareMessage(messageEvent, message));
             OnMessagePublished?.Invoke(this, new MessagePublishedArgs(stopwatch.ElapsedMilliseconds));
         }
 
-        private Microsoft.Azure.ServiceBus.Message PrepareMessage<T>(MessageEvent messageEvent, T message)
+        private ServiceBusMessage PrepareMessage<T>(MessageEvent messageEvent, T message)
         {
             var envelope = new MessageEnvelope<T> {
                 MessageEvent = messageEvent.ToString(),
