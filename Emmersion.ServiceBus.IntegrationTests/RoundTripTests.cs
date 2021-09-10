@@ -168,11 +168,11 @@ namespace Emmersion.ServiceBus.IntegrationTests
                 messagePublishDurations.Add(args.ElapsedMilliseconds);
             };
 
-            await publisher.PublishScheduledAsync(message, DateTimeOffset.UtcNow.AddSeconds(2));
+            await publisher.PublishScheduledAsync(message, DateTimeOffset.UtcNow.AddSeconds(5));
             
             var waited = 0;
             var expectedMessageCount = 1;
-            while (receivedMessageCount < expectedMessageCount && waited < 5000)
+            while (receivedMessageCount < expectedMessageCount && waited < 7000)
             {
                 Thread.Sleep(100);
                 waited += 100;
@@ -186,8 +186,8 @@ namespace Emmersion.ServiceBus.IntegrationTests
 
             Assert.That(receivedMessageCount, Is.GreaterThanOrEqualTo(expectedMessageCount), $"Did not get the expected number of messages");
             Assert.That(messageRoundTripDurations.Count, Is.GreaterThanOrEqualTo(receivedMessageCount), "Did not get the expected number of round trip durations");
-            Assert.That(messageRoundTripDurations.Max(), Is.LessThanOrEqualTo(4000), $"Expected round trip durations to be < 4000ms");
-            Assert.That(messageRoundTripDurations.Min(), Is.GreaterThanOrEqualTo(2000), $"Expected round trip durations to be >= 2000ms");
+            Assert.That(messageRoundTripDurations.Max(), Is.LessThanOrEqualTo(6000), $"Expected round trip durations to be < 6000ms");
+            Assert.That(messageRoundTripDurations.Min(), Is.GreaterThanOrEqualTo(4000), $"Expected round trip durations to be >= 4000ms");
             Assert.That(messageQueueDurations.Max(), Is.LessThanOrEqualTo(2000), $"Expected queue durations to be < 2000ms");
             Assert.That(messageQueueDurations.Min(), Is.GreaterThanOrEqualTo(0), $"Expected queue durations to be >= 0ms");
             Assert.That(messagePublishDurations.Count, Is.EqualTo(expectedMessageCount), "Did not get the expected number of publish durations");
