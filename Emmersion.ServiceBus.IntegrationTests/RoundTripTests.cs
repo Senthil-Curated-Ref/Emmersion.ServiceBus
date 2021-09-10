@@ -149,7 +149,7 @@ namespace Emmersion.ServiceBus.IntegrationTests
             {
                 var roundTripDuration = (args.ReceivedAt - args.PublishedAt.Value).TotalMilliseconds;
                 messageRoundTripDurations.Add(roundTripDuration);
-                var queueDuration = (args.ReceivedAt - args.EnqueuedAt.Value).TotalMilliseconds;
+                var queueDuration = Math.Abs((args.ReceivedAt - args.EnqueuedAt.Value).TotalMilliseconds);
                 messageQueueDurations.Add(queueDuration);
             };
             
